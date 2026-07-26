@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>时间轴日记</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  button { font-family: inherit; cursor: pointer; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #F4F1EA;
+    color: #2C2C2A;
+    padding: env(safe-area-inset-top) 16px 100px;
+    min-height: 100vh;
+    position: relative;
+  }
+  #bg-layer {
+    position: fixed;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: -1;
+  }
+  .header { padding: 24px 0 12px; }
+  .header h1 { font-size: 20px; font-weight: 500; margin: 0 0 2px; }
+  .header p { font-size: 13px; color: #767570; margin: 0; }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .search-box {
+    flex: 1;
+    min-width: 140px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #FFFFFF;
+    border: 0.5px solid #E1E0D9;
+    border-radius: 12px;
+    padding: 8px 12px;
+  }
+  .search-box input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    width: 100%;
+    color: #2C2C2A;
+  }
+  .search-box i { color: #B4B2A9; font-size: 16px; }
+  .filter-btn {
+    background: #FFFFFF;
+    border: 0.5px solid #E1E0D9;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #52514E;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .filter-btn.active-filter {
+    background: #1B3A6B;
+    color: #FFFFFF;
+    border-color: #1B3A6B;
+  }
+
+  .filter-panel {
+    display: none;
+    background: #FFFFFF;
+    border: 0.5px solid #E1E0D9;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .filter-panel.open { display: block; }
+  .filter-panel label { font-size: 12px; color: #767570; display: block; margin: 0 0 6px; }
+  .filter-panel .date-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .filter-panel input[type="date"] {
+    flex: 1;
+    font-size: 13px;
+    padding: 7px 8px;
+    border-radius: 8px;
+    border: 0.5px solid #E1E0D9;
+    background: #FCFCFB;
+  }
+  .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .tag-chip {
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 14px;
+    border: 0.5px solid #E1E0D9;
+    background: #FCFCFB;
+    color: #52514E;
+  }
+  .tag-chip.selected {
+    background: #E6F1FB;
+    border-color: #85B7EB;
+    color: #0C447C;
+  }
+  .manage-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    padding: 5px 6px 5px 10px;
+    border-radius: 14px;
+    border: 0.5px solid #E1E0D9;
+    background: #FCFCFB;
+    color: #52514E;
+  }
+  .manage-chip button {
+    background: transparent;
+    border: none;
+    color: #C7C6BE;
+    font-size: 13px;
+    padding: 0 2px;
+    display: flex;
+    align-items: center;
+  }
+  .filter-clear {
+    font-size: 12px;
+    color: #B4B2A9;
+    text-align: center;
+    padding-top: 4px;
+  }
+
+  .timeline { position: relative; padding-left: 0; margin-top: 8px; }
+  .date-group { margin-bottom: 14px; }
+  .entry-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+  }
+  .entry-date-col {
+    width: 52px;
+    flex-shrink: 0;
+    text-align: right;
+    padding-top: 14px;
+  }
+  .entry-date-day { font-size: 18px; font-weight: 500; color: #2C2C2A; line-height: 1; }
+  .entry-date-month { font-size: 10px; color: #B4B2A9; margin-top: 2px; }
+  .entry-date-weekday { font-size: 9px; color: #C7C6BE; }
+  .entry-card {
+    flex: 1;
+    background: rgba(255,255,255,0.55);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 0.5px solid rgba(225,224,217,0.7);
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 4px 16px rgba(44,44,42,0.06);
+  }
+  .entry-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .entry-content { font-size: 14px; line-height: 1.6; color: #2C2C2A; }
+  .entry-content .entry-tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(241,239,232,0.8);
+    color: #767570;
+    margin: 0 5px 3px 0;
+    vertical-align: middle;
+  }
+  .entry-content .entry-tag.src-yan { background: rgba(250,238,218,0.85); color: #854F0B; }
+  .entry-text-inline { white-space: pre-wrap; }
+  .entry-meta {
+    font-size: 10px;
+    color: #C7C6BE;
+    margin-top: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .entry-delete {
+    color: #C7C6BE;
+    font-size: 14px;
+    padding: 2px 6px;
+    background: transparent;
+    border: none;
+    flex-shrink: 0;
+  }
+  .empty-state {
+    text-align: center;
+    color: #B4B2A9;
+    font-size: 13px;
+    padding: 40px 20px;
+  }
+
+  .fab {
+    position: fixed;
+    right: 20px;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #1B3A6B;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(27,58,107,0.35);
+    font-size: 24px;
+    z-index: 50;
+  }
+
+  .sheet-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(44,44,42,0.4);
+    z-index: 90;
+  }
+  .sheet-backdrop.open { display: block; }
+  .sheet {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: #F4F1EA;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+    transform: translateY(100%);
+    transition: transform 0.25s ease;
+    z-index: 91;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  .sheet.open { transform: translateY(0); }
+  .sheet h2 { font-size: 16px; font-weight: 500; margin: 0 0 14px; }
+  .sheet label { font-size: 12px; color: #767570; display: block; margin: 12px 0 5px; }
+  .sheet input[type="date"], .sheet textarea, .sheet input[type="text"] {
+    width: 100%;
+    font-size: 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 0.5px solid #E1E0D9;
+    background: #FFFFFF;
+    font-family: inherit;
+  }
+  .sheet textarea { min-height: 90px; resize: vertical; }
+  .source-toggle { display: flex; gap: 8px; margin-top: 4px; }
+  .source-toggle button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: 0.5px solid #E1E0D9;
+    background: #FFFFFF;
+    font-size: 13px;
+    color: #767570;
+  }
+  .source-toggle button.selected { background: #1B3A6B; color: #FFFFFF; border-color: #1B3A6B; }
+  .sheet-actions { display: flex; gap: 8px; margin-top: 18px; }
+  .sheet-actions button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    font-size: 14px;
+  }
+  .btn-cancel { background: #FFFFFF; border: 0.5px solid #E1E0D9 !important; color: #767570; }
+  .btn-save { background: #1B3A6B; color: #FFFFFF; }
+
+  .trash-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid #F1EFE8;
+  }
+  .trash-item:last-child { border-bottom: none; }
+  .trash-item-text {
+    font-size: 12px;
+    color: #767570;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .trash-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .trash-item-actions button {
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 0.5px solid #E1E0D9;
+    background: #FCFCFB;
+    color: #52514E;
+  }
+  .settings-toggle { text-align: center; font-size: 12px; color: #B4B2A9; margin: 24px 0 8px; padding: 6px; }
+  .settings-panel { display: none; background: #FFFFFF; border-radius: 12px; border: 0.5px solid #E1E0D9; padding: 14px; }
+  .settings-panel.open { display: block; }
+  .settings-panel label { display: block; font-size: 12px; color: #767570; margin: 10px 0 4px; }
+  .settings-panel input { width: 100%; font-size: 13px; padding: 8px 10px; border-radius: 8px; border: 0.5px solid #E1E0D9; background: #FCFCFB; }
+  .settings-save { margin-top: 12px; width: 100%; padding: 10px; border-radius: 10px; border: none; background: #1B3A6B; color: #FFFFFF; font-size: 13px; }
+  .cloud-row { display: flex; gap: 8px; margin-top: 8px; }
+  .backup-btn { flex: 1; padding: 12px; border-radius: 12px; border: 0.5px solid #E1E0D9; background: #FFFFFF; font-size: 13px; color: #52514E; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .settings-hint { font-size: 11px; color: #B4B2A9; margin-top: 10px; line-height: 1.5; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 90px;
+    transform: translateX(-50%) translateY(20px);
+    background: #2C2C2A;
+    color: #FFFFFF;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div id="bg-layer"></div>
+
+<div class="header">
+  <h1>时间轴日记</h1>
+  <p>五月 &amp; 言的每日记录</p>
+</div>
+
+<div class="toolbar">
+  <div class="search-box">
+    <i class="ti ti-search" aria-hidden="true"></i>
+    <input type="text" id="search-input" placeholder="搜索关键词">
+  </div>
+  <button class="filter-btn" id="filter-toggle"><i class="ti ti-filter" aria-hidden="true"></i>筛选</button>
+</div>
+
+<div class="filter-panel" id="filter-panel">
+  <label>日期范围</label>
+  <div class="date-row">
+    <input type="date" id="filter-date-from">
+    <input type="date" id="filter-date-to">
+  </div>
+  <label>标签</label>
+  <div class="tag-chips" id="tag-chips"></div>
+  <label>记录来源</label>
+  <div class="tag-chips" id="source-chips"></div>
+  <div class="filter-clear" id="filter-clear">清除筛选</div>
+</div>
+
+<div class="timeline" id="timeline"></div>
+
+<div class="fab" id="add-fab"><i class="ti ti-plus" aria-hidden="true"></i></div>
+
+<div class="sheet-backdrop" id="sheet-backdrop"></div>
+<div class="sheet" id="sheet">
+  <h2 id="sheet-title">新增记录</h2>
+  <label>日期</label>
+  <input type="date" id="entry-date">
+  <label>谁记的</label>
+  <div class="source-toggle">
+    <button type="button" id="src-user-btn" class="selected">五月</button>
+    <button type="button" id="src-yan-btn">言</button>
+  </div>
+  <label>标签（可多选）</label>
+  <div class="tag-chips" id="sheet-tag-chips"></div>
+  <label>内容</label>
+  <textarea id="entry-text" placeholder="今天发生了什么…"></textarea>
+  <div class="sheet-actions">
+    <button class="btn-cancel" id="sheet-cancel">取消</button>
+    <button class="btn-save" id="sheet-save">保存</button>
+  </div>
+</div>
+
+<div class="settings-toggle" id="tags-toggle">管理标签</div>
+<div class="settings-panel" id="tags-panel">
+  <label>当前标签</label>
+  <div class="tag-chips" id="manage-tag-chips"></div>
+  <label>新增标签</label>
+  <div style="display:flex;gap:8px;">
+    <input type="text" id="new-tag-input" placeholder="输入新标签名称" style="flex:1;">
+    <button class="settings-save" id="add-tag-btn" style="width:auto;padding:8px 16px;margin-top:0;">添加</button>
+  </div>
+  <p class="settings-hint">点标签上的 × 可删除。删除标签不会影响已经打过这个标签的旧记录。</p>
+</div>
+
+<div class="settings-toggle" id="trash-toggle">回收站</div>
+<div class="settings-panel" id="trash-panel">
+  <div id="trash-list"></div>
+  <p class="settings-hint">删除的记录会在这里保留7天，之后自动清空。</p>
+</div>
+
+<div class="settings-toggle" id="settings-toggle">云备份设置</div>
+<div class="settings-panel" id="settings-panel">
+  <label>GitHub 用户名</label>
+  <input type="text" id="gh-owner" placeholder="sugatsu7-claude">
+  <label>仓库名</label>
+  <input type="text" id="gh-repo" placeholder="timeline-diary">
+  <label>Personal Access Token</label>
+  <input type="password" id="gh-token" placeholder="ghp_ 或 github_pat_ 开头">
+  <label>自定义背景图片网址（可选，留空则用默认米色）</label>
+  <input type="text" id="bg-url" placeholder="https://...jpg">
+  <button class="settings-save" id="settings-save-btn">保存设置</button>
+  <div class="cloud-row">
+    <button class="backup-btn" id="cloud-backup-btn"><i class="ti ti-cloud-up" aria-hidden="true"></i>一键云备份</button>
+    <button class="backup-btn" id="cloud-restore-btn"><i class="ti ti-cloud-down" aria-hidden="true"></i>从云端恢复</button>
+  </div>
+  <p class="settings-hint">Token只存在这台设备本地。去 GitHub → Settings → Developer settings → Fine-grained tokens 新建一个，权限只勾选这个仓库的 Contents 读写即可。</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var STORAGE_KEY = 'penang_timeline_diary';
+var TRASH_KEY = 'penang_timeline_trash';
+var trash = [];
+try { trash = JSON.parse(localStorage.getItem(TRASH_KEY) || '[]'); } catch (e) { trash = []; }
+
+function saveTrash() { localStorage.setItem(TRASH_KEY, JSON.stringify(trash)); }
+
+function purgeOldTrash() {
+  var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  var before = trash.length;
+  trash = trash.filter(function (t) { return (t.deletedAt || 0) > cutoff; });
+  if (trash.length !== before) saveTrash();
+}
+purgeOldTrash();
+var GH_SETTINGS_KEY = 'penang_timeline_gh_settings';
+
+var entries = [];
+try { entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch (e) { entries = []; }
+
+var activeFilters = { from: '', to: '', tags: [], search: '', source: '' };
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(function () { t.classList.remove('show'); }, 2000);
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function todayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function saveEntries() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+function allTags() {
+  var set = {};
+  entries.forEach(function (e) { (e.tags || []).forEach(function (t) { set[t] = true; }); });
+  return Object.keys(set).sort();
+}
+
+function renderTagChips() {
+  var wrap = document.getElementById('tag-chips');
+  var tags = allTags();
+  wrap.innerHTML = '';
+  if (tags.length === 0) {
+    wrap.innerHTML = '<span style="font-size:12px;color:#C7C6BE;">还没有标签</span>';
+    return;
+  }
+  tags.forEach(function (tag) {
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'tag-chip' + (activeFilters.tags.indexOf(tag) > -1 ? ' selected' : '');
+    chip.textContent = tag;
+    chip.onclick = function () {
+      var idx = activeFilters.tags.indexOf(tag);
+      if (idx > -1) activeFilters.tags.splice(idx, 1);
+      else activeFilters.tags.push(tag);
+      renderTagChips();
+      renderTimeline();
+      updateFilterBtnState();
+    };
+    wrap.appendChild(chip);
+  });
+}
+
+function renderSourceChips() {
+  var wrap = document.getElementById('source-chips');
+  wrap.innerHTML = '';
+  [{ key: 'user', label: '✏️ 五月' }, { key: 'yan', label: '💬 言' }].forEach(function (opt) {
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'tag-chip' + (activeFilters.source === opt.key ? ' selected' : '');
+    chip.textContent = opt.label;
+    chip.onclick = function () {
+      activeFilters.source = activeFilters.source === opt.key ? '' : opt.key;
+      renderSourceChips();
+      renderTimeline();
+      updateFilterBtnState();
+    };
+    wrap.appendChild(chip);
+  });
+}
+
+function updateFilterBtnState() {
+  var isActive = activeFilters.from || activeFilters.to || activeFilters.tags.length > 0 || activeFilters.source;
+  document.getElementById('filter-toggle').classList.toggle('active-filter', !!isActive);
+}
+
+function matchesFilter(entry) {
+  if (activeFilters.from && entry.date < activeFilters.from) return false;
+  if (activeFilters.to && entry.date > activeFilters.to) return false;
+  if (activeFilters.source && entry.source !== activeFilters.source) return false;
+  if (activeFilters.tags.length > 0) {
+    var hasAll = activeFilters.tags.every(function (t) { return (entry.tags || []).indexOf(t) > -1; });
+    if (!hasAll) return false;
+  }
+  if (activeFilters.search) {
+    var q = activeFilters.search.toLowerCase();
+    var inText = (entry.text || '').toLowerCase().indexOf(q) > -1;
+    var inTags = (entry.tags || []).some(function (t) { return t.toLowerCase().indexOf(q) > -1; });
+    if (!inText && !inTags) return false;
+  }
+  return true;
+}
+
+function renderTimeline() {
+  var container = document.getElementById('timeline');
+  container.innerHTML = '';
+  var filtered = entries.filter(matchesFilter);
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state">还没有符合条件的记录<br>点右下角 + 开始记录吧</div>';
+    return;
+  }
+  var byDate = {};
+  filtered.forEach(function (e) {
+    if (!byDate[e.date]) byDate[e.date] = [];
+    byDate[e.date].push(e);
+  });
+  var dates = Object.keys(byDate).sort().reverse();
+  var weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  dates.forEach(function (date) {
+    var group = document.createElement('div');
+    group.className = 'date-group';
+    var d = new Date(date + 'T00:00:00');
+    byDate[date].sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+    byDate[date].forEach(function (entry, idx) {
+      var row = document.createElement('div');
+      row.className = 'entry-row';
+
+      var dateCol = document.createElement('div');
+      dateCol.className = 'entry-date-col';
+      if (idx === 0) {
+        dateCol.innerHTML =
+          '<div class="entry-date-day">' + d.getDate() + '</div>' +
+          '<div class="entry-date-month">' + (d.getMonth() + 1) + '月</div>' +
+          '<div class="entry-date-weekday">' + weekdays[d.getDay()] + '</div>';
+      }
+      row.appendChild(dateCol);
+
+      var card = document.createElement('div');
+      card.className = 'entry-card';
+      var top = document.createElement('div');
+      top.className = 'entry-top';
+      var srcTag = document.createElement('span');
+      srcTag.style.fontSize = '10px';
+      srcTag.style.color = '#C7C6BE';
+      srcTag.textContent = entry.source === 'yan' ? '💬 言' : '✏️ 五月';
+      top.appendChild(srcTag);
+      var actions = document.createElement('div');
+      actions.style.display = 'flex';
+      actions.style.gap = '2px';
+      var editBtn = document.createElement('button');
+      editBtn.className = 'entry-delete';
+      editBtn.innerHTML = '<i class="ti ti-pencil" aria-hidden="true"></i>';
+      editBtn.onclick = function () { openSheet(entry); };
+      actions.appendChild(editBtn);
+      var del = document.createElement('button');
+      del.className = 'entry-delete';
+      del.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+      del.onclick = function () {
+        if (!confirm('删除这条记录？会移入回收站，7天内可恢复。')) return;
+        entries = entries.filter(function (e) { return e.id !== entry.id; });
+        trash.push(Object.assign({}, entry, { deletedAt: Date.now() }));
+        saveTrash();
+        saveEntries();
+        renderTimeline();
+        renderTagChips();
+      };
+      actions.appendChild(del);
+      top.appendChild(actions);
+      card.appendChild(top);
+
+      var content = document.createElement('div');
+      content.className = 'entry-content';
+      var tagsHtml = (entry.tags || []).map(function (t) {
+        return '<span class="entry-tag' + (entry.source === 'yan' ? ' src-yan' : '') + '">' + t + '</span>';
+      }).join('');
+      var textSpan = document.createElement('span');
+      textSpan.className = 'entry-text-inline';
+      textSpan.textContent = entry.text;
+      content.innerHTML = tagsHtml;
+      content.appendChild(textSpan);
+      card.appendChild(content);
+
+      row.appendChild(card);
+      group.appendChild(row);
+    });
+    container.appendChild(group);
+  });
+}
+
+document.getElementById('search-input').oninput = function (e) {
+  activeFilters.search = e.target.value.trim();
+  renderTimeline();
+};
+
+document.getElementById('filter-toggle').onclick = function () {
+  document.getElementById('filter-panel').classList.toggle('open');
+};
+document.getElementById('filter-date-from').onchange = function (e) {
+  activeFilters.from = e.target.value;
+  renderTimeline();
+  updateFilterBtnState();
+};
+document.getElementById('filter-date-to').onchange = function (e) {
+  activeFilters.to = e.target.value;
+  renderTimeline();
+  updateFilterBtnState();
+};
+document.getElementById('filter-clear').onclick = function () {
+  activeFilters = { from: '', to: '', tags: [], search: '', source: '' };
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value = '';
+  document.getElementById('search-input').value = '';
+  renderTagChips();
+  renderSourceChips();
+  renderTimeline();
+  updateFilterBtnState();
+};
+
+var DEFAULT_TAGS = ['日常', '游戏', '诗词', '灵感', '资讯', '动漫', '嗑CP'];
+var TAGS_KEY = 'penang_timeline_tags';
+var PRESET_TAGS = [];
+try {
+  var storedTags = JSON.parse(localStorage.getItem(TAGS_KEY) || 'null');
+  PRESET_TAGS = storedTags && storedTags.length ? storedTags : DEFAULT_TAGS.slice();
+} catch (e) { PRESET_TAGS = DEFAULT_TAGS.slice(); }
+if (!localStorage.getItem(TAGS_KEY)) localStorage.setItem(TAGS_KEY, JSON.stringify(PRESET_TAGS));
+
+function savePresetTags() {
+  localStorage.setItem(TAGS_KEY, JSON.stringify(PRESET_TAGS));
+}
+var sheetSelectedTags = [];
+
+function renderSheetTagChips() {
+  var wrap = document.getElementById('sheet-tag-chips');
+  wrap.innerHTML = '';
+  PRESET_TAGS.forEach(function (tag) {
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'tag-chip' + (sheetSelectedTags.indexOf(tag) > -1 ? ' selected' : '');
+    chip.textContent = tag;
+    chip.onclick = function () {
+      var idx = sheetSelectedTags.indexOf(tag);
+      if (idx > -1) sheetSelectedTags.splice(idx, 1);
+      else sheetSelectedTags.push(tag);
+      renderSheetTagChips();
+    };
+    wrap.appendChild(chip);
+  });
+}
+
+var selectedSource = 'user';
+document.getElementById('src-user-btn').onclick = function () {
+  selectedSource = 'user';
+  document.getElementById('src-user-btn').classList.add('selected');
+  document.getElementById('src-yan-btn').classList.remove('selected');
+};
+document.getElementById('src-yan-btn').onclick = function () {
+  selectedSource = 'yan';
+  document.getElementById('src-yan-btn').classList.add('selected');
+  document.getElementById('src-user-btn').classList.remove('selected');
+};
+
+var editingId = null;
+
+function openSheet(editEntry) {
+  editingId = editEntry ? editEntry.id : null;
+  document.getElementById('sheet-title').textContent = editEntry ? '编辑记录' : '新增记录';
+  document.getElementById('entry-date').value = editEntry ? editEntry.date : todayStr();
+  document.getElementById('entry-text').value = editEntry ? editEntry.text : '';
+  sheetSelectedTags = editEntry ? (editEntry.tags || []).slice() : [];
+  renderSheetTagChips();
+  selectedSource = editEntry ? editEntry.source : 'user';
+  document.getElementById('src-user-btn').classList.toggle('selected', selectedSource === 'user');
+  document.getElementById('src-yan-btn').classList.toggle('selected', selectedSource === 'yan');
+  document.getElementById('sheet-backdrop').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+}
+function closeSheet() {
+  document.getElementById('sheet-backdrop').classList.remove('open');
+  document.getElementById('sheet').classList.remove('open');
+}
+document.getElementById('add-fab').onclick = function () { openSheet(); };
+document.getElementById('sheet-cancel').onclick = closeSheet;
+document.getElementById('sheet-backdrop').onclick = closeSheet;
+
+document.getElementById('sheet-save').onclick = function () {
+  var date = document.getElementById('entry-date').value || todayStr();
+  var text = document.getElementById('entry-text').value.trim();
+  if (!text) { showToast('记点什么再保存吧'); return; }
+  var tags = sheetSelectedTags.slice();
+  if (editingId) {
+    var target = entries.find(function (e) { return e.id === editingId; });
+    if (target) {
+      target.date = date;
+      target.text = text;
+      target.tags = tags;
+      target.source = selectedSource;
+    }
+  } else {
+    entries.push({ id: uid(), date: date, text: text, tags: tags, source: selectedSource, createdAt: Date.now() });
+  }
+  saveEntries();
+  closeSheet();
+  renderTagChips();
+  renderTimeline();
+  showToast(editingId ? '已更新' : '已保存');
+  editingId = null;
+};
+
+function loadGhSettings() {
+  try { return JSON.parse(localStorage.getItem(GH_SETTINGS_KEY) || '{}'); } catch (e) { return {}; }
+}
+function saveGhSettings(s) { localStorage.setItem(GH_SETTINGS_KEY, JSON.stringify(s)); }
+var ghSettings = loadGhSettings();
+document.getElementById('gh-owner').value = ghSettings.owner || '';
+document.getElementById('gh-repo').value = ghSettings.repo || '';
+document.getElementById('gh-token').value = ghSettings.token || '';
+document.getElementById('bg-url').value = ghSettings.bgUrl || '';
+applyBackground(ghSettings.bgUrl);
+
+function applyBackground(url) {
+  var layer = document.getElementById('bg-layer');
+  layer.style.backgroundImage = url ? 'url(' + url + ')' : 'none';
+}
+
+document.getElementById('tags-toggle').onclick = function () {
+  document.getElementById('tags-panel').classList.toggle('open');
+};
+
+function renderManageTagChips() {
+  var wrap = document.getElementById('manage-tag-chips');
+  wrap.innerHTML = '';
+  if (PRESET_TAGS.length === 0) {
+    wrap.innerHTML = '<span style="font-size:12px;color:#C7C6BE;">还没有标签，先加一个吧</span>';
+    return;
+  }
+  PRESET_TAGS.forEach(function (tag) {
+    var chip = document.createElement('span');
+    chip.className = 'manage-chip';
+    var label = document.createElement('span');
+    label.textContent = tag;
+    chip.appendChild(label);
+    var removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+    removeBtn.onclick = function () {
+      if (!confirm('删除标签"' + tag + '"？已记录的内容不会受影响。')) return;
+      PRESET_TAGS = PRESET_TAGS.filter(function (t) { return t !== tag; });
+      savePresetTags();
+      renderManageTagChips();
+    };
+    chip.appendChild(removeBtn);
+    wrap.appendChild(chip);
+  });
+}
+
+document.getElementById('add-tag-btn').onclick = function () {
+  var input = document.getElementById('new-tag-input');
+  var val = input.value.trim();
+  if (!val) return;
+  if (PRESET_TAGS.indexOf(val) > -1) { showToast('这个标签已经存在了'); return; }
+  PRESET_TAGS.push(val);
+  savePresetTags();
+  input.value = '';
+  renderManageTagChips();
+  showToast('标签已添加');
+};
+
+renderManageTagChips();
+
+document.getElementById('trash-toggle').onclick = function () {
+  document.getElementById('trash-panel').classList.toggle('open');
+  renderTrashList();
+};
+
+function renderTrashList() {
+  purgeOldTrash();
+  var wrap = document.getElementById('trash-list');
+  wrap.innerHTML = '';
+  if (trash.length === 0) {
+    wrap.innerHTML = '<p style="font-size:12px;color:#C7C6BE;margin:0;">回收站是空的</p>';
+    return;
+  }
+  trash.slice().sort(function (a, b) { return (b.deletedAt || 0) - (a.deletedAt || 0); }).forEach(function (item) {
+    var row = document.createElement('div');
+    row.className = 'trash-item';
+    var text = document.createElement('div');
+    text.className = 'trash-item-text';
+    text.textContent = item.date + ' · ' + item.text;
+    row.appendChild(text);
+    var actions = document.createElement('div');
+    actions.className = 'trash-item-actions';
+    var restoreBtn = document.createElement('button');
+    restoreBtn.textContent = '恢复';
+    restoreBtn.onclick = function () {
+      trash = trash.filter(function (t) { return t.id !== item.id; });
+      saveTrash();
+      var restored = Object.assign({}, item);
+      delete restored.deletedAt;
+      entries.push(restored);
+      saveEntries();
+      renderTrashList();
+      renderTagChips();
+      renderTimeline();
+      showToast('已恢复');
+    };
+    actions.appendChild(restoreBtn);
+    var purgeBtn = document.createElement('button');
+    purgeBtn.textContent = '彻底删除';
+    purgeBtn.onclick = function () {
+      if (!confirm('彻底删除后无法找回，确定吗？')) return;
+      trash = trash.filter(function (t) { return t.id !== item.id; });
+      saveTrash();
+      renderTrashList();
+    };
+    actions.appendChild(purgeBtn);
+    row.appendChild(actions);
+    wrap.appendChild(row);
+  });
+}
+
+document.getElementById('settings-toggle').onclick = function () {
+  document.getElementById('settings-panel').classList.toggle('open');
+};
+document.getElementById('settings-save-btn').onclick = function () {
+  ghSettings = {
+    owner: document.getElementById('gh-owner').value.trim(),
+    repo: document.getElementById('gh-repo').value.trim(),
+    token: document.getElementById('gh-token').value.trim(),
+    bgUrl: document.getElementById('bg-url').value.trim()
+  };
+  saveGhSettings(ghSettings);
+  applyBackground(ghSettings.bgUrl);
+  showToast('设置已保存');
+};
+
+function ghApiUrl() {
+  return 'https://api.github.com/repos/' + ghSettings.owner + '/' + ghSettings.repo + '/contents/timeline.json';
+}
+function b64EncodeUnicode(str) { return btoa(unescape(encodeURIComponent(str))); }
+function b64DecodeUnicode(str) { return decodeURIComponent(escape(atob(str))); }
+
+document.getElementById('cloud-backup-btn').onclick = async function () {
+  if (!ghSettings.owner || !ghSettings.repo || !ghSettings.token) { showToast('请先完成云备份设置'); return; }
+  showToast('备份中…');
+  try {
+    var sha = null;
+    var getResp = await fetch(ghApiUrl(), { headers: { Authorization: 'Bearer ' + ghSettings.token, Accept: 'application/vnd.github+json' } });
+    if (getResp.status === 200) { var getData = await getResp.json(); sha = getData.sha; }
+    var body = { message: '备份时间轴 ' + todayStr(), content: b64EncodeUnicode(JSON.stringify(entries, null, 2)) };
+    if (sha) body.sha = sha;
+    var putResp = await fetch(ghApiUrl(), {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + ghSettings.token, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify(body)
+    });
+    showToast(putResp.status === 200 || putResp.status === 201 ? '云备份成功' : '备份失败,检查Token权限');
+  } catch (e) { showToast('备份失败,网络或设置有误'); }
+};
+
+document.getElementById('cloud-restore-btn').onclick = async function () {
+  if (!ghSettings.owner || !ghSettings.repo || !ghSettings.token) { showToast('请先完成云备份设置'); return; }
+  showToast('恢复中…');
+  try {
+    var getResp = await fetch(ghApiUrl(), { headers: { Authorization: 'Bearer ' + ghSettings.token, Accept: 'application/vnd.github+json' } });
+    if (getResp.status !== 200) { showToast('云端还没有备份记录'); return; }
+    var getData = await getResp.json();
+    var imported = JSON.parse(b64DecodeUnicode(getData.content));
+    var existingIds = {};
+    entries.forEach(function (e) { existingIds[e.id] = true; });
+    imported.forEach(function (e) { if (!existingIds[e.id]) entries.push(e); });
+    saveEntries();
+    renderTagChips();
+    renderTimeline();
+    showToast('云端数据已合并恢复');
+  } catch (e) { showToast('恢复失败'); }
+};
+
+renderTagChips();
+renderSourceChips();
+renderTimeline();
+updateFilterBtnState();
+</script>
+
+</body>
+</html>
