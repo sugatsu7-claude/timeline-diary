@@ -40,6 +40,13 @@
     gap: 8px;
     margin-bottom: 10px;
     flex-wrap: wrap;
+    position: sticky;
+    top: env(safe-area-inset-top);
+    z-index: 40;
+    padding: 10px 0 8px;
+    background: rgba(244,241,234,0.55);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
   }
   .search-box {
     flex: 1;
@@ -199,10 +206,16 @@
     align-items: center;
   }
   .entry-delete {
-    color: #C7C6BE;
-    font-size: 14px;
-    padding: 2px 6px;
-    background: transparent;
+    color: #52514E;
+    font-size: 13px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: rgba(44,44,42,0.06);
+    border-radius: 50%;
     border: none;
     flex-shrink: 0;
   }
@@ -229,6 +242,28 @@
     font-size: 24px;
     z-index: 50;
   }
+  .top-fab {
+    position: fixed;
+    right: 20px;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    color: #52514E;
+    border: 0.5px solid #E1E0D9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 10px rgba(44,44,42,0.1);
+    font-size: 16px;
+    z-index: 49;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .top-fab.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
 
   .sheet-backdrop {
     display: none;
@@ -372,6 +407,7 @@
 <div class="timeline" id="timeline"></div>
 
 <div class="fab" id="add-fab">＋</div>
+<div class="top-fab" id="top-fab">↑</div>
 
 <div class="sheet-backdrop" id="sheet-backdrop"></div>
 <div class="sheet" id="sheet">
@@ -590,7 +626,7 @@ function renderTimeline() {
       top.className = 'entry-top';
       var srcTag = document.createElement('span');
       srcTag.style.fontSize = '10px';
-      srcTag.style.color = '#C7C6BE';
+      srcTag.style.color = '#767570';
       srcTag.textContent = entry.source === 'yan' ? '💬 言' : '✏️ 五月';
       top.appendChild(srcTag);
       var actions = document.createElement('div');
@@ -974,6 +1010,14 @@ renderTagChips();
 renderSourceChips();
 renderTimeline();
 updateFilterBtnState();
+
+var topFab = document.getElementById('top-fab');
+window.addEventListener('scroll', function () {
+  topFab.classList.toggle('show', window.scrollY > 400);
+});
+topFab.onclick = function () {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 </script>
 
 </body>
