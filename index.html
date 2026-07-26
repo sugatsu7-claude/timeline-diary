@@ -463,6 +463,11 @@
     <button class="backup-btn" id="cloud-backup-btn">☁️↑ 一键云备份</button>
     <button class="backup-btn" id="cloud-restore-btn">☁️↓ 从云端恢复</button>
   </div>
+  <div class="cloud-row">
+    <button class="backup-btn" id="export-json-btn">⬇ 本地导出</button>
+    <button class="backup-btn" id="import-json-btn">⬆ 本地导入</button>
+  </div>
+  <input type="file" id="import-json-input" accept="application/json" style="display:none;">
   <p class="settings-hint">Token只存在这台设备本地。去 GitHub → Settings → Developer settings → Fine-grained tokens 新建一个，权限只勾选这个仓库的 Contents 读写即可。</p>
 </div>
 
@@ -818,6 +823,47 @@ function applyCardOpacity(val) {
   var pct = (val === undefined || val === null || val === '') ? 62 : Math.max(0, Math.min(100, parseInt(val, 10)));
   document.documentElement.style.setProperty('--card-opacity', pct / 100);
 }
+
+document.getElementById('export-json-btn').onclick = function () {
+  var blob = new Blob([JSON.stringify(entries, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'timeline-diary-backup-' + todayStr() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('已导出');
+};
+
+document.getElementById('import-json-btn').onclick = function () {
+  document.getElementById('import-json-input').click();
+};
+document.getElementById('import-json-input').onchange = function (e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function (evt) {
+    try {
+      var imported = JSON.parse(evt.target.result);
+      var existingIds = {};
+      entries.forEach(function (en) { existingIds[en.id] = true; });
+      var added = 0;
+      imported.forEach(function (en) {
+        if (!existingIds[en.id]) { entries.push(en); added++; }
+      });
+      saveEntries();
+      renderTagChips();
+      renderTimeline();
+      showToast('已导入 ' + added + ' 条');
+    } catch (err) {
+      showToast('文件格式有误');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+};
 
 document.getElementById('tags-toggle').onclick = function () {
   document.getElementById('tags-panel').classList.toggle('open');
