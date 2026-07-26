@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   button { font-family: inherit; cursor: pointer; }
@@ -338,10 +337,10 @@
 
 <div class="toolbar">
   <div class="search-box">
-    <i class="ti ti-search" aria-hidden="true"></i>
+    <span aria-hidden="true" style="color:#B4B2A9;">🔍</span>
     <input type="text" id="search-input" placeholder="搜索关键词">
   </div>
-  <button class="filter-btn" id="filter-toggle"><i class="ti ti-filter" aria-hidden="true"></i>筛选</button>
+  <button class="filter-btn" id="filter-toggle">☰ 筛选</button>
 </div>
 
 <div class="filter-panel" id="filter-panel">
@@ -359,7 +358,7 @@
 
 <div class="timeline" id="timeline"></div>
 
-<div class="fab" id="add-fab"><i class="ti ti-plus" aria-hidden="true"></i></div>
+<div class="fab" id="add-fab">＋</div>
 
 <div class="sheet-backdrop" id="sheet-backdrop"></div>
 <div class="sheet" id="sheet">
@@ -411,8 +410,8 @@
   <input type="text" id="bg-url" placeholder="https://...jpg">
   <button class="settings-save" id="settings-save-btn">保存设置</button>
   <div class="cloud-row">
-    <button class="backup-btn" id="cloud-backup-btn"><i class="ti ti-cloud-up" aria-hidden="true"></i>一键云备份</button>
-    <button class="backup-btn" id="cloud-restore-btn"><i class="ti ti-cloud-down" aria-hidden="true"></i>从云端恢复</button>
+    <button class="backup-btn" id="cloud-backup-btn">☁️↑ 一键云备份</button>
+    <button class="backup-btn" id="cloud-restore-btn">☁️↓ 从云端恢复</button>
   </div>
   <p class="settings-hint">Token只存在这台设备本地。去 GitHub → Settings → Developer settings → Fine-grained tokens 新建一个，权限只勾选这个仓库的 Contents 读写即可。</p>
 </div>
@@ -581,12 +580,12 @@ function renderTimeline() {
       actions.style.gap = '2px';
       var editBtn = document.createElement('button');
       editBtn.className = 'entry-delete';
-      editBtn.innerHTML = '<i class="ti ti-pencil" aria-hidden="true"></i>';
+      editBtn.innerHTML = '✎';
       editBtn.onclick = function () { openSheet(entry); };
       actions.appendChild(editBtn);
       var del = document.createElement('button');
       del.className = 'entry-delete';
-      del.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+      del.innerHTML = '✕';
       del.onclick = function () {
         if (!confirm('删除这条记录？会移入回收站，7天内可恢复。')) return;
         entries = entries.filter(function (e) { return e.id !== entry.id; });
@@ -774,7 +773,7 @@ function renderManageTagChips() {
     chip.appendChild(label);
     var removeBtn = document.createElement('button');
     removeBtn.type = 'button';
-    removeBtn.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+    removeBtn.innerHTML = '✕';
     removeBtn.onclick = function () {
       if (!confirm('删除标签"' + tag + '"？已记录的内容不会受影响。')) return;
       PRESET_TAGS = PRESET_TAGS.filter(function (t) { return t !== tag; });
