@@ -44,9 +44,6 @@
     top: env(safe-area-inset-top);
     z-index: 40;
     padding: 10px 0 8px;
-    background: rgba(244,241,234,0.55);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
   }
   .search-box {
     flex: 1;
@@ -169,7 +166,7 @@
   .entry-card {
     flex: 1;
     min-width: 0;
-    background: rgba(255,255,255,0.62);
+    background: rgba(255,255,255,var(--card-opacity, 0.62));
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     border: 0.5px solid rgba(225,224,217,0.6);
@@ -459,6 +456,8 @@
   <input type="text" id="bg-url" placeholder="https://...jpg">
   <label>背景蒙层浓度（数字越大，背景图越淡、字越清楚）</label>
   <input type="text" id="bg-scrim-input" placeholder="72" inputmode="numeric">
+  <label>卡片透明度（数字越大，卡片越实、字越清楚；数字越小，越能看见背景）</label>
+  <input type="text" id="card-opacity-input" placeholder="62" inputmode="numeric">
   <button class="settings-save" id="settings-save-btn">保存设置</button>
   <div class="cloud-row">
     <button class="backup-btn" id="cloud-backup-btn">☁️↑ 一键云备份</button>
@@ -802,8 +801,10 @@ document.getElementById('gh-repo').value = ghSettings.repo || '';
 document.getElementById('gh-token').value = ghSettings.token || '';
 document.getElementById('bg-url').value = ghSettings.bgUrl || '';
 document.getElementById('bg-scrim-input').value = (ghSettings.scrim !== undefined && ghSettings.scrim !== null) ? ghSettings.scrim : 72;
+document.getElementById('card-opacity-input').value = (ghSettings.cardOpacity !== undefined && ghSettings.cardOpacity !== null) ? ghSettings.cardOpacity : 62;
 applyBackground(ghSettings.bgUrl);
 applyScrim(ghSettings.scrim);
+applyCardOpacity(ghSettings.cardOpacity);
 
 function applyBackground(url) {
   var layer = document.getElementById('bg-layer');
@@ -812,6 +813,10 @@ function applyBackground(url) {
 function applyScrim(val) {
   var pct = (val === undefined || val === null || val === '') ? 72 : Math.max(0, Math.min(100, parseInt(val, 10)));
   document.getElementById('bg-scrim').style.background = 'rgba(244,241,234,' + (pct / 100) + ')';
+}
+function applyCardOpacity(val) {
+  var pct = (val === undefined || val === null || val === '') ? 62 : Math.max(0, Math.min(100, parseInt(val, 10)));
+  document.documentElement.style.setProperty('--card-opacity', pct / 100);
 }
 
 document.getElementById('tags-toggle').onclick = function () {
@@ -956,11 +961,13 @@ document.getElementById('settings-save-btn').onclick = function () {
     repo: document.getElementById('gh-repo').value.trim(),
     token: document.getElementById('gh-token').value.trim(),
     bgUrl: document.getElementById('bg-url').value.trim(),
-    scrim: document.getElementById('bg-scrim-input').value.trim()
+    scrim: document.getElementById('bg-scrim-input').value.trim(),
+    cardOpacity: document.getElementById('card-opacity-input').value.trim()
   };
   saveGhSettings(ghSettings);
   applyBackground(ghSettings.bgUrl);
   applyScrim(ghSettings.scrim);
+  applyCardOpacity(ghSettings.cardOpacity);
   showToast('设置已保存');
 };
 
