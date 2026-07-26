@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
 <style>
+  html, body { overflow-x: hidden; max-width: 100vw; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   button { font-family: inherit; cursor: pointer; }
   body {
@@ -150,10 +151,11 @@
   .entry-date-weekday { font-size: 9px; color: #C7C6BE; }
   .entry-card {
     flex: 1;
-    background: rgba(255,255,255,0.55);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    border: 0.5px solid rgba(225,224,217,0.7);
+    min-width: 0;
+    background: rgba(255,255,255,0.4);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border: 0.5px solid rgba(225,224,217,0.6);
     border-radius: 14px;
     padding: 12px 14px;
     box-shadow: 0 4px 16px rgba(44,44,42,0.06);
@@ -165,7 +167,7 @@
     gap: 8px;
     margin-bottom: 4px;
   }
-  .entry-content { font-size: 14px; line-height: 1.6; color: #2C2C2A; }
+  .entry-content { font-size: 14px; line-height: 1.6; color: #2C2C2A; overflow-wrap: anywhere; word-break: break-word; }
   .entry-content .entry-tag {
     display: inline-block;
     font-size: 10px;
@@ -177,7 +179,7 @@
     vertical-align: middle;
   }
   .entry-content .entry-tag.src-yan { background: rgba(250,238,218,0.85); color: #854F0B; }
-  .entry-text-inline { white-space: pre-wrap; }
+  .entry-text-inline { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
   .entry-meta {
     font-size: 10px;
     color: #C7C6BE;
@@ -464,7 +466,10 @@ function saveEntries() {
 function allTags() {
   var set = {};
   entries.forEach(function (e) { (e.tags || []).forEach(function (t) { set[t] = true; }); });
-  return Object.keys(set).sort();
+  var used = Object.keys(set);
+  var ordered = PRESET_TAGS.filter(function (t) { return used.indexOf(t) > -1; });
+  var extras = used.filter(function (t) { return PRESET_TAGS.indexOf(t) === -1; }).sort();
+  return ordered.concat(extras);
 }
 
 function renderTagChips() {
@@ -765,23 +770,60 @@ function renderManageTagChips() {
     wrap.innerHTML = '<span style="font-size:12px;color:#C7C6BE;">还没有标签，先加一个吧</span>';
     return;
   }
-  PRESET_TAGS.forEach(function (tag) {
-    var chip = document.createElement('span');
-    chip.className = 'manage-chip';
+  wrap.style.display = 'flex';
+  wrap.style.flexDirection = 'column';
+  wrap.style.gap = '6px';
+  PRESET_TAGS.forEach(function (tag, idx) {
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;background:#FCFCFB;border:0.5px solid #E1E0D9;border-radius:10px;padding:6px 8px;';
     var label = document.createElement('span');
     label.textContent = tag;
-    chip.appendChild(label);
+    label.style.cssText = 'flex:1;font-size:13px;color:#52514E;';
+    row.appendChild(label);
+
+    var upBtn = document.createElement('button');
+    upBtn.type = 'button';
+    upBtn.textContent = '↑';
+    upBtn.disabled = idx === 0;
+    upBtn.style.cssText = 'background:transparent;border:none;font-size:14px;color:' + (idx === 0 ? '#E1E0D9' : '#767570') + ';padding:2px 6px;';
+    upBtn.onclick = function () {
+      if (idx === 0) return;
+      var tmp = PRESET_TAGS[idx - 1];
+      PRESET_TAGS[idx - 1] = PRESET_TAGS[idx];
+      PRESET_TAGS[idx] = tmp;
+      savePresetTags();
+      renderManageTagChips();
+    };
+    row.appendChild(upBtn);
+
+    var downBtn = document.createElement('button');
+    downBtn.type = 'button';
+    downBtn.textContent = '↓';
+    downBtn.disabled = idx === PRESET_TAGS.length - 1;
+    downBtn.style.cssText = 'background:transparent;border:none;font-size:14px;color:' + (idx === PRESET_TAGS.length - 1 ? '#E1E0D9' : '#767570') + ';padding:2px 6px;';
+    downBtn.onclick = function () {
+      if (idx === PRESET_TAGS.length - 1) return;
+      var tmp = PRESET_TAGS[idx + 1];
+      PRESET_TAGS[idx + 1] = PRESET_TAGS[idx];
+      PRESET_TAGS[idx] = tmp;
+      savePresetTags();
+      renderManageTagChips();
+    };
+    row.appendChild(downBtn);
+
     var removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.innerHTML = '✕';
+    removeBtn.style.cssText = 'background:transparent;border:none;font-size:13px;color:#C7C6BE;padding:2px 6px;';
     removeBtn.onclick = function () {
       if (!confirm('删除标签"' + tag + '"？已记录的内容不会受影响。')) return;
       PRESET_TAGS = PRESET_TAGS.filter(function (t) { return t !== tag; });
       savePresetTags();
       renderManageTagChips();
     };
-    chip.appendChild(removeBtn);
-    wrap.appendChild(chip);
+    row.appendChild(removeBtn);
+
+    wrap.appendChild(row);
   });
 }
 
