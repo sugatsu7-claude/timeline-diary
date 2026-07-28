@@ -621,6 +621,8 @@ function renderTimeline() {
           '<div class="entry-date-day">' + d.getDate() + '</div>' +
           '<div class="entry-date-month">' + (d.getMonth() + 1) + '月</div>' +
           '<div class="entry-date-weekday">' + weekdays[d.getDay()] + '</div>';
+      } else {
+        dateCol.style.background = 'transparent';
       }
       row.appendChild(dateCol);
 
