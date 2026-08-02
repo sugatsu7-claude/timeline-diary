@@ -614,6 +614,7 @@ function renderTimeline() {
     byDate[date].forEach(function (entry, idx) {
       var row = document.createElement('div');
       row.className = 'entry-row';
+      row.setAttribute('data-entry-id', entry.id);
 
       var dateCol = document.createElement('div');
       dateCol.className = 'entry-date-col';
@@ -780,6 +781,7 @@ document.getElementById('sheet-save').onclick = function () {
   var text = document.getElementById('entry-text').value.trim();
   if (!text) { showToast('记点什么再保存吧'); return; }
   var tags = sheetSelectedTags.slice();
+  var newEntryId = null;
   if (editingId) {
     var target = entries.find(function (e) { return e.id === editingId; });
     if (target) {
@@ -789,7 +791,8 @@ document.getElementById('sheet-save').onclick = function () {
       target.source = selectedSource;
     }
   } else {
-    entries.push({ id: uid(), date: date, text: text, tags: tags, source: selectedSource, createdAt: Date.now() });
+    newEntryId = uid();
+    entries.push({ id: newEntryId, date: date, text: text, tags: tags, source: selectedSource, createdAt: Date.now() });
   }
   saveEntries();
   closeSheet();
@@ -797,6 +800,12 @@ document.getElementById('sheet-save').onclick = function () {
   renderTimeline();
   showToast(editingId ? '已更新' : '已保存');
   editingId = null;
+  if (newEntryId) {
+    requestAnimationFrame(function () {
+      var el = document.querySelector('[data-entry-id="' + newEntryId + '"]');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
 };
 
 function loadGhSettings() {
