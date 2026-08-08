@@ -34,6 +34,7 @@
   .header { padding: 24px 0 12px; }
   .header h1 { font-size: 20px; font-weight: 500; margin: 0 0 2px; text-shadow: 0 1px 3px rgba(244,241,234,0.9); }
   .header p { font-size: 13px; color: #52514E; margin: 0; text-shadow: 0 1px 3px rgba(244,241,234,0.9); }
+  .entry-count { font-size: 12px; color: #898781; margin: 6px 0 0; text-shadow: 0 1px 3px rgba(244,241,234,0.9); }
 
   .toolbar {
     display: flex;
@@ -168,8 +169,8 @@
     flex: 1;
     min-width: 0;
     background: rgba(255,255,255,var(--card-opacity, 0.62));
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
     border: 0.5px solid rgba(225,224,217,0.6);
     border-radius: 14px;
     padding: 12px 14px;
@@ -379,6 +380,7 @@
 <div class="header">
   <h1>时间轴日记</h1>
   <p>五月 &amp; 言的每日记录</p>
+  <p class="entry-count" id="entry-count"></p>
 </div>
 
 <div class="toolbar">
@@ -591,10 +593,26 @@ function matchesFilter(entry) {
   return true;
 }
 
+function isAnyFilterActive() {
+  return !!(activeFilters.from || activeFilters.to || activeFilters.tags.length > 0 || activeFilters.source || activeFilters.search);
+}
+
+function updateEntryCount(filteredCount) {
+  var el = document.getElementById('entry-count');
+  if (!el) return;
+  var total = entries.length;
+  if (isAnyFilterActive()) {
+    el.textContent = '筛选出 ' + filteredCount + ' / ' + total + ' 条';
+  } else {
+    el.textContent = '共 ' + total + ' 条记录';
+  }
+}
+
 function renderTimeline() {
   var container = document.getElementById('timeline');
   container.innerHTML = '';
   var filtered = entries.filter(matchesFilter);
+  updateEntryCount(filtered.length);
   if (filtered.length === 0) {
     container.innerHTML = '<div class="empty-state">还没有符合条件的记录<br>点右下角 + 开始记录吧</div>';
     return;
