@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.10.26.5">
+<meta name="diary-version" content="2026.10.26.7">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -372,6 +372,12 @@
   .attachment-row button { display:inline-flex;align-items:center;gap:5px;border:0;border-radius:16px;background:transparent;color:#69685F;padding:6px 8px;min-height:36px;font-size:12px;line-height:1.4; }
   .attachment-row button:hover { background:rgba(244,241,234,.35); }
   .attachment-icon { width:15px;height:15px;flex:none;opacity:.8; }
+  .entry-actions button.entry-delete { display:inline-flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;min-height:24px;padding:0;gap:0;border:0;border-radius:50%;background:rgba(44,44,42,.06);color:#52514E; }
+  .entry-actions .attachment-icon { width:12px;height:12px; }
+  .entry-actions button.entry-delete:hover { background:rgba(44,44,42,.1); }
+  .entry-actions button.entry-delete:focus { outline:none; }
+  .entry-actions button.entry-delete:focus-visible { outline:2px solid #9BA495;outline-offset:3px; }
+  .entry-actions button.entry-delete:disabled { opacity:.35; }
   .soft-dialog { width:calc(100vw - 36px);max-width:440px;max-height:calc(100dvh - 48px);overflow:auto;border:1px solid rgba(255,255,255,.6);border-radius:24px;background:rgba(247,246,240,.95);color:#52514E;padding:20px;box-shadow:0 12px 48px rgba(54,51,44,.12);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px); }
   .soft-dialog::backdrop { background:rgba(54,51,44,.22);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px); }
   .soft-dialog button { border:0;border-radius:18px;background:rgba(232,230,221,.5);padding:8px 12px;color:#69685F;font-size:13px; }
@@ -397,9 +403,16 @@
   #sync-dialog { text-align:center;max-width:340px; }
   #sync-dialog .filter-btn { display:inline-flex;justify-content:center; }
   #sync-progress { font-size:14px;line-height:1.8;margin:4px 0 18px; }
-  .update-banner { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 16px); left: 16px; right: 84px; max-width: 480px; z-index: 45; padding: 14px; background: #FFFFFF; border: 1px solid #1B3A6B; border-radius: 14px; box-shadow: 0 4px 18px #0002; }
-  .update-banner[hidden] { display: none; }
-  .update-banner p { margin: 0 0 10px; font-size: 13px; }
+  .update-banner { position:fixed;bottom:0;left:0;right:0;z-index:55;display:flex;align-items:center;gap:10px;min-height:48px;padding:0 14px env(safe-area-inset-bottom);background:rgba(247,246,240,.94);border:0;border-top:1px solid rgba(180,178,169,.22);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:#767570; }
+  .update-banner[hidden] { display:none; }
+  .update-banner p { flex:1;min-width:0;margin:0;font-size:12px;line-height:48px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .update-banner button { flex:none;min-height:44px;border:0;background:transparent;color:#697460;padding:0 8px;font-size:12px;white-space:nowrap; }
+  .update-banner #dismiss-update { width:36px;padding:0;font-size:20px;color:#99968B; }
+  .update-banner button:focus { outline:none; }
+  .update-banner button:focus-visible { outline:2px solid #9BA495;outline-offset:-4px;border-radius:8px; }
+  body.has-app-update { padding-bottom:calc(140px + env(safe-area-inset-bottom)); }
+  .has-app-update .fab { bottom:calc(80px + env(safe-area-inset-bottom)); }
+  .has-app-update .top-fab { bottom:calc(144px + env(safe-area-inset-bottom)); }
   .settings-heading h2 { margin: 0; font-size: 20px; }
   .entry-row { scroll-margin-top: 90px; }
   @keyframes saved-highlight { from { outline: 3px solid #1B3A6B; } to { outline: 3px solid transparent; } }
@@ -568,8 +581,8 @@
 </dialog>
 <dialog id="link-viewer" class="soft-dialog" aria-labelledby="link-title"><div class="attachment-heading"><h3 id="link-title" tabindex="-1" autofocus>日记链接</h3><button id="link-close" class="close-viewer" aria-label="关闭链接窗口">×</button></div><div id="entry-link-list"></div></dialog>
 <aside class="update-banner" id="update-banner" hidden aria-label="应用更新">
-  <p id="update-message" role="status">发现新版本，更新后生效。</p>
-  <div class="cloud-row"><button class="filter-btn" id="apply-update">立即更新</button><button class="filter-btn" id="dismiss-update">稍后</button></div>
+  <p id="update-message" role="status">新版本已就绪</p>
+  <button id="apply-update">更新</button><button id="dismiss-update" aria-label="暂时关闭更新提示">×</button>
 </aside>
 <dialog id="sync-dialog" class="soft-dialog">
   <p id="sync-progress" role="status">正在同步…</p>
@@ -612,6 +625,12 @@ try {
     entries=migratedEntries;trash=migratedTrash;didMigrateLegacySources=true;
   }
 } catch (_) { showToast('旧署名迁移未完成，请检查本机存储'); }
+function actionIcon(kind) {
+  var ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.5');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');svg.setAttribute('aria-hidden','true');svg.classList.add('attachment-icon');
+  var shapes={photo:['M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z','m4 17 5-5 4 4 3-3 5 5','M8.5 8h.01'],link:['M10 13a5 5 0 0 0 7 .5l3-3a5 5 0 0 0-7-7l-2 2','M14 11a5 5 0 0 0-7-.5l-3 3a5 5 0 0 0 7 7l2-2'],edit:['m14 5 5 5','M4 20l1-6L16 3a2.8 2.8 0 0 1 4 4L9 18l-5 2Z'],delete:['m6 6 12 12','M18 6 6 18']};
+  (shapes[kind]||[]).forEach(function(d){var path=document.createElementNS(ns,'path');path.setAttribute('d',d);svg.appendChild(path);});return svg;
+}
 function sourceNames() { return window.AuthorSettings ? AuthorSettings.names() : Array.from(new Set(entries.map(function(entry){return sourceName(entry.source);}))); }
 var activeFilters = { from: '', to: '', tags: [], search: '', source: '' };
 
@@ -779,7 +798,7 @@ function renderTimeline() {
       actions.style.gap = '2px';
       var editBtn = document.createElement('button');
       editBtn.className = 'entry-delete';
-      editBtn.innerHTML = '✎';
+      editBtn.appendChild(actionIcon('edit'));
       editBtn.setAttribute('aria-label', '编辑日记');
       editBtn.disabled = !!entry.readOnly;
       editBtn.title = entry.readOnly ? '复杂格式请在Notion编辑' : '编辑';
@@ -796,7 +815,7 @@ function renderTimeline() {
       actions.appendChild(editBtn);
       var del = document.createElement('button');
       del.className = 'entry-delete';
-      del.innerHTML = '✕';
+      del.appendChild(actionIcon('delete'));
       del.disabled = !!entry.readOnly;
       del.setAttribute('aria-label', '删除日记');
       del.onclick = function () {

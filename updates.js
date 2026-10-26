@@ -1,4 +1,4 @@
-// diary-release: 2026.10.26.5
+// diary-release: 2026.10.26.7
 (function () {
   'use strict';
   var version = document.querySelector('meta[name="diary-version"]').content;
@@ -57,12 +57,14 @@
   } catch (_) { status.textContent = '草稿恢复失败，请保留本机数据'; }
 
   function announce(message) {
-    document.getElementById('update-message').textContent = message;
+    document.getElementById('update-message').textContent = '新版本已就绪';
+    document.getElementById('update-message').title = message;
+    document.body.classList.add('has-app-update');
     banner.hidden = false;
     document.getElementById('settings-update-now').hidden = false;
     status.textContent = message;
   }
-  document.getElementById('dismiss-update').onclick = function () { banner.hidden = true; };
+  document.getElementById('dismiss-update').onclick = function () { banner.hidden = true; document.body.classList.remove('has-app-update'); };
   function watch(worker) {
     if (!worker) return;
     function inspect() {

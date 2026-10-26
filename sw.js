@@ -1,5 +1,5 @@
 /* Offline app shell only. No diary data, API responses, secrets or remote backgrounds are cached. */
-const RELEASE = '2026.10.26.5';
+const RELEASE = '2026.10.26.7';
 const ROOT = new URL('./', self.location.href);
 const PREFIX = 'timeline-diary-shell:' + ROOT.href + ':';
 const CACHE = PREFIX + RELEASE;
