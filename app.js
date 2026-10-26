@@ -1,4 +1,4 @@
-// diary-release: 2026.10.26.9
+// diary-release: 2026.10.26.10
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -16,7 +16,7 @@ DiaryStore.onChange(async function(external){await refreshDiaryData(external);if
 function actionIcon(kind) {
   var ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
   svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.5');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');svg.setAttribute('aria-hidden','true');svg.classList.add('attachment-icon');
-  var shapes={photo:['M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z','m4 17 5-5 4 4 3-3 5 5','M8.5 8h.01'],link:['M10 13a5 5 0 0 0 7 .5l3-3a5 5 0 0 0-7-7l-2 2','M14 11a5 5 0 0 0-7-.5l-3 3a5 5 0 0 0 7 7l2-2'],edit:['m14 5 5 5','M4 20l1-6L16 3a2.8 2.8 0 0 1 4 4L9 18l-5 2Z'],delete:['m6 6 12 12','M18 6 6 18']};
+  var shapes={photo:['M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z','m4 17 5-5 4 4 3-3 5 5','M8.5 8h.01'],link:['M10 13a5 5 0 0 0 7 .5l3-3a5 5 0 0 0-7-7l-2 2','M14 11a5 5 0 0 0-7-.5l-3 3a5 5 0 0 0 7 7l2-2'],edit:['m14 5 5 5','M4 20l1-6L16 3a2.8 2.8 0 0 1 4 4L9 18l-5 2Z'],delete:['m6 6 12 12','M18 6 6 18'],card:['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z','M7 9h10M7 13h10M7 17h6']};
   (shapes[kind]||[]).forEach(function(d){var path=document.createElementNS(ns,'path');path.setAttribute('d',d);svg.appendChild(path);});return svg;
 }
 function sourceNames() { return window.AuthorSettings ? AuthorSettings.names() : Array.from(new Set(entries.map(function(entry){return sourceName(entry.source);}))); }
@@ -196,12 +196,15 @@ function appendTimelineBatch(batch) {
       card.className = 'entry-card';
       var top = document.createElement('div');
       top.className = 'entry-top';
-      var srcTag = document.createElement('span');
+      var heading=document.createElement('div');heading.className='entry-heading';
+      var srcTag = document.createElement('span');srcTag.className='entry-author';
       srcTag.style.fontSize = '10px';
       srcTag.style.color = '#767570';
       srcTag.textContent = sourceName(entry.source);
       srcTag.title = sourceName(entry.source);
-      top.appendChild(srcTag);
+      heading.appendChild(srcTag);
+      (entry.tags||[]).forEach(function(tag){var chip=document.createElement('span');chip.className='entry-tag';chip.textContent=tag;chip.title=tag;heading.appendChild(chip);});
+      top.appendChild(heading);
       var actions = document.createElement('div');
       actions.className = 'entry-actions';
       actions.style.display = 'flex';
@@ -219,9 +222,10 @@ function appendTimelineBatch(batch) {
         notionLink.href = entry.notionUrl;
         notionLink.target = '_blank';
         notionLink.rel = 'noopener noreferrer';
-        actions.appendChild(notionLink);
+        notionLink.className='entry-notion-link';heading.appendChild(notionLink);
       }
       if (window.MediaAssets) MediaAssets.decorate(actions, entry);
+      var cardBtn=document.createElement('button');cardBtn.className='entry-delete';cardBtn.appendChild(actionIcon('card'));cardBtn.setAttribute('aria-label','生成日记卡片');cardBtn.title=entry.text?.trim()?'生成文字卡片':'没有文字，暂时无法生成卡片';cardBtn.disabled=!entry.text?.trim();cardBtn.onclick=function(){if(window.DiaryCards)DiaryCards.open(entry,cardBtn);};actions.appendChild(cardBtn);
       actions.appendChild(editBtn);
       var del = document.createElement('button');
       del.className = 'entry-delete';
@@ -238,12 +242,6 @@ function appendTimelineBatch(batch) {
 
       var content = document.createElement('div');
       content.className = 'entry-content';
-      (entry.tags || []).forEach(function (tag) {
-        var tagSpan = document.createElement('span');
-        tagSpan.className = 'entry-tag';
-        tagSpan.textContent = tag;
-        content.appendChild(tagSpan);
-      });
       var textSpan = document.createElement('span');
       textSpan.className = 'entry-text-inline';
       textSpan.textContent = entry.text;

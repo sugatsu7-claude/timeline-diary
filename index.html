@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.10.26.9">
+<meta name="diary-version" content="2026.10.26.10">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -192,9 +192,13 @@
     gap: 8px;
     margin-bottom: 4px;
   }
-  .entry-top { align-items:center;flex-wrap:wrap; }
+  .entry-top { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px;margin-bottom:8px; }
+  .entry-heading { display:flex;align-items:center;flex-wrap:wrap;gap:5px;min-width:0;min-height:30px; }
+  .entry-author { overflow-wrap:anywhere;line-height:1.6; }
+  .entry-heading .entry-tag { max-width:100%;font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(241,239,232,.8);color:#767570;overflow-wrap:anywhere;line-height:1.5; }
+  .entry-notion-link { font-size:10px;color:#898781; }
   .entry-top > span { flex:1;min-width:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-  .entry-actions { align-items:center;flex-wrap:wrap;justify-content:flex-end;margin-left:auto;max-width:100%; }
+  .entry-actions { align-items:center;flex-wrap:nowrap;justify-content:flex-end;margin-left:auto;max-width:100%; }
   .entry-actions .attachment-row { margin:0;gap:2px;flex-wrap:nowrap; }
   .entry-actions .attachment-row button { padding:4px 6px;min-height:32px; }
   .entry-content { font-size: 14px; line-height: 1.6; color: #2C2C2A; overflow-wrap: anywhere; word-break: break-word; }
@@ -381,7 +385,7 @@
   .attachment-row button { display:inline-flex;align-items:center;gap:5px;border:0;border-radius:16px;background:transparent;color:#69685F;padding:6px 8px;min-height:36px;font-size:12px;line-height:1.4; }
   .attachment-row button:hover { background:rgba(244,241,234,.35); }
   .attachment-icon { width:15px;height:15px;flex:none;opacity:.8; }
-  .entry-actions button.entry-delete { display:inline-flex;align-items:center;justify-content:center;flex:none;position:relative;isolation:isolate;width:44px;height:44px;min-height:44px;padding:0;gap:0;border:0;background:transparent;color:#52514E; }
+  .entry-actions button.entry-delete { display:inline-flex;align-items:center;justify-content:center;flex:none;position:relative;isolation:isolate;width:28px;height:32px;min-height:32px;padding:0;gap:0;border:0;background:transparent;color:#52514E; }
   .entry-actions .attachment-icon { width:12px;height:12px; }
   .entry-actions button.entry-delete::before { content:"";position:absolute;z-index:-1;width:24px;height:24px;border-radius:50%;background:rgba(44,44,42,.06); }
   .entry-actions button.entry-delete:hover::before { background:rgba(44,44,42,.1); }
@@ -444,6 +448,16 @@
     z-index: 999;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  #card-dialog { width:calc(100vw - 24px);max-width:418px;padding:16px; }
+  .card-styles { display:flex;gap:6px;margin-bottom:14px; }
+  #card-dialog .card-styles button { flex:1;min-width:0;padding:8px 4px;font-size:12px;border:1px solid transparent; }
+  #card-dialog .card-styles button[aria-pressed="true"] { border-color:#bcb69f;background:#eae6d9; }
+  #card-canvas { display:block;width:100%;max-width:360px;height:auto;aspect-ratio:1;margin:0 auto;border-radius:12px;box-shadow:0 6px 22px rgba(76,62,40,.09); }
+  .card-pagination { display:flex;align-items:center;justify-content:center;gap:16px;margin-top:12px;font-size:12px; }
+  .card-buttons { display:flex;justify-content:center;gap:8px; }
+  #card-status { font-size:11px;line-height:1.7;color:#898781;margin:12px 0;text-align:center; }
+  .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
 </style>
 </head>
 <body>
@@ -605,6 +619,13 @@
   <div class="attachment-heading"><h3 id="photo-title" tabindex="-1" autofocus>日记图片</h3><span id="photo-counter"></span><button id="photo-close" class="close-viewer" aria-label="关闭图片窗口">×</button></div>
   <div id="photo-slides"></div>
   <div class="photo-footer"><button id="photo-prev" aria-label="上一张">‹</button><span id="photo-hint">左右滑动查看</span><button id="photo-next" aria-label="下一张">›</button></div>
+</dialog>
+<dialog id="card-dialog" class="soft-dialog" aria-labelledby="card-title">
+  <div class="attachment-heading"><h3 id="card-title">日记卡片</h3><button id="card-close" class="close-viewer" aria-label="关闭卡片窗口">×</button></div>
+  <div class="card-styles" role="group" aria-label="卡片风格"><button type="button" data-card-style="cream" aria-pressed="true">奶油拼贴</button><button type="button" data-card-style="letter" aria-pressed="false">花间来信</button><button type="button" data-card-style="night" aria-pressed="false">晚安手账</button></div>
+  <canvas id="card-canvas" width="1080" height="1080" role="img" aria-label="文字卡片预览"></canvas><p id="card-readable" class="sr-only"></p>
+  <div id="card-pagination" class="card-pagination" hidden><button id="card-prev" aria-label="上一张卡片">‹</button><span id="card-count" aria-live="polite"></span><button id="card-next" aria-label="下一张卡片">›</button></div>
+  <p id="card-status" role="status"></p><div class="card-buttons"><button id="card-save" disabled>保存当前卡片</button><button id="card-share" hidden disabled>分享</button></div>
 </dialog>
 <dialog id="link-viewer" class="soft-dialog" aria-labelledby="link-title"><div class="attachment-heading"><h3 id="link-title" tabindex="-1" autofocus>日记链接</h3><button id="link-close" class="close-viewer" aria-label="关闭链接窗口">×</button></div><div id="entry-link-list"></div></dialog>
 <aside class="update-banner" id="update-banner" hidden aria-label="应用更新">
