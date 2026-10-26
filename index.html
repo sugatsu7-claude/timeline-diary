@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.10.26.7">
+<meta name="diary-version" content="2026.10.26.9">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -98,6 +98,10 @@
     margin-bottom: 14px;
   }
   .filter-panel.open { display: block; }
+  .filter-panel { position:fixed;top:var(--filter-top,66px);left:16px;right:16px;z-index:41;max-height:calc(100dvh - var(--filter-top,66px) - 24px);overflow:auto;background:rgba(250,248,243,.97);box-shadow:0 10px 32px rgba(44,44,42,.12); }
+  .filter-panel-heading { display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;color:#767570;font-size:13px; }
+  #close-filters { border:0;background:transparent;color:inherit;padding:8px; }
+
   .filter-panel label { font-size: 12px; color: #767570; display: block; margin: 0 0 6px; }
   .filter-panel .date-row { display: flex; gap: 8px; margin-bottom: 12px; }
   .filter-panel input[type="date"] {
@@ -228,6 +232,11 @@
     border: none;
     flex-shrink: 0;
   }
+  .timeline-pagination { text-align:center;padding:8px 0 24px;color:#898781; }
+  .timeline-pagination[hidden] { display:none; }
+  .timeline-pagination p { font-size:11px;margin:0 0 10px; }
+  .timeline-pagination button { border:1px solid rgba(180,178,169,.25);background:rgba(247,246,240,.7);border-radius:20px;padding:10px 22px;color:#767570;font-size:12px; }
+  .timeline-pagination button:focus-visible { outline:2px solid #9BA495;outline-offset:3px; }
   .empty-state {
     text-align: center;
     color: #B4B2A9;
@@ -372,9 +381,10 @@
   .attachment-row button { display:inline-flex;align-items:center;gap:5px;border:0;border-radius:16px;background:transparent;color:#69685F;padding:6px 8px;min-height:36px;font-size:12px;line-height:1.4; }
   .attachment-row button:hover { background:rgba(244,241,234,.35); }
   .attachment-icon { width:15px;height:15px;flex:none;opacity:.8; }
-  .entry-actions button.entry-delete { display:inline-flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;min-height:24px;padding:0;gap:0;border:0;border-radius:50%;background:rgba(44,44,42,.06);color:#52514E; }
+  .entry-actions button.entry-delete { display:inline-flex;align-items:center;justify-content:center;flex:none;position:relative;isolation:isolate;width:44px;height:44px;min-height:44px;padding:0;gap:0;border:0;background:transparent;color:#52514E; }
   .entry-actions .attachment-icon { width:12px;height:12px; }
-  .entry-actions button.entry-delete:hover { background:rgba(44,44,42,.1); }
+  .entry-actions button.entry-delete::before { content:"";position:absolute;z-index:-1;width:24px;height:24px;border-radius:50%;background:rgba(44,44,42,.06); }
+  .entry-actions button.entry-delete:hover::before { background:rgba(44,44,42,.1); }
   .entry-actions button.entry-delete:focus { outline:none; }
   .entry-actions button.entry-delete:focus-visible { outline:2px solid #9BA495;outline-offset:3px; }
   .entry-actions button.entry-delete:disabled { opacity:.35; }
@@ -437,6 +447,7 @@
 </style>
 </head>
 <body>
+<div id="boot-status" role="status" style="padding:16px;color:#767570;">正在读取本机日记…</div>
 <div id="bg-layer"></div>
 <div id="bg-scrim"></div>
 
@@ -451,12 +462,13 @@
     <span aria-hidden="true" style="color:#B4B2A9;">🔍</span>
     <input type="text" id="search-input" placeholder="搜索关键词">
   </div>
-  <button class="filter-btn" id="filter-toggle">☰ 筛选</button>
+  <button class="filter-btn" id="filter-toggle" aria-controls="filter-panel" aria-expanded="false">☰ 筛选</button>
   <button class="filter-btn" id="sync-btn">同步</button>
   <button class="filter-btn" id="open-settings" aria-controls="settings-drawer" aria-expanded="false">设置</button>
 </div>
 
 <div class="filter-panel" id="filter-panel">
+  <div class="filter-panel-heading"><span>筛选日记</span><button type="button" id="close-filters">收起</button></div>
   <label>日期范围</label>
   <div class="date-row">
     <input type="date" id="filter-date-from">
@@ -470,6 +482,10 @@
 </div>
 
 <div class="timeline" id="timeline"></div>
+<div id="timeline-pagination" class="timeline-pagination" hidden>
+  <p id="timeline-progress" aria-live="polite"></p>
+  <button id="load-more-entries" type="button" aria-controls="timeline">再显示30条</button>
+</div>
 
 <div class="fab" id="add-fab">＋</div>
 <div class="top-fab" id="top-fab">↑</div>
@@ -540,7 +556,10 @@
   <label for="sync-url">Notion 同步服务地址</label>
   <input type="url" id="sync-url" placeholder="https://你的服务.workers.dev" autocomplete="off">
   <label for="sync-secret">同步口令（Worker 的 WORKER_SECRET）</label>
-  <input type="password" id="sync-secret" autocomplete="off" placeholder="只保存在本次浏览器会话中">
+  <input type="password" id="sync-secret" autocomplete="off" placeholder="同步口令">
+  <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="remember-secret" style="width:auto;">在此设备记住连接码</label>
+  <p class="settings-hint">仅在信任的设备开启。更新会保留地址与记住的口令；备份不包含口令。</p>
+  <button id="forget-secret" class="filter-btn" type="button">忘记此设备口令</button>
   <p class="settings-hint" id="sync-status" role="status">尚未同步。日记保存在本机。</p>
   <p class="settings-hint">不要在此填写 Notion Token。首次同步会上传本机日记，请先导出备份。两端修改冲突时保留两份。</p>
   <p class="settings-hint">顶部「同步」只检查上次成功同步后的变更。首次连接或升级时完整核对一次；不会后台自动请求。</p>
@@ -558,11 +577,18 @@
   <input type="text" id="card-opacity-input" placeholder="62" inputmode="numeric">
   <button class="settings-save" id="settings-save-btn">保存设置</button>
   <div class="cloud-row">
-    <button class="backup-btn" id="export-json-btn">⬇ 本地导出</button>
+    <button class="backup-btn" id="export-json-btn">本机备份（不联网）</button>
     <button class="backup-btn" id="import-json-btn">⬆ 本地导入</button>
   </div>
-  <input type="file" id="import-json-input" accept="application/json" style="display:none;">
-  <p class="settings-hint">本地导出不包含服务地址或密钥。建议定期导出，保留独立备份。</p>
+  <label>备份日期范围（留空为全部）</label><div class="date-row"><input type="date" id="backup-from" aria-label="备份起始日期"><input type="date" id="backup-to" aria-label="备份结束日期"></div>
+  <button class="backup-btn" id="full-backup-btn" type="button" style="width:100%;margin-top:8px;">完整备份（含云端图片）</button>
+  <p id="backup-status" class="settings-hint" role="status"></p>
+  <button id="recover-drafts" class="backup-btn" type="button" style="width:100%;margin-top:8px;">查看暂存草稿</button>
+  <p id="storage-status" class="settings-hint" role="status"></p>
+  <div class="cloud-row"><button id="storage-refresh" class="backup-btn" type="button">查看本机空间</button><button id="storage-cleanup" class="backup-btn" type="button">清理无引用图片</button></div>
+  <p class="settings-hint">仅清理超过7天且未被日记、回收站或草稿引用的图片；不会删除Notion内容。</p>
+  <input type="file" id="import-json-input" accept=".json,.zip,application/json,application/zip" style="display:none;">
+  <p class="settings-hint">备份包含服务地址和外观设置，不含连接码或Notion密钥；云端未缓存图片会标明缺失。建议保留独立备份。</p>
 </div>
 
 </section>
@@ -574,6 +600,7 @@
   <div class="cloud-row"><button class="filter-btn" id="confirm-first-author">保存并开始记录</button><button class="filter-btn" id="cancel-first-author">取消</button></div>
   <p id="first-author-error" role="status" class="settings-hint"></p>
 </dialog>
+<dialog id="draft-dialog" class="soft-dialog"><div class="attachment-heading"><h3>暂存草稿</h3><button id="close-drafts">关闭</button></div><div id="draft-list"></div></dialog>
 <dialog id="photo-viewer" class="soft-dialog" aria-labelledby="photo-title">
   <div class="attachment-heading"><h3 id="photo-title" tabindex="-1" autofocus>日记图片</h3><span id="photo-counter"></span><button id="photo-close" class="close-viewer" aria-label="关闭图片窗口">×</button></div>
   <div id="photo-slides"></div>
@@ -590,694 +617,14 @@
 </dialog>
 <div class="toast" id="toast" role="status"></div>
 
-<script>
-var STORAGE_KEY = 'penang_timeline_diary';
-var TRASH_KEY = 'penang_timeline_trash';
-var trash = [];
-try { trash = JSON.parse(localStorage.getItem(TRASH_KEY) || '[]'); } catch (e) { trash = []; }
+<script src="storage.js"></script>
+<script src="network.js"></script>
+<script src="boot.js"></script>
 
-function saveTrash() { localStorage.setItem(TRASH_KEY, JSON.stringify(trash)); }
 
-function purgeOldTrash() {
-  var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  var before = trash.length;
-  trash = trash.filter(function (t) { return (t.deletedAt || 0) > cutoff; });
-  if (trash.length !== before) saveTrash();
-}
-purgeOldTrash();
-var SETTINGS_KEY = 'penang_timeline_settings';
 
-var entries = [];
-try { entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch (e) { entries = []; }
 
-// Compatibility for old diary files only. New names are never translated.
-function legacySourceName(value) { return value === 'user' ? '五月' : value === 'yan' ? '言' : value === 'G老师' ? '叙' : value || '未署名'; }
-function sourceName(value) { return typeof value === 'string' && value ? value : '未署名'; }
-var didMigrateLegacySources = false;
-try {
-  if (!localStorage.getItem('penang_timeline_names_migrated')) {
-    if (!Array.isArray(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')) || !Array.isArray(JSON.parse(localStorage.getItem(TRASH_KEY) || '[]'))) throw new Error('Invalid stored diary');
-    var migratedEntries = entries.map(function(entry){return {...entry,source:legacySourceName(entry.source)};});
-    var migratedTrash = trash.map(function(entry){return {...entry,source:legacySourceName(entry.source)};});
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(migratedEntries));
-    localStorage.setItem(TRASH_KEY,JSON.stringify(migratedTrash));
-    localStorage.setItem('penang_timeline_names_migrated','1');
-    entries=migratedEntries;trash=migratedTrash;didMigrateLegacySources=true;
-  }
-} catch (_) { showToast('旧署名迁移未完成，请检查本机存储'); }
-function actionIcon(kind) {
-  var ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
-  svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.5');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');svg.setAttribute('aria-hidden','true');svg.classList.add('attachment-icon');
-  var shapes={photo:['M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z','m4 17 5-5 4 4 3-3 5 5','M8.5 8h.01'],link:['M10 13a5 5 0 0 0 7 .5l3-3a5 5 0 0 0-7-7l-2 2','M14 11a5 5 0 0 0-7-.5l-3 3a5 5 0 0 0 7 7l2-2'],edit:['m14 5 5 5','M4 20l1-6L16 3a2.8 2.8 0 0 1 4 4L9 18l-5 2Z'],delete:['m6 6 12 12','M18 6 6 18']};
-  (shapes[kind]||[]).forEach(function(d){var path=document.createElementNS(ns,'path');path.setAttribute('d',d);svg.appendChild(path);});return svg;
-}
-function sourceNames() { return window.AuthorSettings ? AuthorSettings.names() : Array.from(new Set(entries.map(function(entry){return sourceName(entry.source);}))); }
-var activeFilters = { from: '', to: '', tags: [], search: '', source: '' };
 
-function showToast(msg) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(showToast._timer);
-  showToast._timer = setTimeout(function () { t.classList.remove('show'); }, 2000);
-}
 
-function uid() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-
-function todayStr() {
-  var d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-
-function saveEntries() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-}
-
-function allTags() {
-  var set = Object.create(null);
-  entries.forEach(function (e) { (e.tags || []).forEach(function (t) { set[t] = true; }); });
-  var used = Object.keys(set);
-  var ordered = PRESET_TAGS.filter(function (t) { return used.indexOf(t) > -1; });
-  var extras = used.filter(function (t) { return PRESET_TAGS.indexOf(t) === -1; }).sort();
-  return ordered.concat(extras);
-}
-
-function renderTagChips() {
-  var wrap = document.getElementById('tag-chips');
-  var tags = allTags();
-  wrap.innerHTML = '';
-  if (tags.length === 0) {
-    wrap.innerHTML = '<span style="font-size:12px;color:#C7C6BE;">还没有标签</span>';
-    return;
-  }
-  tags.forEach(function (tag) {
-    var chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'tag-chip' + (activeFilters.tags.indexOf(tag) > -1 ? ' selected' : '');
-    chip.textContent = tag;
-    chip.onclick = function () {
-      var idx = activeFilters.tags.indexOf(tag);
-      if (idx > -1) activeFilters.tags.splice(idx, 1);
-      else activeFilters.tags.push(tag);
-      renderTagChips();
-      renderTimeline();
-      updateFilterBtnState();
-    };
-    wrap.appendChild(chip);
-  });
-}
-
-function renderSourceChips() {
-  var wrap = document.getElementById('source-chips');
-  wrap.innerHTML = '';
-  sourceNames().map(function (name) { return { key: name, label: name }; }).forEach(function (opt) {
-    var chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'tag-chip' + (activeFilters.source === opt.key ? ' selected' : '');
-    chip.textContent = opt.label;
-    chip.onclick = function () {
-      activeFilters.source = activeFilters.source === opt.key ? '' : opt.key;
-      renderSourceChips();
-      renderTimeline();
-      updateFilterBtnState();
-    };
-    wrap.appendChild(chip);
-  });
-}
-
-function updateFilterBtnState() {
-  var isActive = activeFilters.from || activeFilters.to || activeFilters.tags.length > 0 || activeFilters.source;
-  document.getElementById('filter-toggle').classList.toggle('active-filter', !!isActive);
-}
-
-function matchesFilter(entry) {
-  if (activeFilters.from && entry.date < activeFilters.from) return false;
-  if (activeFilters.to && entry.date > activeFilters.to) return false;
-  if (activeFilters.source && entry.source !== activeFilters.source) return false;
-  if (activeFilters.tags.length > 0) {
-    var hasAll = activeFilters.tags.every(function (t) { return (entry.tags || []).indexOf(t) > -1; });
-    if (!hasAll) return false;
-  }
-  if (activeFilters.search) {
-    var q = activeFilters.search.toLowerCase();
-    var inText = (entry.text || '').toLowerCase().indexOf(q) > -1;
-    var inTags = (entry.tags || []).some(function (t) { return t.toLowerCase().indexOf(q) > -1; });
-    if (!inText && !inTags) return false;
-  }
-  return true;
-}
-
-function isAnyFilterActive() {
-  return !!(activeFilters.from || activeFilters.to || activeFilters.tags.length > 0 || activeFilters.source || activeFilters.search);
-}
-
-function updateEntryCount(filteredCount) {
-  var el = document.getElementById('entry-count');
-  if (!el) return;
-  var total = entries.length;
-  if (isAnyFilterActive()) {
-    el.textContent = '筛选出 ' + filteredCount + ' / ' + total + ' 条';
-  } else {
-    el.textContent = '共 ' + total + ' 条记录';
-  }
-}
-
-function renderTimeline() {
-  var container = document.getElementById('timeline');
-  container.innerHTML = '';
-  var filtered = entries.filter(matchesFilter);
-  updateEntryCount(filtered.length);
-  if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty-state">还没有符合条件的记录<br>点右下角 + 开始记录吧</div>';
-    return;
-  }
-  var byDate = {};
-  filtered.forEach(function (e) {
-    if (!byDate[e.date]) byDate[e.date] = [];
-    byDate[e.date].push(e);
-  });
-  var dates = Object.keys(byDate).sort().reverse();
-  var weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-  dates.forEach(function (date) {
-    var group = document.createElement('div');
-    group.className = 'date-group';
-    var d = new Date(date + 'T00:00:00');
-    byDate[date].sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
-    byDate[date].forEach(function (entry, idx) {
-      var row = document.createElement('div');
-      row.className = 'entry-row';
-      row.setAttribute('data-entry-id', entry.id);
-
-      var dateCol = document.createElement('div');
-      dateCol.className = 'entry-date-col';
-      if (idx === 0) {
-        dateCol.innerHTML =
-          '<div class="entry-date-day">' + d.getDate() + '</div>' +
-          '<div class="entry-date-month">' + (d.getMonth() + 1) + '月</div>' +
-          '<div class="entry-date-weekday">' + weekdays[d.getDay()] + '</div>';
-      } else {
-        dateCol.style.background = 'transparent';
-      }
-      row.appendChild(dateCol);
-
-      var card = document.createElement('div');
-      card.className = 'entry-card';
-      var top = document.createElement('div');
-      top.className = 'entry-top';
-      var srcTag = document.createElement('span');
-      srcTag.style.fontSize = '10px';
-      srcTag.style.color = '#767570';
-      srcTag.textContent = sourceName(entry.source);
-      srcTag.title = sourceName(entry.source);
-      top.appendChild(srcTag);
-      var actions = document.createElement('div');
-      actions.className = 'entry-actions';
-      actions.style.display = 'flex';
-      actions.style.gap = '2px';
-      var editBtn = document.createElement('button');
-      editBtn.className = 'entry-delete';
-      editBtn.appendChild(actionIcon('edit'));
-      editBtn.setAttribute('aria-label', '编辑日记');
-      editBtn.disabled = !!entry.readOnly;
-      editBtn.title = entry.readOnly ? '复杂格式请在Notion编辑' : '编辑';
-      editBtn.onclick = function () { openSheet(entry); };
-      if (/^https:\/\/(www\.)?notion\.so\//.test(entry.notionUrl || '')) {
-        var notionLink = document.createElement('a');
-        notionLink.textContent = entry.readOnly ? 'Notion（只读预览）' : 'Notion';
-        notionLink.href = entry.notionUrl;
-        notionLink.target = '_blank';
-        notionLink.rel = 'noopener noreferrer';
-        actions.appendChild(notionLink);
-      }
-      if (window.MediaAssets) MediaAssets.decorate(actions, entry);
-      actions.appendChild(editBtn);
-      var del = document.createElement('button');
-      del.className = 'entry-delete';
-      del.appendChild(actionIcon('delete'));
-      del.disabled = !!entry.readOnly;
-      del.setAttribute('aria-label', '删除日记');
-      del.onclick = function () {
-        if (!confirm('删除这条记录？会移入回收站，7天内可恢复。')) return;
-        entries = entries.filter(function (e) { return e.id !== entry.id; });
-        trash.push(Object.assign({}, entry, { deletedAt: Date.now() }));
-        saveTrash();
-        saveEntries();
-        renderTimeline();
-        renderTagChips();
-      };
-      actions.appendChild(del);
-      top.appendChild(actions);
-      card.appendChild(top);
-
-      var content = document.createElement('div');
-      content.className = 'entry-content';
-      (entry.tags || []).forEach(function (tag) {
-        var tagSpan = document.createElement('span');
-        tagSpan.className = 'entry-tag';
-        tagSpan.textContent = tag;
-        content.appendChild(tagSpan);
-      });
-      var textSpan = document.createElement('span');
-      textSpan.className = 'entry-text-inline';
-      textSpan.textContent = entry.text;
-      content.appendChild(textSpan);
-      card.appendChild(content);
-
-      row.appendChild(card);
-      group.appendChild(row);
-    });
-    container.appendChild(group);
-  });
-}
-
-document.getElementById('search-input').oninput = function (e) {
-  activeFilters.search = e.target.value.trim();
-  renderTimeline();
-};
-
-document.getElementById('filter-toggle').onclick = function () {
-  document.getElementById('filter-panel').classList.toggle('open');
-};
-document.getElementById('filter-date-from').onchange = function (e) {
-  activeFilters.from = e.target.value;
-  renderTimeline();
-  updateFilterBtnState();
-};
-document.getElementById('filter-date-to').onchange = function (e) {
-  activeFilters.to = e.target.value;
-  renderTimeline();
-  updateFilterBtnState();
-};
-document.getElementById('filter-clear').onclick = function () {
-  activeFilters = { from: '', to: '', tags: [], search: '', source: '' };
-  document.getElementById('filter-date-from').value = '';
-  document.getElementById('filter-date-to').value = '';
-  document.getElementById('search-input').value = '';
-  renderTagChips();
-  renderSourceChips();
-  renderTimeline();
-  updateFilterBtnState();
-};
-
-var DEFAULT_TAGS = ['日常', '游戏', '诗词', '灵感', '资讯', '动漫', '嗑CP'];
-var TAGS_KEY = 'penang_timeline_tags';
-var PRESET_TAGS = [];
-try {
-  var storedTags = JSON.parse(localStorage.getItem(TAGS_KEY) || 'null');
-  PRESET_TAGS = storedTags && storedTags.length ? storedTags : DEFAULT_TAGS.slice();
-} catch (e) { PRESET_TAGS = DEFAULT_TAGS.slice(); }
-if (!localStorage.getItem(TAGS_KEY)) localStorage.setItem(TAGS_KEY, JSON.stringify(PRESET_TAGS));
-
-function savePresetTags() {
-  localStorage.setItem(TAGS_KEY, JSON.stringify(PRESET_TAGS));
-}
-var sheetSelectedTags = [];
-
-function renderSheetTagChips() {
-  var wrap = document.getElementById('sheet-tag-chips');
-  wrap.innerHTML = '';
-  PRESET_TAGS.forEach(function (tag) {
-    var chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'tag-chip' + (sheetSelectedTags.indexOf(tag) > -1 ? ' selected' : '');
-    chip.textContent = tag;
-    chip.onclick = function () {
-      var idx = sheetSelectedTags.indexOf(tag);
-      if (idx > -1) sheetSelectedTags.splice(idx, 1);
-      else sheetSelectedTags.push(tag);
-      renderSheetTagChips();
-    };
-    wrap.appendChild(chip);
-  });
-}
-
-var sheetPhotos = [];
-var mediaBusy = false;
-var editingId = null;
-var sheetInitialSnapshot = '';
-var DRAFT_KEY = 'penang_timeline_draft';
-function sheetSnapshot() {
-  return JSON.stringify({ id: editingId, date: document.getElementById('entry-date').value, text: document.getElementById('entry-text').value, tags: sheetSelectedTags.slice(), source: document.getElementById('entry-source').value, photos: sheetPhotos, linksText: document.getElementById('entry-links').value });
-}
-function hasDiaryDraft() { return document.getElementById('sheet').classList.contains('open') && sheetSnapshot() !== sheetInitialSnapshot; }
-
-function openSheet(editEntry) {
-  if (mediaBusy) { showToast('图片处理中，请稍候'); return; }
-  if (!editEntry && window.AuthorSettings && !AuthorSettings.defaultName()) { AuthorSettings.begin(); return; }
-  editingId = editEntry ? editEntry.id : null;
-  sheetPhotos = editEntry ? (editEntry.photos || []).map(function (p) { return {...p}; }) : [];
-  document.getElementById('entry-links').value = editEntry ? (editEntry.links || []).join('\n') : '';
-  if (window.MediaAssets) MediaAssets.renderSheet();
-  document.getElementById('sheet-title').textContent = editEntry ? '编辑记录' : '新增记录';
-  document.getElementById('entry-date').value = editEntry ? editEntry.date : todayStr();
-  document.getElementById('entry-text').value = editEntry ? editEntry.text : '';
-  sheetSelectedTags = editEntry ? (editEntry.tags || []).slice() : [];
-  renderSheetTagChips();
-  var sourceSelect = document.getElementById('entry-source');
-  sourceSelect.replaceChildren();
-  var authorOptions = window.AuthorSettings ? AuthorSettings.options(editEntry && editEntry.source) : sourceNames();
-  authorOptions.forEach(function (name) { var option = document.createElement('option'); option.value = name; option.textContent = name; sourceSelect.appendChild(option); });
-  sourceSelect.value = editEntry ? sourceName(editEntry.source) : (window.AuthorSettings ? AuthorSettings.defaultName() : sourceNames()[0] || '');
-  sheetInitialSnapshot = sheetSnapshot();
-  document.getElementById('sheet-backdrop').classList.add('open');
-  document.getElementById('sheet').classList.add('open');
-}
-function closeSheet() {
-  if (mediaBusy) { showToast('图片处理中，请稍候'); return; }
-  try { sessionStorage.removeItem(DRAFT_KEY); } catch (_) {}
-  try { localStorage.removeItem(DRAFT_KEY); } catch (_) {}
-  document.getElementById('sheet-backdrop').classList.remove('open');
-  document.getElementById('sheet').classList.remove('open');
-}
-document.getElementById('add-fab').onclick = function () { openSheet(); };
-document.getElementById('sheet-cancel').onclick = closeSheet;
-document.getElementById('sheet-backdrop').onclick = closeSheet;
-
-document.getElementById('sheet-save').onclick = function () {
-  if (mediaBusy) { showToast('图片处理中，请稍候'); return; }
-  var links;
-  try { links = window.MediaAssets ? MediaAssets.links() : []; } catch (error) { showToast(error.message); return; }
-  var date = document.getElementById('entry-date').value || todayStr();
-  var text = document.getElementById('entry-text').value.trim();
-  if (!text && !sheetPhotos.length && !links.length) { showToast('记点什么或添加附件再保存吧'); return; }
-  var tags = sheetSelectedTags.slice();
-  var selectedSource = document.getElementById('entry-source').value;
-  if (!selectedSource) { showToast('请先填写记录人的名字'); return; }
-  var savedEntryId = editingId || uid();
-  if (editingId) {
-    var target = entries.find(function (e) { return e.id === editingId; });
-    if (target) {
-      target.date = date;
-      target.text = text;
-      target.tags = tags;
-      target.source = selectedSource;
-      target.photos = sheetPhotos.map(function (p) { return {...p}; });
-      target.links = links;
-    }
-  } else {
-    entries.push({ id: savedEntryId, date: date, text: text, tags: tags, source: selectedSource, photos: sheetPhotos.map(function (p) { return {...p}; }), links: links, createdAt: Date.now() });
-  }
-  try { saveEntries(); }
-  catch (e) { showToast('未能保存到本机，请导出备份并检查存储空间'); return; }
-  closeSheet();
-  renderTagChips();
-  renderTimeline();
-  showToast(editingId ? '已更新' : '已保存');
-  editingId = null;
-  if (!entries.filter(matchesFilter).some(function (entry) { return entry.id === savedEntryId; })) {
-    document.getElementById('filter-clear').onclick();
-    showToast('已保存；已清除筛选以显示该记录');
-  }
-  if (savedEntryId) {
-    requestAnimationFrame(function () {
-      var el = Array.from(document.querySelectorAll('[data-entry-id]')).find(function (row) { return row.dataset.entryId === savedEntryId; });
-      if (el) {
-        el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
-        el.classList.add('saved-highlight');
-      }
-    });
-  }
-};
-
-function loadSettings() {
-  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch (e) { return {}; }
-}
-// Retain appearance preferences from the previous version without retaining GitHub credentials.
-var legacySettings = {};
-try { legacySettings = JSON.parse(localStorage.getItem('penang_timeline_gh_settings') || '{}'); } catch (e) {}
-var appSettings = loadSettings();
-['bgUrl', 'scrim', 'cardOpacity'].forEach(function (key) {
-  if (appSettings[key] === undefined && legacySettings[key] !== undefined) appSettings[key] = legacySettings[key];
-});
-try {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
-  localStorage.removeItem('penang_timeline_gh_settings');
-} catch (e) { showToast('设置迁移失败，请检查本机存储空间'); }
-legacySettings = null;
-document.getElementById('sync-url').value = appSettings.syncUrl || '';
-document.getElementById('bg-url').value = appSettings.bgUrl || '';
-document.getElementById('bg-scrim-input').value = appSettings.scrim === undefined ? 72 : appSettings.scrim;
-document.getElementById('card-opacity-input').value = appSettings.cardOpacity === undefined ? 62 : appSettings.cardOpacity;
-if (!appSettings.localBackground) applyBackground(appSettings.bgUrl);
-applyScrim(appSettings.scrim);
-applyCardOpacity(appSettings.cardOpacity);
-
-function applyBackground(url) {
-  var layer = document.getElementById('bg-layer');
-  layer.style.backgroundImage = url ? 'url(' + url + ')' : 'none';
-}
-function applyScrim(val) {
-  var pct = (val === undefined || val === null || val === '') ? 72 : Math.max(0, Math.min(100, parseInt(val, 10)));
-  document.getElementById('bg-scrim').style.background = 'rgba(244,241,234,' + (pct / 100) + ')';
-}
-function applyCardOpacity(val) {
-  var pct = (val === undefined || val === null || val === '') ? 62 : Math.max(0, Math.min(100, parseInt(val, 10)));
-  document.documentElement.style.setProperty('--card-opacity', pct / 100);
-}
-
-document.getElementById('export-json-btn').onclick = function () {
-  var blob = new Blob([JSON.stringify(entries, null, 2)], { type: 'application/json' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'timeline-diary-backup-' + todayStr() + '.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('已导出');
-};
-
-document.getElementById('import-json-btn').onclick = function () {
-  document.getElementById('import-json-input').click();
-};
-document.getElementById('import-json-input').onchange = function (e) {
-  var file = e.target.files[0];
-  if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function (evt) {
-    try {
-      var imported = JSON.parse(evt.target.result);
-      if (!Array.isArray(imported) || !imported.every(function (entry) {
-        return entry && typeof entry.id === 'string' && entry.id.length > 0 &&
-          typeof entry.text === 'string' && typeof entry.date === 'string' &&
-          /^\d{4}-\d{2}-\d{2}$/.test(entry.date) &&
-          (entry.tags === undefined || (Array.isArray(entry.tags) && entry.tags.every(function (tag) { return typeof tag === 'string'; }))) &&
-          (entry.source === undefined || (typeof entry.source === 'string' && entry.source.length <= 100)) &&
-          (entry.createdAt === undefined || (typeof entry.createdAt === 'number' && Number.isFinite(entry.createdAt)));
-      })) throw new Error('Invalid diary backup');
-      var existingIds = Object.create(null);
-      entries.forEach(function (en) { existingIds[en.id] = true; });
-      var added = 0;
-      imported.forEach(function (en) {
-        if (!existingIds[en.id]) { en.source = sourceName(en.source); entries.push(en); existingIds[en.id] = true; added++; }
-      });
-      saveEntries();
-      renderTagChips();
-      renderTimeline();
-      showToast('已导入 ' + added + ' 条');
-    } catch (err) {
-      showToast('文件格式有误');
-    }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-};
-
-document.getElementById('tags-toggle').onclick = function () {
-  document.getElementById('tags-panel').classList.toggle('open');
-};
-
-function renderManageTagChips() {
-  var wrap = document.getElementById('manage-tag-chips');
-  wrap.innerHTML = '';
-  if (PRESET_TAGS.length === 0) {
-    wrap.innerHTML = '<span style="font-size:12px;color:#C7C6BE;">还没有标签，先加一个吧</span>';
-    return;
-  }
-  wrap.style.display = 'flex';
-  wrap.style.flexDirection = 'column';
-  wrap.style.gap = '6px';
-  PRESET_TAGS.forEach(function (tag, idx) {
-    var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:6px;background:#FCFCFB;border:0.5px solid #E1E0D9;border-radius:10px;padding:6px 8px;';
-    var label = document.createElement('span');
-    label.textContent = tag;
-    label.style.cssText = 'flex:1;font-size:13px;color:#52514E;';
-    row.appendChild(label);
-
-    var upBtn = document.createElement('button');
-    upBtn.type = 'button';
-    upBtn.textContent = '↑';
-    upBtn.disabled = idx === 0;
-    upBtn.style.cssText = 'background:transparent;border:none;font-size:14px;color:' + (idx === 0 ? '#E1E0D9' : '#767570') + ';padding:2px 6px;';
-    upBtn.onclick = function () {
-      if (idx === 0) return;
-      var tmp = PRESET_TAGS[idx - 1];
-      PRESET_TAGS[idx - 1] = PRESET_TAGS[idx];
-      PRESET_TAGS[idx] = tmp;
-      savePresetTags();
-      renderManageTagChips();
-    };
-    row.appendChild(upBtn);
-
-    var downBtn = document.createElement('button');
-    downBtn.type = 'button';
-    downBtn.textContent = '↓';
-    downBtn.disabled = idx === PRESET_TAGS.length - 1;
-    downBtn.style.cssText = 'background:transparent;border:none;font-size:14px;color:' + (idx === PRESET_TAGS.length - 1 ? '#E1E0D9' : '#767570') + ';padding:2px 6px;';
-    downBtn.onclick = function () {
-      if (idx === PRESET_TAGS.length - 1) return;
-      var tmp = PRESET_TAGS[idx + 1];
-      PRESET_TAGS[idx + 1] = PRESET_TAGS[idx];
-      PRESET_TAGS[idx] = tmp;
-      savePresetTags();
-      renderManageTagChips();
-    };
-    row.appendChild(downBtn);
-
-    var removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.innerHTML = '✕';
-    removeBtn.style.cssText = 'background:transparent;border:none;font-size:13px;color:#C7C6BE;padding:2px 6px;';
-    removeBtn.onclick = function () {
-      if (!confirm('删除标签"' + tag + '"？已记录的内容不会受影响。')) return;
-      PRESET_TAGS = PRESET_TAGS.filter(function (t) { return t !== tag; });
-      savePresetTags();
-      renderManageTagChips();
-    };
-    row.appendChild(removeBtn);
-
-    wrap.appendChild(row);
-  });
-}
-
-document.getElementById('add-tag-btn').onclick = function () {
-  var input = document.getElementById('new-tag-input');
-  var val = input.value.trim();
-  if (!val) return;
-  if (PRESET_TAGS.indexOf(val) > -1) { showToast('这个标签已经存在了'); return; }
-  PRESET_TAGS.push(val);
-  savePresetTags();
-  input.value = '';
-  renderManageTagChips();
-  showToast('标签已添加');
-};
-
-renderManageTagChips();
-
-document.getElementById('trash-toggle').onclick = function () {
-  document.getElementById('trash-panel').classList.toggle('open');
-  renderTrashList();
-};
-
-function renderTrashList() {
-  purgeOldTrash();
-  var wrap = document.getElementById('trash-list');
-  wrap.innerHTML = '';
-  if (trash.length === 0) {
-    wrap.innerHTML = '<p style="font-size:12px;color:#C7C6BE;margin:0;">回收站是空的</p>';
-    return;
-  }
-  trash.slice().sort(function (a, b) { return (b.deletedAt || 0) - (a.deletedAt || 0); }).forEach(function (item) {
-    var row = document.createElement('div');
-    row.className = 'trash-item';
-    var text = document.createElement('div');
-    text.className = 'trash-item-text';
-    text.textContent = item.date + ' · ' + item.text;
-    row.appendChild(text);
-    var actions = document.createElement('div');
-    actions.className = 'trash-item-actions';
-    var restoreBtn = document.createElement('button');
-    restoreBtn.textContent = '恢复';
-    restoreBtn.onclick = function () {
-      trash = trash.filter(function (t) { return t.id !== item.id; });
-      saveTrash();
-      var restored = Object.assign({}, item);
-      delete restored.deletedAt;
-      entries.push(restored);
-      saveEntries();
-      renderTrashList();
-      renderTagChips();
-      renderTimeline();
-      showToast('已恢复');
-    };
-    actions.appendChild(restoreBtn);
-    var purgeBtn = document.createElement('button');
-    purgeBtn.textContent = '彻底删除';
-    purgeBtn.onclick = function () {
-      if (!confirm('彻底删除后无法找回，确定吗？')) return;
-      trash = trash.filter(function (t) { return t.id !== item.id; });
-      saveTrash();
-      renderTrashList();
-    };
-    actions.appendChild(purgeBtn);
-    row.appendChild(actions);
-    wrap.appendChild(row);
-  });
-}
-
-document.getElementById('settings-toggle').onclick = function () {
-  document.getElementById('settings-panel').classList.toggle('open');
-};
-document.getElementById('settings-save-btn').onclick = function () {
-  appSettings = {
-    localBackground: appSettings.localBackground === true,
-    syncUrl: document.getElementById('sync-url').value.trim(),
-    bgUrl: document.getElementById('bg-url').value.trim(),
-    scrim: document.getElementById('bg-scrim-input').value.trim(),
-    cardOpacity: document.getElementById('card-opacity-input').value.trim()
-  };
-  try {
-    if (appSettings.syncUrl) {
-      var syncTarget = new URL(appSettings.syncUrl);
-      if (syncTarget.protocol !== 'https:' || syncTarget.username || syncTarget.password || syncTarget.search || syncTarget.hash || syncTarget.pathname !== '/') throw new Error('invalid');
-      appSettings.syncUrl = syncTarget.origin;
-    }
-    sessionStorage.setItem('diary_sync_secret', document.getElementById('sync-secret').value);
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings)); }
-  catch (e) { showToast('设置未保存：请使用HTTPS根地址，并检查浏览器存储'); return; }
-  applyBackground(appSettings.bgUrl);
-  applyScrim(appSettings.scrim);
-  applyCardOpacity(appSettings.cardOpacity);
-  showToast('设置已保存');
-};
-
-var settingsReturnFocus;
-function toggleSettings(open) {
-  var drawer = document.getElementById('settings-drawer');
-  if (open) settingsReturnFocus = document.activeElement;
-  drawer.hidden = !open;
-  document.getElementById('open-settings').setAttribute('aria-expanded', String(open));
-  document.body.style.overflowY = open ? 'hidden' : '';
-  if (open) document.getElementById('close-settings').focus();
-  else if (settingsReturnFocus) settingsReturnFocus.focus();
-}
-document.getElementById('open-settings').onclick = function () { toggleSettings(true); };
-document.getElementById('close-settings').onclick = function () { toggleSettings(false); };
-document.addEventListener('keydown', function (event) {
-  if (event.key === 'Escape' && !document.getElementById('settings-drawer').hidden) toggleSettings(false);
-});
-
-renderTagChips();
-renderSourceChips();
-renderTimeline();
-updateFilterBtnState();
-
-var topFab = document.getElementById('top-fab');
-window.addEventListener('scroll', function () {
-  topFab.classList.toggle('show', window.scrollY > 400);
-});
-topFab.onclick = function () {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-</script>
-
-<script src="authors.js"></script>
-<script src="media.js"></script>
-<script src="sync.js"></script>
-<script src="updates.js"></script>
 </body>
 </html>

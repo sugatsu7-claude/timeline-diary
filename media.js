@@ -1,27 +1,26 @@
-// diary-release: 2026.10.26.7
+// diary-release: 2026.10.26.9
 /* Local blobs live in IndexedDB; metadata alone lives with diary entries. */
 (function () {
   'use strict';
   var dbPromise, bgObjectUrl, viewerUrls = [], viewerEntry;
   function database() {
-    if (!dbPromise) dbPromise = new Promise(function (resolve, reject) {
-      var request = indexedDB.open('timeline-diary-assets', 1);
-      request.onupgradeneeded = function () { request.result.createObjectStore('assets'); };
-      request.onsuccess = function () { resolve(request.result); };
-      request.onerror = function () { reject(new Error('无法访问本机图片存储')); };
-    });
-    return dbPromise;
+    if(!dbPromise)dbPromise=new Promise(function(resolve,reject){
+      var r=indexedDB.open('timeline-diary-assets',2);
+      r.onupgradeneeded=function(){var db=r.result;if(!db.objectStoreNames.contains('assets'))db.createObjectStore('assets');if(!db.objectStoreNames.contains('assetMeta'))db.createObjectStore('assetMeta');};
+      r.onerror=function(){reject(new Error('无法访问本机图片存储'));};
+      r.onblocked=function(){reject(new Error('请关闭其他旧版日记窗口，再重新打开以完成图片存储升级'));};
+      r.onsuccess=function(){var db=r.result;db.onversionchange=function(){db.close();};var tx=db.transaction(['assets','assetMeta'],'readwrite'),cursor=tx.objectStore('assets').openCursor();cursor.onsuccess=function(){var c=cursor.result;if(!c)return;var old=tx.objectStore('assetMeta').get(c.key);old.onsuccess=function(){if(!old.result)tx.objectStore('assetMeta').put({touchedAt:Date.now()},c.key);c.continue();};};tx.oncomplete=function(){resolve(db);};tx.onerror=function(){reject(tx.error);};};
+    });return dbPromise;
   }
-  async function store(method, key, value) {
-    var db = await database();
-    return new Promise(function (resolve, reject) {
-      var tx = db.transaction('assets', method === 'get' ? 'readonly' : 'readwrite');
-      var object = tx.objectStore('assets');
-      var request = method === 'put' ? object.put(value, key) : object[method](key);
-      tx.oncomplete = function () { resolve(request.result); };
-      tx.onerror = tx.onabort = function () { reject(new Error('图片未保存，请检查本机存储空间')); };
+  async function store(method,key,value){
+    var db=await database();return new Promise(function(resolve,reject){
+      var tx=db.transaction(method==='get'?['assets']:['assets','assetMeta'],method==='get'?'readonly':'readwrite'),object=tx.objectStore('assets'),r=method==='put'?object.put(value,key):object[method](key);
+      if(method==='put')tx.objectStore('assetMeta').put({touchedAt:Date.now()},key);if(method==='delete')tx.objectStore('assetMeta').delete(key);
+      tx.oncomplete=function(){resolve(r.result);};tx.onerror=tx.onabort=function(){reject(new Error('图片存储未完成，请检查本机空间'));};
     });
   }
+  async function assetInfo(){var db=await database();return new Promise(function(resolve,reject){var tx=db.transaction(['assets','assetMeta']),r=tx.objectStore('assets').openCursor(),items=[];r.onsuccess=function(){var c=r.result;if(!c)return;var m=tx.objectStore('assetMeta').get(c.key);m.onsuccess=function(){items.push({key:c.key,bytes:c.value instanceof Blob?c.value.size:0,upload:String(c.key).startsWith('upload:'),expiresAt:c.value?.expiresAt,touchedAt:m.result?.touchedAt||Date.now()});c.continue();};};tx.oncomplete=function(){resolve(items);};tx.onerror=function(){reject(tx.error);};});}
+  async function cleanupAssets(protectedKeys){var db=await database(),removed=0,bytes=0;await new Promise(function(resolve,reject){var tx=db.transaction(['assets','assetMeta'],'readwrite'),r=tx.objectStore('assets').openCursor();r.onsuccess=function(){var c=r.result;if(!c)return;var key=c.key,m=tx.objectStore('assetMeta').get(key);m.onsuccess=function(){var expired=String(key).startsWith('upload:')&&Date.parse(c.value?.expiresAt)<Date.now(),old=(m.result?.touchedAt||Date.now())<Date.now()-7*86400000;if(key!=='background'&&!protectedKeys.has(key)&&(expired||old)){bytes+=c.value instanceof Blob?c.value.size:0;removed++;c.delete();tx.objectStore('assetMeta').delete(key);}c.continue();};};tx.oncomplete=resolve;tx.onerror=tx.onabort=function(){reject(tx.error);};});return{removed,bytes};}
   function safeLink(text) { try { var u = new URL(text); return ['https:', 'http:'].includes(u.protocol) && !u.username && !u.password && text.length <= 2000; } catch (_) { return false; } }
   function links() {
     var result = Array.from(new Set(document.getElementById('entry-links').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean)));
@@ -85,33 +84,29 @@
     var file = event.target.files[0];event.target.value = '';if (!file) return;
     if(mediaBusy){showToast('图片处理中，请稍候');return;}
     mediaBusy = true;
-    try { var blob = await compress(file,2000);await store('put','background',blob);appSettings.localBackground = true;localStorage.setItem(SETTINGS_KEY,JSON.stringify(appSettings));await applyBackground(appSettings.bgUrl);showToast('本机背景已应用'); }
+    try { var blob = await compress(file,2000);await store('put','background',blob);var next={...appSettings,localBackground:true};await DiaryStore.setConfig(SETTINGS_KEY,next);appSettings=next;await applyBackground(appSettings.bgUrl);showToast('本机背景已应用'); }
     catch(error) { showToast(error.message); } finally { mediaBusy=false; }
   };
-  document.getElementById('use-bg-url').onclick = function () {
+  document.getElementById('use-bg-url').onclick = async function () {
     var url = document.getElementById('bg-url').value.trim();
     if (url && !safeLink(url)) { showToast('请输入HTTP/HTTPS图片地址');return; }
-    appSettings.bgUrl = url;appSettings.localBackground=false;
-    try {localStorage.setItem(SETTINGS_KEY,JSON.stringify(appSettings));applyBackground(url);document.getElementById('background-status').textContent='使用网址背景；外部图片需要联网。';}catch(_){showToast('设置未保存');}
+    var next={...appSettings,bgUrl:url,localBackground:false};
+    try {await DiaryStore.setConfig(SETTINGS_KEY,next);appSettings=next;applyBackground(url);document.getElementById('background-status').textContent='使用网址背景；外部图片需要联网。';}catch(_){showToast('设置未保存');}
   };
   document.getElementById('reset-background').onclick = async function () {
-    try {await store('delete','background');appSettings.localBackground=false;appSettings.bgUrl='';localStorage.setItem(SETTINGS_KEY,JSON.stringify(appSettings));document.getElementById('bg-url').value='';applyBackground('');document.getElementById('background-status').textContent='已恢复默认背景。';}catch(_){showToast('恢复默认背景失败');}
+    try {var next={...appSettings,localBackground:false,bgUrl:''};await DiaryStore.setConfig(SETTINGS_KEY,next);appSettings=next;document.getElementById('bg-url').value='';applyBackground('');document.getElementById('background-status').textContent='已恢复默认背景。';}catch(_){showToast('恢复默认背景失败');}
   };
   applyBackground(appSettings.bgUrl);
 
-  function credentials() {
-    var u = new URL(appSettings.syncUrl), secret = document.getElementById('sync-secret').value;
-    if (u.protocol !== 'https:' || u.pathname !== '/' || u.username || u.password || u.search || u.hash || !secret) throw new Error('请先保存同步服务地址和口令');
-    return {endpoint:u.origin,secret:secret};
-  }
+  function credentials(){var c=DiaryNet.credentials();return{endpoint:c.url,headers:c.headers};}
   async function refreshPhotos(entry) {
     var c = credentials();
     var pageId=entry.photos.find(function(p){return p.pageId;})?.pageId;
-    var response = await fetch(c.endpoint+'/read',{method:'POST',cache:'no-store',headers:{Authorization:'Bearer '+c.secret,'Content-Type':'application/json'},body:JSON.stringify({pageId:pageId})});
-    var value = await response.json();if (!response.ok) throw new Error(value.error || '图片地址刷新失败');
-    if (value.pageId !== pageId) throw new Error('图片所属页面不匹配，请先同步');
-    (entry.photos || []).forEach(function(p){var updated=(value.photos||[]).find(function(v){return v.id===p.id;});if(updated)Object.assign(p,updated);});
-    var stored=entries.find(function(e){return e.id===entry.id;});if(stored){(stored.photos||[]).forEach(function(p){var updated=(value.photos||[]).find(function(v){return v.id===p.id;});if(updated)Object.assign(p,updated);});saveEntries();}
+    var value=await DiaryNet.request(c.endpoint+'/read',{method:'POST',headers:{...c.headers,'Content-Type':'application/json'},body:JSON.stringify({pageId:pageId})},30000);
+    if(value.pageId!==pageId)throw new Error('图片所属页面不匹配，请先同步');
+    var mapping=new Map((value.photos||[]).map(p=>[p.id,p]));
+    if(entry.id)await DiaryStore.patchPhotos(entry.id,value.photos||[]);
+    (entry.photos||[]).forEach(function(p){if(mapping.has(p.id))Object.assign(p,mapping.get(p.id));});
   }
   async function openPhotos(entry, selected) {
     var dialog=document.getElementById('photo-viewer'), slides=document.getElementById('photo-slides');
@@ -127,7 +122,7 @@
     if(!section||!photo||section.dataset.loaded)return;section.dataset.loaded='true';
     var note=section.querySelector('p');note.textContent='读取图片…';
     try {
-      var blob=photo.revision&&photo.localRevision!==photo.revision?null:await store('get',photo.id),src;
+      var blob=photo.revision&&photo.localRevision!==photo.revision?null:await store('get',photo.cacheKey||photo.id),src;
       if(blob){src=URL.createObjectURL(blob);viewerUrls.push(src);}
       else {
         if (!photo.url || (photo.expiresAt && Date.parse(photo.expiresAt)<Date.now()+30000)) {
@@ -174,7 +169,7 @@
       if(photo.externalUrl&&safeLink(photo.externalUrl)){photos.push(photo);continue;}
       var key='upload:'+endpoint+':'+photo.id,upload=await store('get',key);
       if(!upload||Date.parse(upload.expiresAt)<Date.now()+60000){
-        var blob=photo.revision&&photo.localRevision!==photo.revision?null:await store('get',photo.id);
+        var blob=photo.revision&&photo.localRevision!==photo.revision?null:await store('get',photo.cacheKey||photo.id);
         if(blob){var form=new FormData();form.append('file',blob,'diary-image.jpg');upload=await call('/upload',form);}
         else if(photo.pageId){upload=await call('/copy-upload',{pageId:photo.pageId,photoId:photo.id});}
         else throw new Error('本机图片缺失，请重新选择或从含图片的备份恢复');
@@ -184,41 +179,6 @@
     }
     return {...entry,photos:photos};
   }
-  function asDataURL(blob) { return new Promise(function(resolve,reject){var reader=new FileReader();reader.onload=function(){resolve(reader.result);};reader.onerror=reject;reader.readAsDataURL(blob);}); }
-  document.getElementById('export-json-btn').onclick=async function(){
-    try {
-      var assets=[], ids=Array.from(new Set(entries.flatMap(function(e){return(e.photos||[]).map(function(p){return p.id;});}))), missing=0;
-      for(var id of ids){var blob=await store('get',id);if(blob)assets.push({id:id,data:await asDataURL(blob)});else missing++;}
-      var backup={format:'timeline-diary',version:2,entries:entries,assets:assets};
-      var url=URL.createObjectURL(new Blob([JSON.stringify(backup)],{type:'application/json'})),a=document.createElement('a');
-      a.href=url;a.download='timeline-diary-backup-'+todayStr()+'.json';a.click();setTimeout(function(){URL.revokeObjectURL(url);},1000);
-      showToast(missing?'已导出；'+missing+'张Notion图片仅保留云端引用':'已导出，包含本机日记图片');
-    }catch(error){showToast('导出失败：'+error.message);}
-  };
-  document.getElementById('import-json-input').onchange=async function(event){
-    var file=event.target.files[0];event.target.value='';if(!file)return;
-    try {
-      var parsed=JSON.parse(await file.text()), imported=Array.isArray(parsed)?parsed:parsed.format==='timeline-diary'&&parsed.version===2?parsed.entries:null;
-      if(!Array.isArray(imported)||!imported.every(function(e){return e&&typeof e.id==='string'&&e.id.length>0&&typeof e.text==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(e.date)&&
-        (e.source===undefined||typeof e.source==='string')&&Array.isArray(e.tags||[])&&(e.tags||[]).every(function(t){return typeof t==='string';})&&
-        Array.isArray(e.photos||[])&&(e.photos||[]).length<=8&&(e.photos||[]).every(function(p){return p&&typeof p.id==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(p.id);})&&
-        Array.isArray(e.links||[])&&(e.links||[]).length<=8&&(e.links||[]).every(safeLink);}))throw new Error('日记格式不正确');
-      var verified=[];
-      if(!Array.isArray(parsed)){
-        if(!Array.isArray(parsed.assets))throw new Error('图片备份格式不正确');
-        for(var asset of parsed.assets){
-          if(!asset||typeof asset.data!=='string'||!/^data:image\/(jpeg|png|webp|gif);base64,[a-zA-Z0-9+/=]+$/.test(asset.data)||asset.data.length>2800000)throw new Error('备份图片格式不正确');
-          var encoded=asset.data.split(','), bytes=Uint8Array.from(atob(encoded[1]),function(c){return c.charCodeAt(0);}), blob=new Blob([bytes],{type:encoded[0].slice(5,-7)});
-          if(blob.size>2000000||await hash(blob)!==asset.id)throw new Error('图片校验失败，未导入日记');
-          verified.push({id:asset.id,blob:blob});
-        }
-      }
-      for(var asset of verified)await store('put',asset.id,asset.blob);
-      var ids=new Set(entries.map(function(e){return e.id;})), next=entries.slice(),added=0;
-      imported.forEach(function(e){if(!ids.has(e.id)){next.push({...e,source:Array.isArray(parsed)?legacySourceName(e.source):sourceName(e.source),tags:e.tags||[],photos:e.photos||[],links:e.links||[]});ids.add(e.id);added++;}});
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(next));entries=next;renderTimeline();renderTagChips();renderSourceChips();showToast('已导入'+added+'条日记');
-    }catch(error){showToast('导入失败：'+error.message);}
-  };
-  window.MediaAssets={store:store,hash:hash,safeLink:safeLink,links:links,renderSheet:renderSheet,decorate:decorate,prepare:prepare};
+  window.MediaAssets={store:store,hash:hash,safeLink:safeLink,links:links,renderSheet:renderSheet,decorate:decorate,prepare:prepare,assetInfo:assetInfo,cleanupAssets:cleanupAssets};
   renderTimeline();
 })();
