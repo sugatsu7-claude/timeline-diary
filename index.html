@@ -49,7 +49,7 @@
   }
   .search-box {
     flex: 1;
-    min-width: 140px;
+    min-width: 60px;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -355,6 +355,14 @@
   .backup-btn { flex: 1; padding: 12px; border-radius: 12px; border: 0.5px solid #E1E0D9; background: #FFFFFF; font-size: 13px; color: #52514E; display: flex; align-items: center; justify-content: center; gap: 6px; }
   .settings-hint { font-size: 11px; color: #B4B2A9; margin-top: 10px; line-height: 1.5; }
 
+  .settings-drawer { position: fixed; inset: 0; z-index: 60; background: #F4F1EA; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 28px); overflow-y: auto; }
+  .settings-drawer[hidden] { display: none; }
+  .settings-heading { display: flex; align-items: center; justify-content: space-between; position: sticky; top: -1px; background: #F4F1EA; z-index: 1; padding: 8px 0; }
+  .settings-heading h2 { margin: 0; font-size: 20px; }
+  .entry-row { scroll-margin-top: 90px; }
+  @keyframes saved-highlight { from { outline: 3px solid #1B3A6B; } to { outline: 3px solid transparent; } }
+  .saved-highlight .entry-card { animation: saved-highlight 2s ease-out; }
+  @media (prefers-reduced-motion: reduce) { .saved-highlight .entry-card { animation: none; } }
   .toast {
     position: fixed;
     left: 50%;
@@ -379,7 +387,7 @@
 
 <div class="header">
   <h1>时间轴日记</h1>
-  <p>五月 &amp; 言的每日记录</p>
+  <p>五月、言与叙的每日记录</p>
   <p class="entry-count" id="entry-count"></p>
 </div>
 
@@ -389,6 +397,8 @@
     <input type="text" id="search-input" placeholder="搜索关键词">
   </div>
   <button class="filter-btn" id="filter-toggle">☰ 筛选</button>
+  <button class="filter-btn" id="sync-btn">同步</button>
+  <button class="filter-btn" id="open-settings" aria-controls="settings-drawer" aria-expanded="false">设置</button>
 </div>
 
 <div class="filter-panel" id="filter-panel">
@@ -415,10 +425,7 @@
   <label>日期</label>
   <input type="date" id="entry-date">
   <label>谁记的</label>
-  <div class="source-toggle">
-    <button type="button" id="src-user-btn" class="selected">五月</button>
-    <button type="button" id="src-yan-btn">言</button>
-  </div>
+  <select id="entry-source" style="width:100%;padding:10px;font-size:16px;border-radius:8px;"></select>
   <label>标签（可多选）</label>
   <div class="tag-chips" id="sheet-tag-chips"></div>
   <label>内容</label>
@@ -429,6 +436,8 @@
   </div>
 </div>
 
+<section class="settings-drawer" id="settings-drawer" aria-labelledby="settings-title" hidden>
+<div class="settings-heading"><h2 id="settings-title">设置</h2><button class="filter-btn" id="close-settings">返回日记</button></div>
 <div class="settings-toggle" id="tags-toggle">管理标签</div>
 <div class="settings-panel" id="tags-panel">
   <label>当前标签</label>
@@ -447,14 +456,15 @@
   <p class="settings-hint">删除的记录会在这里保留7天，之后自动清空。</p>
 </div>
 
-<div class="settings-toggle" id="settings-toggle">云备份设置</div>
+<div class="settings-toggle" id="settings-toggle">同步与外观设置</div>
 <div class="settings-panel" id="settings-panel">
-  <label>GitHub 用户名</label>
-  <input type="text" id="gh-owner" placeholder="sugatsu7-claude">
-  <label>仓库名</label>
-  <input type="text" id="gh-repo" placeholder="timeline-diary">
-  <label>Personal Access Token</label>
-  <input type="password" id="gh-token" placeholder="ghp_ 或 github_pat_ 开头">
+  <label for="sync-url">Notion 同步服务地址</label>
+  <input type="url" id="sync-url" placeholder="https://你的服务.workers.dev" autocomplete="off">
+  <label for="sync-secret">同步口令（Worker 的 WORKER_SECRET）</label>
+  <input type="password" id="sync-secret" autocomplete="off" placeholder="只保存在本次浏览器会话中">
+  <p class="settings-hint" id="sync-status" role="status">尚未同步。日记保存在本机。</p>
+  <p class="settings-hint">不要在此填写 Notion Token。首次同步会上传本机日记，请先导出备份。两端修改冲突时保留两份。</p>
+  <p class="settings-hint">仅点击顶部「同步」时同步，不在打开应用、切回前台或后台时自动请求。</p>
   <label>自定义背景图片网址（可选，留空则用默认米色）</label>
   <input type="text" id="bg-url" placeholder="https://...jpg">
   <label>背景蒙层浓度（数字越大，背景图越淡、字越清楚）</label>
@@ -463,18 +473,20 @@
   <input type="text" id="card-opacity-input" placeholder="62" inputmode="numeric">
   <button class="settings-save" id="settings-save-btn">保存设置</button>
   <div class="cloud-row">
-    <button class="backup-btn" id="cloud-backup-btn">☁️↑ 一键云备份</button>
-    <button class="backup-btn" id="cloud-restore-btn">☁️↓ 从云端恢复</button>
-  </div>
-  <div class="cloud-row">
     <button class="backup-btn" id="export-json-btn">⬇ 本地导出</button>
     <button class="backup-btn" id="import-json-btn">⬆ 本地导入</button>
   </div>
   <input type="file" id="import-json-input" accept="application/json" style="display:none;">
-  <p class="settings-hint">Token只存在这台设备本地。去 GitHub → Settings → Developer settings → Fine-grained tokens 新建一个，权限只勾选这个仓库的 Contents 读写即可。</p>
+  <p class="settings-hint">本地导出不包含服务地址或密钥。建议定期导出，保留独立备份。</p>
 </div>
 
-<div class="toast" id="toast"></div>
+</section>
+
+<dialog id="sync-dialog" style="max-width:90vw;border:0;border-radius:16px;padding:24px;">
+  <p id="sync-progress" role="status">正在同步…</p>
+  <button class="filter-btn" id="cancel-sync">完成当前操作后停止</button>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
 
 <script>
 var STORAGE_KEY = 'penang_timeline_diary';
@@ -491,11 +503,14 @@ function purgeOldTrash() {
   if (trash.length !== before) saveTrash();
 }
 purgeOldTrash();
-var GH_SETTINGS_KEY = 'penang_timeline_gh_settings';
+var SETTINGS_KEY = 'penang_timeline_settings';
 
 var entries = [];
 try { entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch (e) { entries = []; }
 
+function sourceName(value) { return value === 'user' ? '五月' : value === 'yan' ? '言' : value === 'G老师' ? '叙' : value || '未署名'; }
+entries.forEach(function (entry) { entry.source = sourceName(entry.source); });
+function sourceNames() { return Array.from(new Set(['五月', '言', '叙'].concat(entries.map(function (entry) { return sourceName(entry.source); })))); }
 var activeFilters = { from: '', to: '', tags: [], search: '', source: '' };
 
 function showToast(msg) {
@@ -520,7 +535,7 @@ function saveEntries() {
 }
 
 function allTags() {
-  var set = {};
+  var set = Object.create(null);
   entries.forEach(function (e) { (e.tags || []).forEach(function (t) { set[t] = true; }); });
   var used = Object.keys(set);
   var ordered = PRESET_TAGS.filter(function (t) { return used.indexOf(t) > -1; });
@@ -556,7 +571,7 @@ function renderTagChips() {
 function renderSourceChips() {
   var wrap = document.getElementById('source-chips');
   wrap.innerHTML = '';
-  [{ key: 'user', label: '✏️ 五月' }, { key: 'yan', label: '💬 言' }].forEach(function (opt) {
+  sourceNames().map(function (name) { return { key: name, label: name }; }).forEach(function (opt) {
     var chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'tag-chip' + (activeFilters.source === opt.key ? ' selected' : '');
@@ -653,7 +668,7 @@ function renderTimeline() {
       var srcTag = document.createElement('span');
       srcTag.style.fontSize = '10px';
       srcTag.style.color = '#767570';
-      srcTag.textContent = entry.source === 'yan' ? '💬 言' : '✏️ 五月';
+      srcTag.textContent = sourceName(entry.source);
       top.appendChild(srcTag);
       var actions = document.createElement('div');
       actions.style.display = 'flex';
@@ -661,11 +676,24 @@ function renderTimeline() {
       var editBtn = document.createElement('button');
       editBtn.className = 'entry-delete';
       editBtn.innerHTML = '✎';
+      editBtn.setAttribute('aria-label', '编辑日记');
+      editBtn.disabled = !!entry.readOnly;
+      editBtn.title = entry.readOnly ? '复杂格式请在Notion编辑' : '编辑';
       editBtn.onclick = function () { openSheet(entry); };
+      if (/^https:\/\/(www\.)?notion\.so\//.test(entry.notionUrl || '')) {
+        var notionLink = document.createElement('a');
+        notionLink.textContent = entry.readOnly ? 'Notion（只读预览）' : 'Notion';
+        notionLink.href = entry.notionUrl;
+        notionLink.target = '_blank';
+        notionLink.rel = 'noopener noreferrer';
+        actions.appendChild(notionLink);
+      }
       actions.appendChild(editBtn);
       var del = document.createElement('button');
       del.className = 'entry-delete';
       del.innerHTML = '✕';
+      del.disabled = !!entry.readOnly;
+      del.setAttribute('aria-label', '删除日记');
       del.onclick = function () {
         if (!confirm('删除这条记录？会移入回收站，7天内可恢复。')) return;
         entries = entries.filter(function (e) { return e.id !== entry.id; });
@@ -681,13 +709,15 @@ function renderTimeline() {
 
       var content = document.createElement('div');
       content.className = 'entry-content';
-      var tagsHtml = (entry.tags || []).map(function (t) {
-        return '<span class="entry-tag' + (entry.source === 'yan' ? ' src-yan' : '') + '">' + t + '</span>';
-      }).join('');
+      (entry.tags || []).forEach(function (tag) {
+        var tagSpan = document.createElement('span');
+        tagSpan.className = 'entry-tag' + (sourceName(entry.source) === '言' ? ' src-yan' : '');
+        tagSpan.textContent = tag;
+        content.appendChild(tagSpan);
+      });
       var textSpan = document.createElement('span');
       textSpan.className = 'entry-text-inline';
       textSpan.textContent = entry.text;
-      content.innerHTML = tagsHtml;
       content.appendChild(textSpan);
       card.appendChild(content);
 
@@ -759,18 +789,6 @@ function renderSheetTagChips() {
   });
 }
 
-var selectedSource = 'user';
-document.getElementById('src-user-btn').onclick = function () {
-  selectedSource = 'user';
-  document.getElementById('src-user-btn').classList.add('selected');
-  document.getElementById('src-yan-btn').classList.remove('selected');
-};
-document.getElementById('src-yan-btn').onclick = function () {
-  selectedSource = 'yan';
-  document.getElementById('src-yan-btn').classList.add('selected');
-  document.getElementById('src-user-btn').classList.remove('selected');
-};
-
 var editingId = null;
 
 function openSheet(editEntry) {
@@ -780,9 +798,10 @@ function openSheet(editEntry) {
   document.getElementById('entry-text').value = editEntry ? editEntry.text : '';
   sheetSelectedTags = editEntry ? (editEntry.tags || []).slice() : [];
   renderSheetTagChips();
-  selectedSource = editEntry ? editEntry.source : 'user';
-  document.getElementById('src-user-btn').classList.toggle('selected', selectedSource === 'user');
-  document.getElementById('src-yan-btn').classList.toggle('selected', selectedSource === 'yan');
+  var sourceSelect = document.getElementById('entry-source');
+  sourceSelect.replaceChildren();
+  sourceNames().forEach(function (name) { var option = document.createElement('option'); option.value = name; option.textContent = name; sourceSelect.appendChild(option); });
+  sourceSelect.value = editEntry ? sourceName(editEntry.source) : '五月';
   document.getElementById('sheet-backdrop').classList.add('open');
   document.getElementById('sheet').classList.add('open');
 }
@@ -799,7 +818,8 @@ document.getElementById('sheet-save').onclick = function () {
   var text = document.getElementById('entry-text').value.trim();
   if (!text) { showToast('记点什么再保存吧'); return; }
   var tags = sheetSelectedTags.slice();
-  var newEntryId = null;
+  var selectedSource = document.getElementById('entry-source').value;
+  var savedEntryId = editingId || uid();
   if (editingId) {
     var target = entries.find(function (e) { return e.id === editingId; });
     if (target) {
@@ -809,37 +829,52 @@ document.getElementById('sheet-save').onclick = function () {
       target.source = selectedSource;
     }
   } else {
-    newEntryId = uid();
-    entries.push({ id: newEntryId, date: date, text: text, tags: tags, source: selectedSource, createdAt: Date.now() });
+    entries.push({ id: savedEntryId, date: date, text: text, tags: tags, source: selectedSource, createdAt: Date.now() });
   }
-  saveEntries();
+  try { saveEntries(); }
+  catch (e) { showToast('未能保存到本机，请导出备份并检查存储空间'); return; }
   closeSheet();
   renderTagChips();
   renderTimeline();
   showToast(editingId ? '已更新' : '已保存');
   editingId = null;
-  if (newEntryId) {
+  if (!entries.filter(matchesFilter).some(function (entry) { return entry.id === savedEntryId; })) {
+    document.getElementById('filter-clear').onclick();
+    showToast('已保存；已清除筛选以显示该记录');
+  }
+  if (savedEntryId) {
     requestAnimationFrame(function () {
-      var el = document.querySelector('[data-entry-id="' + newEntryId + '"]');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var el = Array.from(document.querySelectorAll('[data-entry-id]')).find(function (row) { return row.dataset.entryId === savedEntryId; });
+      if (el) {
+        el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+        el.classList.add('saved-highlight');
+      }
     });
   }
 };
 
-function loadGhSettings() {
-  try { return JSON.parse(localStorage.getItem(GH_SETTINGS_KEY) || '{}'); } catch (e) { return {}; }
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch (e) { return {}; }
 }
-function saveGhSettings(s) { localStorage.setItem(GH_SETTINGS_KEY, JSON.stringify(s)); }
-var ghSettings = loadGhSettings();
-document.getElementById('gh-owner').value = ghSettings.owner || '';
-document.getElementById('gh-repo').value = ghSettings.repo || '';
-document.getElementById('gh-token').value = ghSettings.token || '';
-document.getElementById('bg-url').value = ghSettings.bgUrl || '';
-document.getElementById('bg-scrim-input').value = (ghSettings.scrim !== undefined && ghSettings.scrim !== null) ? ghSettings.scrim : 72;
-document.getElementById('card-opacity-input').value = (ghSettings.cardOpacity !== undefined && ghSettings.cardOpacity !== null) ? ghSettings.cardOpacity : 62;
-applyBackground(ghSettings.bgUrl);
-applyScrim(ghSettings.scrim);
-applyCardOpacity(ghSettings.cardOpacity);
+// Retain appearance preferences from the previous version without retaining GitHub credentials.
+var legacySettings = {};
+try { legacySettings = JSON.parse(localStorage.getItem('penang_timeline_gh_settings') || '{}'); } catch (e) {}
+var appSettings = loadSettings();
+['bgUrl', 'scrim', 'cardOpacity'].forEach(function (key) {
+  if (appSettings[key] === undefined && legacySettings[key] !== undefined) appSettings[key] = legacySettings[key];
+});
+try {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
+  localStorage.removeItem('penang_timeline_gh_settings');
+} catch (e) { showToast('设置迁移失败，请检查本机存储空间'); }
+legacySettings = null;
+document.getElementById('sync-url').value = appSettings.syncUrl || '';
+document.getElementById('bg-url').value = appSettings.bgUrl || '';
+document.getElementById('bg-scrim-input').value = appSettings.scrim === undefined ? 72 : appSettings.scrim;
+document.getElementById('card-opacity-input').value = appSettings.cardOpacity === undefined ? 62 : appSettings.cardOpacity;
+applyBackground(appSettings.bgUrl);
+applyScrim(appSettings.scrim);
+applyCardOpacity(appSettings.cardOpacity);
 
 function applyBackground(url) {
   var layer = document.getElementById('bg-layer');
@@ -877,11 +912,19 @@ document.getElementById('import-json-input').onchange = function (e) {
   reader.onload = function (evt) {
     try {
       var imported = JSON.parse(evt.target.result);
-      var existingIds = {};
+      if (!Array.isArray(imported) || !imported.every(function (entry) {
+        return entry && typeof entry.id === 'string' && entry.id.length > 0 &&
+          typeof entry.text === 'string' && typeof entry.date === 'string' &&
+          /^\d{4}-\d{2}-\d{2}$/.test(entry.date) &&
+          (entry.tags === undefined || (Array.isArray(entry.tags) && entry.tags.every(function (tag) { return typeof tag === 'string'; }))) &&
+          (entry.source === undefined || (typeof entry.source === 'string' && entry.source.length <= 100)) &&
+          (entry.createdAt === undefined || (typeof entry.createdAt === 'number' && Number.isFinite(entry.createdAt)));
+      })) throw new Error('Invalid diary backup');
+      var existingIds = Object.create(null);
       entries.forEach(function (en) { existingIds[en.id] = true; });
       var added = 0;
       imported.forEach(function (en) {
-        if (!existingIds[en.id]) { entries.push(en); added++; }
+        if (!existingIds[en.id]) { en.source = sourceName(en.source); entries.push(en); existingIds[en.id] = true; added++; }
       });
       saveEntries();
       renderTagChips();
@@ -1032,62 +1075,42 @@ document.getElementById('settings-toggle').onclick = function () {
   document.getElementById('settings-panel').classList.toggle('open');
 };
 document.getElementById('settings-save-btn').onclick = function () {
-  ghSettings = {
-    owner: document.getElementById('gh-owner').value.trim(),
-    repo: document.getElementById('gh-repo').value.trim(),
-    token: document.getElementById('gh-token').value.trim(),
+  appSettings = {
+    syncUrl: document.getElementById('sync-url').value.trim(),
     bgUrl: document.getElementById('bg-url').value.trim(),
     scrim: document.getElementById('bg-scrim-input').value.trim(),
     cardOpacity: document.getElementById('card-opacity-input').value.trim()
   };
-  saveGhSettings(ghSettings);
-  applyBackground(ghSettings.bgUrl);
-  applyScrim(ghSettings.scrim);
-  applyCardOpacity(ghSettings.cardOpacity);
+  try {
+    if (appSettings.syncUrl) {
+      var syncTarget = new URL(appSettings.syncUrl);
+      if (syncTarget.protocol !== 'https:' || syncTarget.username || syncTarget.password || syncTarget.search || syncTarget.hash || syncTarget.pathname !== '/') throw new Error('invalid');
+      appSettings.syncUrl = syncTarget.origin;
+    }
+    sessionStorage.setItem('diary_sync_secret', document.getElementById('sync-secret').value);
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings)); }
+  catch (e) { showToast('设置未保存：请使用HTTPS根地址，并检查浏览器存储'); return; }
+  applyBackground(appSettings.bgUrl);
+  applyScrim(appSettings.scrim);
+  applyCardOpacity(appSettings.cardOpacity);
   showToast('设置已保存');
 };
 
-function ghApiUrl() {
-  return 'https://api.github.com/repos/' + ghSettings.owner + '/' + ghSettings.repo + '/contents/timeline.json';
+var settingsReturnFocus;
+function toggleSettings(open) {
+  var drawer = document.getElementById('settings-drawer');
+  if (open) settingsReturnFocus = document.activeElement;
+  drawer.hidden = !open;
+  document.getElementById('open-settings').setAttribute('aria-expanded', String(open));
+  document.body.style.overflowY = open ? 'hidden' : '';
+  if (open) document.getElementById('close-settings').focus();
+  else if (settingsReturnFocus) settingsReturnFocus.focus();
 }
-function b64EncodeUnicode(str) { return btoa(unescape(encodeURIComponent(str))); }
-function b64DecodeUnicode(str) { return decodeURIComponent(escape(atob(str))); }
-
-document.getElementById('cloud-backup-btn').onclick = async function () {
-  if (!ghSettings.owner || !ghSettings.repo || !ghSettings.token) { showToast('请先完成云备份设置'); return; }
-  showToast('备份中…');
-  try {
-    var sha = null;
-    var getResp = await fetch(ghApiUrl(), { headers: { Authorization: 'Bearer ' + ghSettings.token, Accept: 'application/vnd.github+json' } });
-    if (getResp.status === 200) { var getData = await getResp.json(); sha = getData.sha; }
-    var body = { message: '备份时间轴 ' + todayStr(), content: b64EncodeUnicode(JSON.stringify(entries, null, 2)) };
-    if (sha) body.sha = sha;
-    var putResp = await fetch(ghApiUrl(), {
-      method: 'PUT',
-      headers: { Authorization: 'Bearer ' + ghSettings.token, Accept: 'application/vnd.github+json' },
-      body: JSON.stringify(body)
-    });
-    showToast(putResp.status === 200 || putResp.status === 201 ? '云备份成功' : '备份失败,检查Token权限');
-  } catch (e) { showToast('备份失败,网络或设置有误'); }
-};
-
-document.getElementById('cloud-restore-btn').onclick = async function () {
-  if (!ghSettings.owner || !ghSettings.repo || !ghSettings.token) { showToast('请先完成云备份设置'); return; }
-  showToast('恢复中…');
-  try {
-    var getResp = await fetch(ghApiUrl(), { headers: { Authorization: 'Bearer ' + ghSettings.token, Accept: 'application/vnd.github+json' } });
-    if (getResp.status !== 200) { showToast('云端还没有备份记录'); return; }
-    var getData = await getResp.json();
-    var imported = JSON.parse(b64DecodeUnicode(getData.content));
-    var existingIds = {};
-    entries.forEach(function (e) { existingIds[e.id] = true; });
-    imported.forEach(function (e) { if (!existingIds[e.id]) entries.push(e); });
-    saveEntries();
-    renderTagChips();
-    renderTimeline();
-    showToast('云端数据已合并恢复');
-  } catch (e) { showToast('恢复失败'); }
-};
+document.getElementById('open-settings').onclick = function () { toggleSettings(true); };
+document.getElementById('close-settings').onclick = function () { toggleSettings(false); };
+document.addEventListener('keydown', function (event) {
+  if (event.key === 'Escape' && !document.getElementById('settings-drawer').hidden) toggleSettings(false);
+});
 
 renderTagChips();
 renderSourceChips();
@@ -1103,5 +1126,6 @@ topFab.onclick = function () {
 };
 </script>
 
+<script src="sync.js"></script>
 </body>
 </html>
