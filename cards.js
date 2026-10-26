@@ -1,4 +1,4 @@
-// diary-release: 2026.10.26.10
+// diary-release: 2026.10.26.11
 /* Text-only diary cards. Rendering and PNG export stay entirely on this device. */
 (function(){
  'use strict';
@@ -26,6 +26,8 @@
    decor+='<path d="M305 13h29v29h-29Z" fill="none" stroke="#b4bc9d" stroke-width="1" stroke-dasharray="2 2" opacity=".6"/><path d="M291 24q9-4 18 0m-22 5q10-4 21 0m-21 5q10-4 21 0" fill="none" stroke="#a9b18d" stroke-width=".7" opacity=".6"/>';
    decor+=branch(321,36,.29,8);
   }else{
+   // Open corners leave room for the moon, cup, and multi-page folio.
+   decor+='<g fill="none" stroke="#b4a2b9" stroke-linecap="round" stroke-linejoin="round"><path d="M272 17H29Q17 17 17 29V287M77 343H153M207 343H331Q343 343 343 331V74" stroke-width=".8" opacity=".72"/><path d="M42 22H30Q22 22 22 30V62M320 338H329Q338 338 338 329V304" stroke-width=".45" opacity=".48"/></g>';
    decor+='<ellipse cx="315" cy="22" rx="73" ry="51" fill="url(#wash)"/><ellipse cx="15" cy="359" rx="84" ry="56" fill="url(#wash)"/><path d="M322 12a15 15 0 1 0 13 22 14 14 0 0 1-13-22Z" fill="#e7ca84" opacity=".85"/>';
    for(const [x,y,s]of [[301,17,3],[346,44,3],[288,39,2],[341,8,2]])decor+=`<path d="m${x} ${y-s} ${s/2} ${s/2} ${s/2} ${s/2} -${s/2} ${s/2} -${s/2} ${s/2} -${s/2}-${s/2} -${s/2}-${s/2} ${s/2}-${s/2}Z" fill="#d7b679"/>`;
    decor+=branch(357,363,.48,-25,'#aca0b5')+branch(11,349,.54,26,'#aca0b5');
