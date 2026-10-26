@@ -2,8 +2,13 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
+<meta name="diary-version" content="2026.10.26.2">
+<meta name="theme-color" content="#1B3A6B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
 <style>
   html, body { overflow-x: hidden; max-width: 100vw; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -358,6 +363,18 @@
   .settings-drawer { position: fixed; inset: 0; z-index: 60; background: #F4F1EA; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 28px); overflow-y: auto; }
   .settings-drawer[hidden] { display: none; }
   .settings-heading { display: flex; align-items: center; justify-content: space-between; position: sticky; top: -1px; background: #F4F1EA; z-index: 1; padding: 8px 0; }
+  .attachment-row { display:flex;gap:8px;margin-top:10px;flex-wrap:wrap; }
+  .attachment-row button { border:1px solid #E1E0D9;border-radius:9px;background:#FAF9F5;color:#1B3A6B;padding:6px 10px; }
+  #photo-viewer { width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;margin:0;border:0;padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px);background:#151515;color:white; }
+  #photo-viewer::backdrop { background:#151515; }
+  #photo-slides { display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:calc(100% - 70px);touch-action:pan-x pan-y pinch-zoom; }
+  .photo-slide { flex:0 0 100%;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;position:relative; }
+  .photo-slide img { max-width:100%;max-height:100%;object-fit:contain; }
+  .photo-slide p { position:absolute;top:8px;font-size:13px; }
+  #photo-viewer button { background:#fff;color:#1B3A6B;border:0;border-radius:8px;padding:8px 12px; }
+  .update-banner { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 16px); left: 16px; right: 84px; max-width: 480px; z-index: 45; padding: 14px; background: #FFFFFF; border: 1px solid #1B3A6B; border-radius: 14px; box-shadow: 0 4px 18px #0002; }
+  .update-banner[hidden] { display: none; }
+  .update-banner p { margin: 0 0 10px; font-size: 13px; }
   .settings-heading h2 { margin: 0; font-size: 20px; }
   .entry-row { scroll-margin-top: 90px; }
   @keyframes saved-highlight { from { outline: 3px solid #1B3A6B; } to { outline: 3px solid transparent; } }
@@ -430,6 +447,12 @@
   <div class="tag-chips" id="sheet-tag-chips"></div>
   <label>内容</label>
   <textarea id="entry-text" placeholder="今天发生了什么…"></textarea>
+  <label>图片（最多8张，自动压缩）</label>
+  <input type="file" id="entry-photos" accept="image/*" multiple>
+  <div id="sheet-photos" class="attachment-row"></div>
+  <p id="photo-status" class="settings-hint" role="status"></p>
+  <label for="entry-links">链接（每行一个，最多8个）</label>
+  <textarea id="entry-links" rows="2" style="min-height:70px;" placeholder="https://..."></textarea>
   <div class="sheet-actions">
     <button class="btn-cancel" id="sheet-cancel">取消</button>
     <button class="btn-save" id="sheet-save">保存</button>
@@ -438,6 +461,11 @@
 
 <section class="settings-drawer" id="settings-drawer" aria-labelledby="settings-title" hidden>
 <div class="settings-heading"><h2 id="settings-title">设置</h2><button class="filter-btn" id="close-settings">返回日记</button></div>
+<div style="padding:12px 0;border-bottom:1px solid #E1E0D9;">
+  <p id="app-version" style="font-size:13px;"></p>
+  <p class="settings-hint" id="update-status" role="status">正在准备离线缓存…</p>
+  <div class="cloud-row"><button class="backup-btn" id="check-update">检查更新</button><button class="backup-btn" id="settings-update-now" hidden>更新并重新打开</button></div>
+</div>
 <div class="settings-toggle" id="tags-toggle">管理标签</div>
 <div class="settings-panel" id="tags-panel">
   <label>当前标签</label>
@@ -467,6 +495,10 @@
   <p class="settings-hint">顶部「同步」只检查上次成功同步后的变更。首次连接或升级时完整核对一次；不会后台自动请求。</p>
   <button class="backup-btn" id="full-sync-btn" type="button">完整核对全部日记</button>
   <p class="settings-hint">日常无需点击完整核对。Notion页面被直接移到回收站、修改日记ID或数据异常时可用；不会强制覆盖冲突。</p>
+  <label for="local-background">从本机相册选择背景</label>
+  <input type="file" id="local-background" accept="image/*">
+  <p class="settings-hint" id="background-status" role="status">本机背景不会上传或同步。</p>
+  <div class="cloud-row"><button class="backup-btn" id="use-bg-url" type="button">使用网址背景</button><button class="backup-btn" id="reset-background" type="button">恢复默认背景</button></div>
   <label>自定义背景图片网址（可选，留空则用默认米色）</label>
   <input type="text" id="bg-url" placeholder="https://...jpg">
   <label>背景蒙层浓度（数字越大，背景图越淡、字越清楚）</label>
@@ -484,6 +516,15 @@
 
 </section>
 
+<dialog id="photo-viewer" aria-label="日记图片">
+  <div style="display:flex;justify-content:space-between;align-items:center;height:50px;"><button id="photo-prev" aria-label="上一张">←</button><span id="photo-counter"></span><button id="photo-next" aria-label="下一张">→</button><button id="photo-close">关闭</button></div>
+  <div id="photo-slides"></div>
+</dialog>
+<dialog id="link-viewer" style="max-width:90vw;border:0;border-radius:16px;" aria-label="日记链接"><h3>日记链接</h3><div id="entry-link-list"></div><button id="link-close" class="filter-btn">关闭</button></dialog>
+<aside class="update-banner" id="update-banner" hidden aria-label="应用更新">
+  <p id="update-message" role="status">发现新版本，更新后生效。</p>
+  <div class="cloud-row"><button class="filter-btn" id="apply-update">立即更新</button><button class="filter-btn" id="dismiss-update">稍后</button></div>
+</aside>
 <dialog id="sync-dialog" style="max-width:90vw;border:0;border-radius:16px;padding:24px;">
   <p id="sync-progress" role="status">正在同步…</p>
   <button class="filter-btn" id="cancel-sync">完成当前操作后停止</button>
@@ -722,6 +763,7 @@ function renderTimeline() {
       textSpan.textContent = entry.text;
       content.appendChild(textSpan);
       card.appendChild(content);
+      if (window.MediaAssets) MediaAssets.decorate(card, entry);
 
       row.appendChild(card);
       group.appendChild(row);
@@ -791,10 +833,22 @@ function renderSheetTagChips() {
   });
 }
 
+var sheetPhotos = [];
+var mediaBusy = false;
 var editingId = null;
+var sheetInitialSnapshot = '';
+var DRAFT_KEY = 'penang_timeline_draft';
+function sheetSnapshot() {
+  return JSON.stringify({ id: editingId, date: document.getElementById('entry-date').value, text: document.getElementById('entry-text').value, tags: sheetSelectedTags.slice(), source: document.getElementById('entry-source').value, photos: sheetPhotos, linksText: document.getElementById('entry-links').value });
+}
+function hasDiaryDraft() { return document.getElementById('sheet').classList.contains('open') && sheetSnapshot() !== sheetInitialSnapshot; }
 
 function openSheet(editEntry) {
+  if (mediaBusy) { showToast('图片处理中，请稍候'); return; }
   editingId = editEntry ? editEntry.id : null;
+  sheetPhotos = editEntry ? (editEntry.photos || []).map(function (p) { return {...p}; }) : [];
+  document.getElementById('entry-links').value = editEntry ? (editEntry.links || []).join('\n') : '';
+  if (window.MediaAssets) MediaAssets.renderSheet();
   document.getElementById('sheet-title').textContent = editEntry ? '编辑记录' : '新增记录';
   document.getElementById('entry-date').value = editEntry ? editEntry.date : todayStr();
   document.getElementById('entry-text').value = editEntry ? editEntry.text : '';
@@ -804,10 +858,14 @@ function openSheet(editEntry) {
   sourceSelect.replaceChildren();
   sourceNames().forEach(function (name) { var option = document.createElement('option'); option.value = name; option.textContent = name; sourceSelect.appendChild(option); });
   sourceSelect.value = editEntry ? sourceName(editEntry.source) : '五月';
+  sheetInitialSnapshot = sheetSnapshot();
   document.getElementById('sheet-backdrop').classList.add('open');
   document.getElementById('sheet').classList.add('open');
 }
 function closeSheet() {
+  if (mediaBusy) { showToast('图片处理中，请稍候'); return; }
+  try { sessionStorage.removeItem(DRAFT_KEY); } catch (_) {}
+  try { localStorage.removeItem(DRAFT_KEY); } catch (_) {}
   document.getElementById('sheet-backdrop').classList.remove('open');
   document.getElementById('sheet').classList.remove('open');
 }
@@ -816,9 +874,12 @@ document.getElementById('sheet-cancel').onclick = closeSheet;
 document.getElementById('sheet-backdrop').onclick = closeSheet;
 
 document.getElementById('sheet-save').onclick = function () {
+  if (mediaBusy) { showToast('图片处理中，请稍候'); return; }
+  var links;
+  try { links = window.MediaAssets ? MediaAssets.links() : []; } catch (error) { showToast(error.message); return; }
   var date = document.getElementById('entry-date').value || todayStr();
   var text = document.getElementById('entry-text').value.trim();
-  if (!text) { showToast('记点什么再保存吧'); return; }
+  if (!text && !sheetPhotos.length && !links.length) { showToast('记点什么或添加附件再保存吧'); return; }
   var tags = sheetSelectedTags.slice();
   var selectedSource = document.getElementById('entry-source').value;
   var savedEntryId = editingId || uid();
@@ -829,9 +890,11 @@ document.getElementById('sheet-save').onclick = function () {
       target.text = text;
       target.tags = tags;
       target.source = selectedSource;
+      target.photos = sheetPhotos.map(function (p) { return {...p}; });
+      target.links = links;
     }
   } else {
-    entries.push({ id: savedEntryId, date: date, text: text, tags: tags, source: selectedSource, createdAt: Date.now() });
+    entries.push({ id: savedEntryId, date: date, text: text, tags: tags, source: selectedSource, photos: sheetPhotos.map(function (p) { return {...p}; }), links: links, createdAt: Date.now() });
   }
   try { saveEntries(); }
   catch (e) { showToast('未能保存到本机，请导出备份并检查存储空间'); return; }
@@ -874,7 +937,7 @@ document.getElementById('sync-url').value = appSettings.syncUrl || '';
 document.getElementById('bg-url').value = appSettings.bgUrl || '';
 document.getElementById('bg-scrim-input').value = appSettings.scrim === undefined ? 72 : appSettings.scrim;
 document.getElementById('card-opacity-input').value = appSettings.cardOpacity === undefined ? 62 : appSettings.cardOpacity;
-applyBackground(appSettings.bgUrl);
+if (!appSettings.localBackground) applyBackground(appSettings.bgUrl);
 applyScrim(appSettings.scrim);
 applyCardOpacity(appSettings.cardOpacity);
 
@@ -1078,6 +1141,7 @@ document.getElementById('settings-toggle').onclick = function () {
 };
 document.getElementById('settings-save-btn').onclick = function () {
   appSettings = {
+    localBackground: appSettings.localBackground === true,
     syncUrl: document.getElementById('sync-url').value.trim(),
     bgUrl: document.getElementById('bg-url').value.trim(),
     scrim: document.getElementById('bg-scrim-input').value.trim(),
@@ -1128,6 +1192,8 @@ topFab.onclick = function () {
 };
 </script>
 
+<script src="media.js"></script>
 <script src="sync.js"></script>
+<script src="updates.js"></script>
 </body>
 </html>
