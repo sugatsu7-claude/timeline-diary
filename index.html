@@ -464,7 +464,9 @@
   <input type="password" id="sync-secret" autocomplete="off" placeholder="只保存在本次浏览器会话中">
   <p class="settings-hint" id="sync-status" role="status">尚未同步。日记保存在本机。</p>
   <p class="settings-hint">不要在此填写 Notion Token。首次同步会上传本机日记，请先导出备份。两端修改冲突时保留两份。</p>
-  <p class="settings-hint">仅点击顶部「同步」时同步，不在打开应用、切回前台或后台时自动请求。</p>
+  <p class="settings-hint">顶部「同步」只检查上次成功同步后的变更。首次连接或升级时完整核对一次；不会后台自动请求。</p>
+  <button class="backup-btn" id="full-sync-btn" type="button">完整核对全部日记</button>
+  <p class="settings-hint">日常无需点击完整核对。Notion页面被直接移到回收站、修改日记ID或数据异常时可用；不会强制覆盖冲突。</p>
   <label>自定义背景图片网址（可选，留空则用默认米色）</label>
   <input type="text" id="bg-url" placeholder="https://...jpg">
   <label>背景蒙层浓度（数字越大，背景图越淡、字越清楚）</label>
