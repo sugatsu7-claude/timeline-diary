@@ -1,4 +1,4 @@
-// diary-release: 2026.10.26.2
+// diary-release: 2026.10.26.5
 /* Notion sync is invoked ONLY by the sync button. No timers or lifecycle listeners. */
 (function () {
   'use strict';
@@ -39,13 +39,22 @@
     var dialog = document.getElementById('sync-dialog');
     dialog.showModal();
     dialog.oncancel = function (e) { e.preventDefault(); stop = true; };
-    var counter = { up: 0, down: 0, conflict: 0, missing: 0 };
+    var counter = { up: 0, down: 0, conflict: 0, missing: 0, reads: 0, writes: 0, catalogs: 0, images: 0 };
+    function precisionCheckDue(base, version) {
+      var stamp=Date.parse(version);
+      return !!base && Number.isFinite(stamp) && (!base.checkedAt || base.checkedAt < stamp+120000) && (fullRequested || Date.now() >= stamp+120000);
+    }
     var state, key;
     async function call(path, body) {
       if (stop) throw new Error('已停止；已完成的操作已保留，可再次同步');
       // At most 2 Worker requests/second; Worker also paces Notion subrequests.
       await new Promise(function (resolve) { setTimeout(resolve, 500); });
       if (stop) throw new Error('已停止；已完成的操作已保留，可再次同步');
+      var progress=document.getElementById('sync-progress');
+      if(path==='/catalog'){counter.catalogs++;progress.textContent='检查Notion变更 · 第'+counter.catalogs+'页';}
+      else if(path==='/read'){counter.reads++;progress.textContent='核验记录内容 · 本次读取'+counter.reads+'条';}
+      else if(path==='/write'){counter.writes++;progress.textContent='保存修改 · 本次提交'+counter.writes+'条';}
+      else if(path==='/upload'||path==='/copy-upload'){counter.images++;progress.textContent='准备日记图片 · '+counter.images+'张';}
       var response = await fetch(endpoint.origin + path, { method: 'POST', cache: 'no-store',
         headers: { ...(body instanceof FormData ? {} : {'Content-Type':'application/json'}), Authorization: 'Bearer ' + secretInput.value },
         body: body instanceof FormData ? body : JSON.stringify(body) });
@@ -81,7 +90,8 @@
         counter.conflict++;
       }
       if (!incoming && local) { trash.push({ ...local, deletedAt: Date.now() }); saveTrash(); }
-      commit(id, value, incoming); counter.down++;
+      var changed=signature(local)!==incomingSig;
+      commit(id, value, incoming); if(changed)counter.down++;
     }
     async function writeExisting(id, payload, base, local) {
       try {
@@ -161,7 +171,7 @@
         localIds.forEach(function (id) {
           var base = state.items[id], local = localById.get(id);
           var stamp = base ? Date.parse(base.version) : NaN;
-          var unsettled = base && Number.isFinite(stamp) && (!base.checkedAt || base.checkedAt < stamp + 120000);
+          var unsettled = precisionCheckDue(base, base && base.version);
           if (!base || base.signature !== signature(local) || unsettled) candidates.add(id);
         });
       }
@@ -171,7 +181,6 @@
         var id = ids[i], meta = remote.get(id), base = state.items[id];
         var local = localById.get(id);
         var localSig = signature(local);
-        document.getElementById('sync-progress').textContent = '同步日记 ' + (i + 1) + '/' + ids.length + '…';
         if (!meta && base && incremental) {
           // Absence from a delta means unchanged, not deleted. Writes still verify current Notion content.
           meta = { pageId: base.pageId, version: base.version };
@@ -188,7 +197,7 @@
         var localChanged = base ? base.signature !== localSig : !!local;
         // Notion timestamps can be rounded; recheck an unsettled timestamp once outside a two-minute window.
         var stamp = Date.parse(meta.version);
-        var unsettled = Number.isFinite(stamp) && (!base || !base.checkedAt || base.checkedAt < stamp + 120000);
+        var unsettled = precisionCheckDue(base, meta.version);
         var remoteChanged = !base || base.version !== meta.version || unsettled || (state.mediaVersion !== 1 && local && local.readOnly);
         if (!localChanged && !remoteChanged) continue;
         if (remoteChanged) {
@@ -220,7 +229,7 @@
       state.lastSync = new Date().toISOString();
       localStorage.setItem(key, JSON.stringify(state));
       localStorage.setItem(targetKey, database);
-      document.getElementById('sync-status').textContent = (incremental ? '增量同步：' : '完整核对：') + new Date(state.lastSync).toLocaleString() + '；上传' + counter.up + '条，下载' + counter.down + '条。' +
+      document.getElementById('sync-status').textContent = (incremental ? '增量同步：' : '完整核对：') + new Date(state.lastSync).toLocaleString() + '；上传' + counter.up + '条，更新本机' + counter.down + '条；读取正文' + counter.reads + '条，查询目录' + counter.catalogs + '页。' +
         (counter.conflict ? '冲突' + counter.conflict + '条：本机内容已另存副本，下次同步上传。' : '') +
         (counter.missing ? counter.missing + '条在Notion已移除，未自动重建；请先在Notion恢复。' : '');
       showToast(counter.conflict || counter.missing ? '同步完成，请查看设置里的冲突或移除提示' : '同步完成');

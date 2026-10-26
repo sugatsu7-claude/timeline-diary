@@ -1,4 +1,4 @@
-// diary-release: 2026.10.26.2
+// diary-release: 2026.10.26.5
 (function () {
   'use strict';
   var version = document.querySelector('meta[name="diary-version"]').content;
@@ -37,7 +37,8 @@
     var saved = JSON.parse(ownDraft || localStorage.getItem(DRAFT_KEY) || 'null');
     if (saved && typeof saved.text === 'string' && typeof saved.date === 'string' && Array.isArray(saved.tags) && saved.tags.every(function (tag) { return typeof tag === 'string'; }) && typeof saved.source === 'string') {
       var original = saved.id ? entries.find(function (entry) { return entry.id === saved.id; }) : null;
-      openSheet(original || undefined);
+      openSheet(original || {source: saved.source});
+      if (!original) { editingId = null; document.getElementById('sheet-title').textContent = '新增记录'; }
       document.getElementById('entry-date').value = saved.date;
       document.getElementById('entry-text').value = saved.text;
       sheetPhotos = Array.isArray(saved.photos) ? saved.photos : [];
@@ -45,6 +46,7 @@
       if (window.MediaAssets) MediaAssets.renderSheet();
       sheetSelectedTags = saved.tags;
       renderSheetTagChips();
+      if (didMigrateLegacySources) saved.source = legacySourceName(saved.source);
       var select = document.getElementById('entry-source');
       if (!Array.from(select.options).some(function (option) { return option.value === saved.source; })) {
         var option = document.createElement('option'); option.value = saved.source; option.textContent = saved.source; select.appendChild(option);
@@ -99,6 +101,7 @@
     finally { checking = false; document.getElementById('check-update').disabled = false; }
   }
   function safeToUpdate() {
+    if (window.AuthorSettings && AuthorSettings.hasUnsaved()) { showToast('有未保存的名字或顶部说明，请先保存再更新'); return false; }
     if (mediaBusy) { showToast('图片处理中，请稍后更新'); return false; }
     if (document.getElementById('sync-dialog').open) { showToast('正在同步，请完成或停止后再更新'); return false; }
     // Do not silently throw away settings the user has typed.

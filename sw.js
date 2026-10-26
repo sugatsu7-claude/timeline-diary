@@ -1,9 +1,9 @@
 /* Offline app shell only. No diary data, API responses, secrets or remote backgrounds are cached. */
-const RELEASE = '2026.10.26.2';
+const RELEASE = '2026.10.26.5';
 const ROOT = new URL('./', self.location.href);
 const PREFIX = 'timeline-diary-shell:' + ROOT.href + ':';
 const CACHE = PREFIX + RELEASE;
-const FILES = ['index.html', 'media.js', 'sync.js', 'updates.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
+const FILES = ['index.html', 'authors.js', 'media.js', 'sync.js', 'updates.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     async function checkRelease() {

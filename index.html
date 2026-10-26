@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.10.26.2">
+<meta name="diary-version" content="2026.10.26.5">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -188,6 +188,11 @@
     gap: 8px;
     margin-bottom: 4px;
   }
+  .entry-top { align-items:center;flex-wrap:wrap; }
+  .entry-top > span { flex:1;min-width:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .entry-actions { align-items:center;flex-wrap:wrap;justify-content:flex-end;margin-left:auto;max-width:100%; }
+  .entry-actions .attachment-row { margin:0;gap:2px;flex-wrap:nowrap; }
+  .entry-actions .attachment-row button { padding:4px 6px;min-height:32px; }
   .entry-content { font-size: 14px; line-height: 1.6; color: #2C2C2A; overflow-wrap: anywhere; word-break: break-word; }
   .entry-content .entry-tag {
     display: inline-block;
@@ -363,15 +368,35 @@
   .settings-drawer { position: fixed; inset: 0; z-index: 60; background: #F4F1EA; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 28px); overflow-y: auto; }
   .settings-drawer[hidden] { display: none; }
   .settings-heading { display: flex; align-items: center; justify-content: space-between; position: sticky; top: -1px; background: #F4F1EA; z-index: 1; padding: 8px 0; }
-  .attachment-row { display:flex;gap:8px;margin-top:10px;flex-wrap:wrap; }
-  .attachment-row button { border:1px solid #E1E0D9;border-radius:9px;background:#FAF9F5;color:#1B3A6B;padding:6px 10px; }
-  #photo-viewer { width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;margin:0;border:0;padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px);background:#151515;color:white; }
-  #photo-viewer::backdrop { background:#151515; }
-  #photo-slides { display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:calc(100% - 70px);touch-action:pan-x pan-y pinch-zoom; }
+  .attachment-row { display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;align-items:center; }
+  .attachment-row button { display:inline-flex;align-items:center;gap:5px;border:0;border-radius:16px;background:transparent;color:#69685F;padding:6px 8px;min-height:36px;font-size:12px;line-height:1.4; }
+  .attachment-row button:hover { background:rgba(244,241,234,.35); }
+  .attachment-icon { width:15px;height:15px;flex:none;opacity:.8; }
+  .soft-dialog { width:calc(100vw - 36px);max-width:440px;max-height:calc(100dvh - 48px);overflow:auto;border:1px solid rgba(255,255,255,.6);border-radius:24px;background:rgba(247,246,240,.95);color:#52514E;padding:20px;box-shadow:0 12px 48px rgba(54,51,44,.12);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px); }
+  .soft-dialog::backdrop { background:rgba(54,51,44,.22);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px); }
+  .soft-dialog button { border:0;border-radius:18px;background:rgba(232,230,221,.5);padding:8px 12px;color:#69685F;font-size:13px; }
+  .soft-dialog button:focus,.soft-dialog a:focus,.attachment-row button:focus { outline:none; }
+  .soft-dialog button:focus-visible,.soft-dialog a:focus-visible,.attachment-row button:focus-visible { outline:2px solid #9BA495;outline-offset:3px; }
+  .attachment-heading { display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px; }
+  .attachment-heading h3 { margin:0;font-size:16px;font-weight:500;letter-spacing:.04em;outline:none; }
+  .attachment-heading .close-viewer { background:transparent;font-size:20px;padding:6px 10px;min-width:40px;min-height:40px;line-height:1; }
+  #photo-viewer { max-width:780px;width:calc(100vw - 24px);height:min(88dvh,920px);overflow:hidden;padding:16px; }
+  #photo-counter { font-size:12px;color:#898781;font-variant-numeric:tabular-nums; }
+  #photo-slides { display:flex;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x mandatory;height:calc(100% - 90px);touch-action:pan-x pan-y pinch-zoom;background:rgba(255,255,255,.2);border-radius:16px; }
+  #photo-slides::-webkit-scrollbar { display:none; }
   .photo-slide { flex:0 0 100%;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;position:relative; }
-  .photo-slide img { max-width:100%;max-height:100%;object-fit:contain; }
-  .photo-slide p { position:absolute;top:8px;font-size:13px; }
-  #photo-viewer button { background:#fff;color:#1B3A6B;border:0;border-radius:8px;padding:8px 12px; }
+  .photo-slide img { max-width:100%;max-height:100%;object-fit:contain;border-radius:12px; }
+  .photo-slide p { position:absolute;top:8px;font-size:13px;color:#898781; }
+  .photo-footer { display:flex;align-items:center;justify-content:center;gap:18px;height:40px;font-size:11px;color:#99968B; }
+  .soft-dialog button:disabled { opacity:.25; }
+  .soft-dialog [hidden] { display:none !important; }
+  .diary-link { display:flex;align-items:center;gap:12px;padding:14px 12px;margin:8px 0;border-radius:14px;background:rgba(232,230,221,.4);color:#69685F;text-decoration:none; }
+  .diary-link-info { min-width:0;flex:1; }
+  .diary-link-domain { display:block;font-size:14px;font-weight:500; }
+  .diary-link-path { display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;font-size:11px;color:#99968B;line-height:1.6;margin-top:4px; }
+  #sync-dialog { text-align:center;max-width:340px; }
+  #sync-dialog .filter-btn { display:inline-flex;justify-content:center; }
+  #sync-progress { font-size:14px;line-height:1.8;margin:4px 0 18px; }
   .update-banner { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 16px); left: 16px; right: 84px; max-width: 480px; z-index: 45; padding: 14px; background: #FFFFFF; border: 1px solid #1B3A6B; border-radius: 14px; box-shadow: 0 4px 18px #0002; }
   .update-banner[hidden] { display: none; }
   .update-banner p { margin: 0 0 10px; font-size: 13px; }
@@ -404,7 +429,7 @@
 
 <div class="header">
   <h1>时间轴日记</h1>
-  <p>五月、言与叙的每日记录</p>
+  <p id="diary-subtitle">记录生活的每一天</p>
   <p class="entry-count" id="entry-count"></p>
 </div>
 
@@ -466,6 +491,19 @@
   <p class="settings-hint" id="update-status" role="status">正在准备离线缓存…</p>
   <div class="cloud-row"><button class="backup-btn" id="check-update">检查更新</button><button class="backup-btn" id="settings-update-now" hidden>更新并重新打开</button></div>
 </div>
+<div class="settings-toggle" id="authors-toggle" role="button" tabindex="0">个性化与记录人</div>
+<div class="settings-panel" id="authors-panel">
+  <label for="default-author">我的名字／默认记录人</label>
+  <input id="default-author" maxlength="100" placeholder="填写你的名字" autocomplete="nickname">
+  <label for="diary-subtitle-input">顶部说明</label>
+  <input id="diary-subtitle-input" maxlength="100" placeholder="记录生活的每一天">
+  <button class="settings-save" id="save-authors">保存名字和说明</button>
+  <p class="settings-hint">修改名字只影响以后的新增记录，历史日记署名保留。配置仅保存在当前设备。</p>
+  <label>记录人列表</label>
+  <div id="author-list"></div>
+  <div class="cloud-row"><input id="new-author" maxlength="100" placeholder="添加其他记录人"><button class="filter-btn" id="add-author">添加</button></div>
+  <p class="settings-hint">移除后不再作为新记录的选项，旧日记仍可查看和筛选。Notion 中新增的署名会在同步后识别。</p>
+</div>
 <div class="settings-toggle" id="tags-toggle">管理标签</div>
 <div class="settings-panel" id="tags-panel">
   <label>当前标签</label>
@@ -516,18 +554,26 @@
 
 </section>
 
-<dialog id="photo-viewer" aria-label="日记图片">
-  <div style="display:flex;justify-content:space-between;align-items:center;height:50px;"><button id="photo-prev" aria-label="上一张">←</button><span id="photo-counter"></span><button id="photo-next" aria-label="下一张">→</button><button id="photo-close">关闭</button></div>
-  <div id="photo-slides"></div>
+<dialog id="author-onboarding" aria-labelledby="author-welcome-title" style="max-width:90vw;border:0;border-radius:16px;padding:24px;">
+  <h3 id="author-welcome-title">你想用什么名字记录？</h3>
+  <p class="settings-hint">用于新增日记的署名，以后可以在设置里修改。</p>
+  <input id="first-author" maxlength="100" autocomplete="nickname" placeholder="你的名字" style="padding:10px;font-size:16px;max-width:100%;">
+  <div class="cloud-row"><button class="filter-btn" id="confirm-first-author">保存并开始记录</button><button class="filter-btn" id="cancel-first-author">取消</button></div>
+  <p id="first-author-error" role="status" class="settings-hint"></p>
 </dialog>
-<dialog id="link-viewer" style="max-width:90vw;border:0;border-radius:16px;" aria-label="日记链接"><h3>日记链接</h3><div id="entry-link-list"></div><button id="link-close" class="filter-btn">关闭</button></dialog>
+<dialog id="photo-viewer" class="soft-dialog" aria-labelledby="photo-title">
+  <div class="attachment-heading"><h3 id="photo-title" tabindex="-1" autofocus>日记图片</h3><span id="photo-counter"></span><button id="photo-close" class="close-viewer" aria-label="关闭图片窗口">×</button></div>
+  <div id="photo-slides"></div>
+  <div class="photo-footer"><button id="photo-prev" aria-label="上一张">‹</button><span id="photo-hint">左右滑动查看</span><button id="photo-next" aria-label="下一张">›</button></div>
+</dialog>
+<dialog id="link-viewer" class="soft-dialog" aria-labelledby="link-title"><div class="attachment-heading"><h3 id="link-title" tabindex="-1" autofocus>日记链接</h3><button id="link-close" class="close-viewer" aria-label="关闭链接窗口">×</button></div><div id="entry-link-list"></div></dialog>
 <aside class="update-banner" id="update-banner" hidden aria-label="应用更新">
   <p id="update-message" role="status">发现新版本，更新后生效。</p>
   <div class="cloud-row"><button class="filter-btn" id="apply-update">立即更新</button><button class="filter-btn" id="dismiss-update">稍后</button></div>
 </aside>
-<dialog id="sync-dialog" style="max-width:90vw;border:0;border-radius:16px;padding:24px;">
+<dialog id="sync-dialog" class="soft-dialog">
   <p id="sync-progress" role="status">正在同步…</p>
-  <button class="filter-btn" id="cancel-sync">完成当前操作后停止</button>
+  <button class="filter-btn" id="cancel-sync">停止同步</button>
 </dialog>
 <div class="toast" id="toast" role="status"></div>
 
@@ -551,9 +597,22 @@ var SETTINGS_KEY = 'penang_timeline_settings';
 var entries = [];
 try { entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch (e) { entries = []; }
 
-function sourceName(value) { return value === 'user' ? '五月' : value === 'yan' ? '言' : value === 'G老师' ? '叙' : value || '未署名'; }
-entries.forEach(function (entry) { entry.source = sourceName(entry.source); });
-function sourceNames() { return Array.from(new Set(['五月', '言', '叙'].concat(entries.map(function (entry) { return sourceName(entry.source); })))); }
+// Compatibility for old diary files only. New names are never translated.
+function legacySourceName(value) { return value === 'user' ? '五月' : value === 'yan' ? '言' : value === 'G老师' ? '叙' : value || '未署名'; }
+function sourceName(value) { return typeof value === 'string' && value ? value : '未署名'; }
+var didMigrateLegacySources = false;
+try {
+  if (!localStorage.getItem('penang_timeline_names_migrated')) {
+    if (!Array.isArray(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')) || !Array.isArray(JSON.parse(localStorage.getItem(TRASH_KEY) || '[]'))) throw new Error('Invalid stored diary');
+    var migratedEntries = entries.map(function(entry){return {...entry,source:legacySourceName(entry.source)};});
+    var migratedTrash = trash.map(function(entry){return {...entry,source:legacySourceName(entry.source)};});
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(migratedEntries));
+    localStorage.setItem(TRASH_KEY,JSON.stringify(migratedTrash));
+    localStorage.setItem('penang_timeline_names_migrated','1');
+    entries=migratedEntries;trash=migratedTrash;didMigrateLegacySources=true;
+  }
+} catch (_) { showToast('旧署名迁移未完成，请检查本机存储'); }
+function sourceNames() { return window.AuthorSettings ? AuthorSettings.names() : Array.from(new Set(entries.map(function(entry){return sourceName(entry.source);}))); }
 var activeFilters = { from: '', to: '', tags: [], search: '', source: '' };
 
 function showToast(msg) {
@@ -712,8 +771,10 @@ function renderTimeline() {
       srcTag.style.fontSize = '10px';
       srcTag.style.color = '#767570';
       srcTag.textContent = sourceName(entry.source);
+      srcTag.title = sourceName(entry.source);
       top.appendChild(srcTag);
       var actions = document.createElement('div');
+      actions.className = 'entry-actions';
       actions.style.display = 'flex';
       actions.style.gap = '2px';
       var editBtn = document.createElement('button');
@@ -731,6 +792,7 @@ function renderTimeline() {
         notionLink.rel = 'noopener noreferrer';
         actions.appendChild(notionLink);
       }
+      if (window.MediaAssets) MediaAssets.decorate(actions, entry);
       actions.appendChild(editBtn);
       var del = document.createElement('button');
       del.className = 'entry-delete';
@@ -754,7 +816,7 @@ function renderTimeline() {
       content.className = 'entry-content';
       (entry.tags || []).forEach(function (tag) {
         var tagSpan = document.createElement('span');
-        tagSpan.className = 'entry-tag' + (sourceName(entry.source) === '言' ? ' src-yan' : '');
+        tagSpan.className = 'entry-tag';
         tagSpan.textContent = tag;
         content.appendChild(tagSpan);
       });
@@ -763,7 +825,6 @@ function renderTimeline() {
       textSpan.textContent = entry.text;
       content.appendChild(textSpan);
       card.appendChild(content);
-      if (window.MediaAssets) MediaAssets.decorate(card, entry);
 
       row.appendChild(card);
       group.appendChild(row);
@@ -845,6 +906,7 @@ function hasDiaryDraft() { return document.getElementById('sheet').classList.con
 
 function openSheet(editEntry) {
   if (mediaBusy) { showToast('图片处理中，请稍候'); return; }
+  if (!editEntry && window.AuthorSettings && !AuthorSettings.defaultName()) { AuthorSettings.begin(); return; }
   editingId = editEntry ? editEntry.id : null;
   sheetPhotos = editEntry ? (editEntry.photos || []).map(function (p) { return {...p}; }) : [];
   document.getElementById('entry-links').value = editEntry ? (editEntry.links || []).join('\n') : '';
@@ -856,8 +918,9 @@ function openSheet(editEntry) {
   renderSheetTagChips();
   var sourceSelect = document.getElementById('entry-source');
   sourceSelect.replaceChildren();
-  sourceNames().forEach(function (name) { var option = document.createElement('option'); option.value = name; option.textContent = name; sourceSelect.appendChild(option); });
-  sourceSelect.value = editEntry ? sourceName(editEntry.source) : '五月';
+  var authorOptions = window.AuthorSettings ? AuthorSettings.options(editEntry && editEntry.source) : sourceNames();
+  authorOptions.forEach(function (name) { var option = document.createElement('option'); option.value = name; option.textContent = name; sourceSelect.appendChild(option); });
+  sourceSelect.value = editEntry ? sourceName(editEntry.source) : (window.AuthorSettings ? AuthorSettings.defaultName() : sourceNames()[0] || '');
   sheetInitialSnapshot = sheetSnapshot();
   document.getElementById('sheet-backdrop').classList.add('open');
   document.getElementById('sheet').classList.add('open');
@@ -882,6 +945,7 @@ document.getElementById('sheet-save').onclick = function () {
   if (!text && !sheetPhotos.length && !links.length) { showToast('记点什么或添加附件再保存吧'); return; }
   var tags = sheetSelectedTags.slice();
   var selectedSource = document.getElementById('entry-source').value;
+  if (!selectedSource) { showToast('请先填写记录人的名字'); return; }
   var savedEntryId = editingId || uid();
   if (editingId) {
     var target = entries.find(function (e) { return e.id === editingId; });
@@ -1192,6 +1256,7 @@ topFab.onclick = function () {
 };
 </script>
 
+<script src="authors.js"></script>
 <script src="media.js"></script>
 <script src="sync.js"></script>
 <script src="updates.js"></script>
