@@ -31,7 +31,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  await page.waitForFunction(()=>appSettings.localBackground===true&&document.querySelector('#bg-layer').style.backgroundImage.includes('blob:'));
  assert.equal(calls.length,0,'local background never calls Worker');
  await page.locator('#sync-url').fill('https://worker.test');await page.locator('#sync-secret').fill('test-secret');await page.locator('#settings-save-btn').click();await page.locator('#close-settings').click();
- await page.locator('#add-fab').click();await page.locator('#first-author').fill('测试记录人');await page.locator('#confirm-first-author').click();await page.locator('#entry-text').fill('Photos and links');
+ await page.locator('#add-fab').click();await page.locator('#first-author').fill('测试记录人');await page.locator('#confirm-first-author').click();await page.waitForFunction(()=>document.querySelector('#sheet').classList.contains('open'));await page.locator('#entry-text').fill('Photos and links');
  await page.locator('#entry-photos').setInputFiles([path.join(root,'icons/icon-192.png'),path.join(root,'icons/icon-512.png')]);
  await page.waitForFunction(()=>!mediaBusy&&sheetPhotos.length===2);
  await page.locator('#entry-links').fill('javascript:alert(1)');await saveEntry();assert.equal(await page.evaluate(()=>entries.length),0);
