@@ -1,4 +1,4 @@
-// diary-release: 2026.10.26.11
+// diary-release: 2026.10.29.2
 (function () {
   'use strict';
   var version = document.querySelector('meta[name="diary-version"]').content;
@@ -86,6 +86,7 @@
     finally { checking = false; document.getElementById('check-update').disabled = false; }
   }
   async function safeToUpdate() {
+    if(window.DiarySetup?.hasUnsaved()){showToast('连接向导里有未保存的设置，请先完成或关闭向导');return false;}
     if (window.AuthorSettings && AuthorSettings.hasUnsaved()) { showToast('有未保存的名字或顶部说明，请先保存再更新'); return false; }
     if (mediaBusy) { showToast('图片处理中，请稍后更新'); return false; }
     if (document.getElementById('sync-dialog').open) { showToast('正在同步，请完成或停止后再更新'); return false; }

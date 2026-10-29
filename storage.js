@@ -1,4 +1,4 @@
-// diary-release: 2026.10.26.11
+// diary-release: 2026.10.29.2
 /* Main journal database. localStorage legacy data is read-only migration input. */
 (function(){
  'use strict';
@@ -70,6 +70,11 @@
  async function purgeExpired(){const rows=await req(db.transaction('trash').objectStore('trash').getAll());const old=rows.filter(r=>(r.entry.deletedAt||0)<Date.now()-7*86400000);if(old.length){await transact(['trash','meta'],'readwrite',tx=>{old.forEach(r=>tx.objectStore('trash').delete(r.id));bump(tx);});await changed();}}
  function config(key,fallback){return copy(snapshot.configs[key]===undefined?fallback:snapshot.configs[key]);}
  async function setConfig(key,value){await transact(['meta'],'readwrite',tx=>{tx.objectStore('meta').put({key:'config:'+key,value:copy(value)});tx.objectStore('meta').put({key:'configBackup:'+key,value:copy(value)});bump(tx);});snapshot.configs[key]=copy(value);channel?.postMessage({actor});}
+ async function configureSync(syncUrl,value,remember){
+  await transact(['meta','secrets'],'readwrite',tx=>{const meta=tx.objectStore('meta'),r=meta.get('config:penang_timeline_settings');r.onsuccess=()=>{const settings={...(r.result?.value||snapshot.configs.penang_timeline_settings||{}),syncUrl};meta.put({key:'config:penang_timeline_settings',value:settings});meta.put({key:'configBackup:penang_timeline_settings',value:settings});};
+   if(remember&&value)tx.objectStore('secrets').put({key:'sync',value});else tx.objectStore('secrets').delete('sync');bump(tx);
+  });await changed();
+ }
  async function secret(value){if(value!==undefined)await transact(['secrets'],'readwrite',tx=>value?tx.objectStore('secrets').put({key:'sync',value}):tx.objectStore('secrets').delete('sync'));return(await req(db.transaction('secrets').objectStore('secrets').get('sync')))?.value||'';}
  async function readSync(key){const tx=db.transaction(['scopes','baselines']);const [scope,rows]=await Promise.all([req(tx.objectStore('scopes').get(key)),req(tx.objectStore('baselines').getAll())]);return {...(scope?.state||{}),items:Object.fromEntries(rows.filter(r=>r.scope===key).map(r=>[r.id,r]))};}
  async function saveScope(key,state){const clean={...state};delete clean.items;await transact(['scopes'],'readwrite',tx=>tx.objectStore('scopes').put({key,state:clean}));snapshot.scopes[key]=clean;channel?.postMessage({actor});}
@@ -109,5 +114,5 @@
  window.addEventListener('storage',event=>{if(db)legacyEvent(event);});
  async function operation(value){if(value)await transact(['operations'],'readwrite',tx=>tx.objectStore('operations').put(copy(value)));return req(db.transaction('operations').objectStore('operations').getAll());}
  async function allSync(){const tx=db.transaction(['scopes','baselines']);const [scopes,baselines]=await Promise.all([req(tx.objectStore('scopes').getAll()),req(tx.objectStore('baselines').getAll())]);return{scopes,baselines};}
- window.DiaryStore={ready,refresh,snapshot,canonical,digest,upsert,remove,restore,purge,purgeExpired,config,setConfig,secret,readSync,saveScope,syncCommit,exclusive,draft,dump,importData,patchPhotos,validateEntry,onChange:fn=>changeHook=fn,actor,operation,allSync};
+ window.DiaryStore={ready,refresh,snapshot,canonical,digest,upsert,remove,restore,purge,purgeExpired,config,setConfig,configureSync,secret,readSync,saveScope,syncCommit,exclusive,draft,dump,importData,patchPhotos,validateEntry,onChange:fn=>changeHook=fn,actor,operation,allSync};
 })();
