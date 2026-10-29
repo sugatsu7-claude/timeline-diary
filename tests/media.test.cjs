@@ -23,6 +23,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   }
   return r.fulfill({headers:{'Access-Control-Allow-Origin':'https://diary.test'},contentType:'application/json',body:JSON.stringify(result)});
  });
+ async function saveEntry(){await page.locator('#sheet').evaluate(el=>el.scrollTop=el.scrollHeight);await page.locator('#sheet-save').click();}
  await page.goto('https://diary.test/');await page.waitForFunction(()=>window.diaryReady);
  assert.equal(calls.length,0);
  await page.locator('#open-settings').click();await page.locator('#settings-toggle').click();
@@ -33,8 +34,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  await page.locator('#add-fab').click();await page.locator('#first-author').fill('测试记录人');await page.locator('#confirm-first-author').click();await page.locator('#entry-text').fill('Photos and links');
  await page.locator('#entry-photos').setInputFiles([path.join(root,'icons/icon-192.png'),path.join(root,'icons/icon-512.png')]);
  await page.waitForFunction(()=>!mediaBusy&&sheetPhotos.length===2);
- await page.locator('#entry-links').fill('javascript:alert(1)');await page.locator('#sheet-save').click();assert.equal(await page.evaluate(()=>entries.length),0);
- await page.locator('#entry-links').fill('https://weibo.com/example\nhttps://example.com/');await page.locator('#sheet-save').click();
+ await page.locator('#entry-links').fill('javascript:alert(1)');await saveEntry();assert.equal(await page.evaluate(()=>entries.length),0);
+ await page.locator('#entry-links').fill('https://weibo.com/example\nhttps://example.com/');await saveEntry();
  await page.waitForFunction(()=>!document.querySelector('#sheet').classList.contains('open'));assert.equal(await page.evaluate(()=>entries[0].photos.length),2);assert.equal(calls.length,0);
  await page.screenshot({path:path.join(root,'test-results','diary-capsule-preview.png')});
  assert.equal(await page.locator('.entry-card img').count(),0,'capsule has no thumbnails');
@@ -53,7 +54,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  await page.waitForFunction(()=>document.querySelector('#photo-slides img')?.naturalWidth>0);
  assert.ok(imageRequests.includes('https://images.test/replaced.jpg'));assert.ok(calls.slice(before).includes('/read'),'expired URL is refreshed only when viewed');await page.locator('#photo-close').click();
  // Removing an already-synced image does not re-upload the remaining one.
- await page.locator('[aria-label="编辑日记"]').click();await page.locator('[aria-label="移除图片1"]').click();await page.locator('#sheet-save').click();await page.waitForFunction(()=>!document.querySelector('#sheet').classList.contains('open'));await sync();assert.equal(uploads,2);assert.equal(remote[0].photos.length,1);
+ await page.locator('[aria-label="编辑日记"]').click();await page.locator('[aria-label="移除图片1"]').click();await saveEntry();await page.waitForFunction(()=>!document.querySelector('#sheet').classList.contains('open'));await sync();assert.equal(uploads,2);assert.equal(remote[0].photos.length,1);
  assert.deepEqual(errors,[]);
  console.log('PASS: local background persistence/no requests, compression and local blobs, safe links, icon-only capsules, gallery navigation, manual uploads, remote image replacement and expired URL refresh, remove without reupload.');
  await browser.close();
