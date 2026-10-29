@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "timeline-diary-sync",
+  "main": "index.mjs",
+  "compatibility_date": "2026-10-29",
+  "workers_dev": true,
+  "vars": {
+    "ALLOWED_ORIGIN": "https://sugatsu7-claude.github.io"
+  }
+  // Deploy button prompts for NOTION_TOKEN, WORKER_SECRET and NOTION_DATABASE_ID
+  // using .dev.vars.example. Existing NOTION_DATA_SOURCE_ID remains supported.
+}

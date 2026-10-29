@@ -1,0 +1,4 @@
+# Only examples. Enter your own values in Cloudflare, never commit real credentials.
+NOTION_TOKEN=
+WORKER_SECRET=
+NOTION_DATABASE_ID=

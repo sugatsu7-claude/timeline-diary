@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.10.26.11">
+<meta name="diary-version" content="2026.10.29.1">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -458,6 +458,25 @@
   .card-buttons { display:flex;justify-content:center;gap:8px; }
   #card-status { font-size:11px;line-height:1.7;color:#898781;margin:12px 0;text-align:center; }
   .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+
+  .setup-intro { display:flex;align-items:center;gap:10px;margin:4px 0 18px;padding:10px 12px;border-radius:12px;background:rgba(250,248,243,.86);color:#767570;font-size:12px; }
+  .setup-intro[hidden] { display:none; }
+  .setup-intro span { flex:1; }
+  .setup-intro button { border:0;background:transparent;color:#697460;padding:6px;font-size:12px; }
+  #setup-dialog { max-width:520px; }
+  .setup-step { border-top:1px solid rgba(180,178,169,.3);padding:12px 0; }
+  .setup-step h4 { margin:0 0 8px;font-size:14px;font-weight:500; }
+  .setup-step p,.setup-step li { font-size:12px;line-height:1.8;overflow-wrap:anywhere; }
+  .setup-step a { color:#65745b; }
+  #setup-dialog input { display:block;box-sizing:border-box;width:100%;font:inherit;font-size:16px;border:1px solid #dfdcd2;border-radius:10px;padding:10px;background:#fffdf8;color:#52514e; }
+  #setup-dialog label { display:block;margin:12px 0 6px;font-size:12px; }
+  #setup-dialog .setup-remember { display:flex;align-items:center;gap:8px; }
+  #setup-dialog .setup-remember input { width:auto; }
+  #setup-status { font-size:12px;line-height:1.8;color:#767570; }
+  #setup-dialog table { width:100%;font-size:11px;border-collapse:collapse; }
+  #setup-dialog th,#setup-dialog td { text-align:left;padding:5px;border-bottom:1px solid #e9e5dc; }
+  .setup-actions { display:flex;gap:8px; }
+  #setup-origin { user-select:all;overflow-wrap:anywhere; }
 </style>
 </head>
 <body>
@@ -470,6 +489,8 @@
   <p id="diary-subtitle">记录生活的每一天</p>
   <p class="entry-count" id="entry-count"></p>
 </div>
+
+<aside class="setup-intro" id="setup-intro" hidden><span>日记可离线使用，也可以连接自己的Notion。</span><button id="intro-setup" type="button">设置同步</button><button id="dismiss-setup-intro" type="button" aria-label="关闭同步介绍">×</button></aside>
 
 <div class="toolbar">
   <div class="search-box">
@@ -565,6 +586,7 @@
   <p class="settings-hint">删除的记录会在这里保留7天，之后自动清空。</p>
 </div>
 
+<button id="open-setup" class="backup-btn" type="button" style="width:100%;margin-top:16px;">首次连接向导／检查Notion连接</button>
 <div class="settings-toggle" id="settings-toggle">同步与外观设置</div>
 <div class="settings-panel" id="settings-panel">
   <label for="sync-url">Notion 同步服务地址</label>
@@ -613,6 +635,23 @@
   <input id="first-author" maxlength="100" autocomplete="nickname" placeholder="你的名字" style="padding:10px;font-size:16px;max-width:100%;">
   <div class="cloud-row"><button class="filter-btn" id="confirm-first-author">保存并开始记录</button><button class="filter-btn" id="cancel-first-author">取消</button></div>
   <p id="first-author-error" role="status" class="settings-hint"></p>
+</dialog>
+<dialog id="setup-dialog" class="soft-dialog" aria-labelledby="setup-title">
+ <div class="attachment-heading"><h3 id="setup-title">连接自己的Notion</h3><button id="setup-close" class="close-viewer" aria-label="关闭连接向导">×</button></div>
+ <section class="setup-step"><h4>1 · 准备自己的日记数据库</h4>
+ <p><a id="setup-template" target="_blank" rel="noopener noreferrer" hidden>复制空白日记模板</a><span id="setup-template-pending"></span></p>
+ <p>复制后使用你自己的数据库链接。公开PWA不会自动连接任何人的数据库。</p>
+ <details><summary>手动创建数据库字段</summary><table><thead><tr><th>字段名</th><th>Notion类型</th></tr></thead><tbody><tr><td>标题</td><td>标题 Title</td></tr><tr><td>日期</td><td>日期 Date</td></tr><tr><td>记录人</td><td>单选 Select</td></tr><tr><td>标签</td><td>多选 Multi-select</td></tr><tr><td>日记ID</td><td>文本 Text</td></tr><tr><td>已删除</td><td>复选框 Checkbox</td></tr><tr><td>原始创建时间</td><td>数字 Number</td></tr></tbody></table></details>
+ <p>在 <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer">Notion连接管理</a> 创建API token连接，开启读取、插入、更新内容；用户信息选「No user information」。在数据库右上角的连接菜单授权这个连接。</p></section>
+ <section class="setup-step"><h4>2 · 部署自己的同步服务</h4><p><a id="setup-deploy" target="_blank" rel="noopener noreferrer">Deploy to Cloudflare · 部署自己的Worker</a></p>
+ <p>登录自己的Cloudflare和GitHub，按提示填写自己的Notion Token、随机长连接码，以及复制后的数据库链接。Token只填Cloudflare，不要填到PWA。</p>
+ <p>网站来源 ALLOWED_ORIGIN 应为：<code id="setup-origin"></code>。自行托管或更换域名时，请在Cloudflare修改这项配置。</p></section>
+ <section class="setup-step"><h4>3 · 检查并保存连接</h4>
+ <label for="setup-worker">部署后的Worker根地址</label><input id="setup-worker" type="url" placeholder="https://你的服务.workers.dev" autocomplete="off">
+ <label for="setup-secret">你在Cloudflare设置的连接码</label><input id="setup-secret" type="password" placeholder="WORKER_SECRET" autocomplete="off">
+ <label class="setup-remember"><input id="setup-remember" type="checkbox">在此设备记住连接码</label>
+ <p id="setup-status" role="status"></p><div class="setup-actions"><button id="setup-check" type="button">检查连接</button><button id="setup-save" type="button" disabled>保存连接</button></div>
+ <p>不会自动同步或上传日记。检查成功后保存，返回首页手动点击「同步」。</p></section>
 </dialog>
 <dialog id="draft-dialog" class="soft-dialog"><div class="attachment-heading"><h3>暂存草稿</h3><button id="close-drafts">关闭</button></div><div id="draft-list"></div></dialog>
 <dialog id="photo-viewer" class="soft-dialog" aria-labelledby="photo-title">

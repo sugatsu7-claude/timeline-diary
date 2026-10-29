@@ -1,0 +1,16 @@
+{
+  "name": "timeline-diary-sync",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "deploy": "wrangler deploy", "check": "node --check index.mjs" },
+  "devDependencies": { "wrangler": "^4.45.0" },
+  "cloudflare": {
+    "bindings": {
+      "NOTION_TOKEN": { "description": "自己的Notion API token。仅在Cloudflare保存，不要填到PWA或GitHub。先给连接授权访问复制的日记数据库。" },
+      "WORKER_SECRET": { "description": "自己生成的随机长连接码。部署后在PWA填写同一个码，建议至少32位。" },
+      "NOTION_DATABASE_ID": { "description": "粘贴自己复制的Notion数据库链接，或数据库ID。Worker会自动识别其数据源。不要使用模板原数据库链接。" },
+      "ALLOWED_ORIGIN": { "description": "PWA来源，只有协议和域名，不含路径。使用公开PWA可保留默认值；自行托管时改成自己的域名。" }
+    }
+  }
+}

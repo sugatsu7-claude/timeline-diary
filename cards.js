@@ -1,4 +1,4 @@
-// diary-release: 2026.10.26.11
+// diary-release: 2026.10.29.1
 /* Text-only diary cards. Rendering and PNG export stay entirely on this device. */
 (function(){
  'use strict';
