@@ -1,4 +1,4 @@
-// diary-release: 2026.10.29.1
+// diary-release: 2026.10.29.2
 (function(){
  'use strict';
  const dialog=document.getElementById('setup-dialog'),urlInput=document.getElementById('setup-worker'),secretInput=document.getElementById('setup-secret'),remember=document.getElementById('setup-remember'),status=document.getElementById('setup-status'),save=document.getElementById('setup-save'),check=document.getElementById('setup-check'),config=window.DiarySetupConfig;
@@ -8,7 +8,7 @@
  const repo=publicURL(config.repository,['github.com']);const deploy=document.getElementById('setup-deploy');
  if(repo){deploy.href='https://deploy.workers.cloudflare.com/?url='+encodeURIComponent(repo.href.replace(/\/$/,'')+'/tree/'+encodeURIComponent(config.branch||'main')+'/worker');}else{deploy.removeAttribute('href');deploy.setAttribute('aria-disabled','true');}
  const template=publicURL(config.notionTemplateUrl,['notion.site','notion.so']),templateLink=document.getElementById('setup-template');
- if(template){templateLink.href=template.href;document.getElementById('setup-template-pending').hidden=true;}else{templateLink.hidden=true;document.getElementById('setup-template-pending').textContent='公开空白模板尚未发布。可先按下方字段表创建数据库，已有日记库可直接继续。';}
+ if(template){templateLink.hidden=false;templateLink.href=template.href;document.getElementById('setup-template-pending').hidden=true;}else{templateLink.hidden=true;document.getElementById('setup-template-pending').textContent='公开空白模板尚未发布。可先按下方字段表创建数据库，已有日记库可直接继续。';}
  document.getElementById('setup-origin').textContent=location.origin;
  function open(){urlInput.value=appSettings.syncUrl||'';secretInput.value=document.getElementById('sync-secret').value||'';remember.checked=document.getElementById('remember-secret').checked;verified=null;dirty=false;save.disabled=true;status.textContent='检查只读取数据库结构，不上传或下载日记。';dialog.showModal();}
  for(const id of ['open-setup','intro-setup'])document.getElementById(id).onclick=open;

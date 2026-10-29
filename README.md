@@ -2,16 +2,16 @@
 
 本机优先的日记 PWA：离线写作、每批30条、自定义名字/标签/背景、日记图片和链接、三款文字卡片。只有手动点击「同步」才连接你自己的 Notion；没有后台轮询。
 
-[打开 PWA](https://sugatsu7-claude.github.io/timeline-diary/) · [自行配置说明](SELF-HOSTING.md)
+[复制 Notion 空白模板](https://heather-butternut-b3d.notion.site/31a6c7418c3e4d26bdb3e515189d92c2) · [打开 PWA](https://sugatsu7-claude.github.io/timeline-diary/) · [自行配置说明](SELF-HOSTING.md)
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fsugatsu7-claude%2Ftimeline-diary%2Ftree%2Fmain%2Fworker)
 
-版本 `2026.10.29.1` 新增首次连接向导、独立 Worker 部署模板和数据库链接识别。现有用户继续使用原来的 Worker 地址与连接码，普通同步协议兼容；想使用新向导的「检查连接」需部署本仓库新版 Worker。
+版本 `2026.10.29.2` 新增首次连接向导、独立 Worker 部署模板和数据库链接识别。现有用户继续使用原来的 Worker 地址与连接码，普通同步协议兼容；想使用新向导的「检查连接」需部署本仓库新版 Worker。
 
 ## 第一次使用
 
 1. 打开 PWA，点击「设置同步」，或「设置」里的「首次连接向导」。不需要 Notion 时可关闭介绍，继续离线写日记。
-2. 准备自己的 Notion 日记数据库。**公开空白模板尚待发布，当前不显示不可用的模板复制按钮。** 在发布链接接入前，可按向导字段表建立数据库。
+2. 点击上方「复制 Notion 空白模板」，在 Notion 右上角选择复制到自己的工作区，字段和视图会一并带过去。后续使用自己复制后的数据库链接；也可按向导字段表手动建立数据库。
 3. 创建自己的 Notion API token 连接，开启读取、插入、更新内容；用户信息选 No user information。将自己的数据库授权给这个连接。
 4. 点击上方 Deploy to Cloudflare。登录自己的 Cloudflare/GitHub，按提示填写自己的 `NOTION_TOKEN`、`WORKER_SECRET` 和 `NOTION_DATABASE_ID`。最后一项可以直接粘贴复制后的 Notion 数据库链接。
 5. 将部署得到的 Worker 根地址与连接码填入 PWA 向导，点击「检查连接」再保存。检查只读字段，不读取正文、不上传日记。
@@ -30,7 +30,7 @@
 
 ## 空白模板发布与维护
 
-模板应是独立空数据库，仅含字段和视图，不是个人日记库的关联视图，也不包含个人记录/密钥。准备好后在 Notion 发布并开启允许复制，以未登录状态验证。
+公开模板是独立空数据库，包含「全部日记／日历／回收站」视图，不是个人日记库的关联视图，也不包含个人记录或密钥。请复制到自己的工作区使用。维护者更换模板时，应先确认模板为空、独立，并开启公开访问和允许复制。
 
 维护者将验证过的公开复制链接填入 [setup-config.js](setup-config.js) 的 `notionTemplateUrl`，同时在本页加入复制链接。空值时向导会明确说明暂未发布，并提供字段表，避免把用户引向私人页面。
 
