@@ -23,7 +23,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   }
   return r.fulfill({headers:{'Access-Control-Allow-Origin':'https://diary.test'},contentType:'application/json',body:JSON.stringify(result)});
  });
- async function saveEntry(){await page.locator('#sheet').evaluate(el=>el.scrollTop=el.scrollHeight);await page.locator('#sheet-save').click();}
+ async function saveEntry(){await page.locator('#sheet').evaluate(async el=>{await Promise.all(el.getAnimations().map(a=>a.finished.catch(()=>{})));el.scrollTop=el.scrollHeight;});await page.locator('#sheet-save').click();}
  await page.goto('https://diary.test/');await page.waitForFunction(()=>window.diaryReady);
  assert.equal(calls.length,0);
  await page.locator('#open-settings').click();await page.locator('#settings-toggle').click();
