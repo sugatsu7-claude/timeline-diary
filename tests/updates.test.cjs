@@ -12,7 +12,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
   let body;
   try{body=fs.readFileSync(path.join(root,name));}catch{res.writeHead(404).end();return;}
   if(/\.(html|js|json|webmanifest)$/.test(name))body=Buffer.from(body.toString().replaceAll(original,release));
-  res.writeHead(200,{'Content-Type':name.endsWith('.js')?'text/javascript':name.endsWith('.html')?'text/html':name.endsWith('.png')?'image/png':'application/json','Cache-Control':'no-store'});res.end(body);
+  res.writeHead(200,{'Content-Type':name.endsWith('.js')?'text/javascript':name.endsWith('.html')?'text/html':name.endsWith('.png')?'image/png':/\.jpe?g$/.test(name)?'image/jpeg':'application/json','Cache-Control':'no-store'});res.end(body);
  });
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const url='http://127.0.0.1:'+server.address().port+'/timeline-diary/';
@@ -32,10 +32,11 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
  await page.locator('#sheet-save').click();await page.waitForFunction(()=>!document.querySelector('#sheet').classList.contains('open'));assert.equal(await page.evaluate(()=>sessionStorage.getItem(DRAFT_KEY)),null);
  const offlinePage=await context.newPage();await offlinePage.goto(url);await offlinePage.waitForFunction(()=>window.diaryReady);
  assert.equal(await offlinePage.evaluate(()=>entries[0].text),'Unsaved draft');
+ await offlinePage.evaluate(()=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>image.naturalWidth?resolve():reject(Error('Empty cached background'));image.onerror=()=>reject(Error('Default background unavailable offline'));image.src=DEFAULT_BACKGROUND_URL}));
  await offlinePage.locator('[aria-label="生成日记卡片"]').click();await offlinePage.waitForFunction(()=>!document.getElementById('card-save').disabled);assert.equal(await offlinePage.locator('#card-canvas').getAttribute('width'),'1080');await offlinePage.locator('#card-close').click();
  // No database requests are cached; this service worker stores exactly the static shell.
  const cacheUrls=await page.evaluate(async()=>{let result=[];for(const k of await caches.keys())for(const req of await(await caches.open(k)).keys())result.push(req.url);return result});
- assert.equal(cacheUrls.length,17);assert.ok(cacheUrls.every(u=>!u.includes('version.json')&&!u.includes('worker')));
+ assert.equal(cacheUrls.length,18);assert.ok(cacheUrls.every(u=>!u.includes('version.json')&&!u.includes('worker')));
  await context.setOffline(false);
  // A release waits for consent and protects drafts in every open tab.
  release=next;

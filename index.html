@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.10.29.2">
+<meta name="diary-version" content="2026.10.29.3">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -25,6 +25,7 @@
   #bg-layer {
     position: fixed;
     inset: 0;
+    background-image: url("./assets/IMG_0586.jpg");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -605,7 +606,7 @@
   <input type="file" id="local-background" accept="image/*">
   <p class="settings-hint" id="background-status" role="status">本机背景不会上传或同步。</p>
   <div class="cloud-row"><button class="backup-btn" id="use-bg-url" type="button">使用网址背景</button><button class="backup-btn" id="reset-background" type="button">恢复默认背景</button></div>
-  <label>自定义背景图片网址（可选，留空则用默认米色）</label>
+  <label>自定义背景图片网址（可选，留空则用默认背景图）</label>
   <input type="text" id="bg-url" placeholder="https://...jpg">
   <label>背景蒙层浓度（数字越大，背景图越淡、字越清楚）</label>
   <input type="text" id="bg-scrim-input" placeholder="72" inputmode="numeric">

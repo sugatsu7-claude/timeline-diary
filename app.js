@@ -1,8 +1,9 @@
-// diary-release: 2026.10.29.2
+// diary-release: 2026.10.29.3
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
 var SETTINGS_KEY='penang_timeline_settings';
+var DEFAULT_BACKGROUND_URL=new URL('assets/IMG_0586.jpg',document.baseURI).href;
 var entries=structuredClone(DiaryStore.snapshot.entries);
 function legacySourceName(value){return value==='user'?'五月':value==='yan'?'言':value==='G老师'?'叙':value||'未署名';}
 function sourceName(value){return typeof value==='string'&&value?value:'未署名';}
@@ -422,7 +423,7 @@ applyCardOpacity(appSettings.cardOpacity);
 
 function applyBackground(url) {
   var layer = document.getElementById('bg-layer');
-  layer.style.backgroundImage = url ? 'url(' + url + ')' : 'none';
+  layer.style.backgroundImage = 'url(' + JSON.stringify(url || DEFAULT_BACKGROUND_URL) + ')';
 }
 function applyScrim(val) {
   var pct = (val === undefined || val === null || val === '') ? 72 : Math.max(0, Math.min(100, parseInt(val, 10)));

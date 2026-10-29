@@ -2,11 +2,13 @@
 
 本机优先的日记 PWA：离线写作、每批30条、自定义名字/标签/背景、日记图片和链接、三款文字卡片。只有手动点击「同步」才连接你自己的 Notion；没有后台轮询。
 
+默认背景为 `assets/IMG_0586.jpg`，包含离线缓存。自定义网址或本机背景优先；设置中「恢复默认背景」切回这张图片。
+
 [复制 Notion 空白模板](https://heather-butternut-b3d.notion.site/31a6c7418c3e4d26bdb3e515189d92c2) · [打开 PWA](https://sugatsu7-claude.github.io/timeline-diary/) · [自行配置说明](SELF-HOSTING.md)
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fsugatsu7-claude%2Ftimeline-diary%2Ftree%2Fmain%2Fworker)
 
-版本 `2026.10.29.2` 新增首次连接向导、独立 Worker 部署模板和数据库链接识别。现有用户继续使用原来的 Worker 地址与连接码，普通同步协议兼容；想使用新向导的「检查连接」需部署本仓库新版 Worker。
+版本 `2026.10.29.3` 新增首次连接向导、独立 Worker 部署模板和数据库链接识别。现有用户继续使用原来的 Worker 地址与连接码，普通同步协议兼容；想使用新向导的「检查连接」需部署本仓库新版 Worker。
 
 ## 第一次使用
 

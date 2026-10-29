@@ -1,9 +1,9 @@
 /* Offline app shell only. No diary data, API responses, secrets or remote backgrounds are cached. */
-const RELEASE = '2026.10.29.2';
+const RELEASE = '2026.10.29.3';
 const ROOT = new URL('./', self.location.href);
 const PREFIX = 'timeline-diary-shell:' + ROOT.href + ':';
 const CACHE = PREFIX + RELEASE;
-const FILES = ['index.html','storage.js','network.js','boot.js','app.js','authors.js','media.js','cards.js','sync.js','archive.js','backup.js','setup-config.js','setup.js','updates.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png'];
+const FILES = ['index.html','storage.js','network.js','boot.js','app.js','authors.js','media.js','cards.js','sync.js','archive.js','backup.js','setup-config.js','setup.js','updates.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','assets/IMG_0586.jpg'];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     async function checkRelease() {
@@ -18,7 +18,10 @@ self.addEventListener('install', event => {
       if (file === 'index.html' && !(await response.clone().text()).includes('name="diary-version" content="' + RELEASE + '"')) throw new Error('Mismatched HTML');
       if (file.endsWith('.js') && !(await response.clone().text()).startsWith('// diary-release: ' + RELEASE + '\n')) throw new Error('Mismatched JavaScript');
       if (file === 'manifest.webmanifest' && (await response.clone().json()).version !== RELEASE) throw new Error('Mismatched manifest');
-      return [url.href, response];
+      // Drain each body before checking version.json again: large images must not
+      // hold network connections open while the install waits for that request.
+      const body = await response.blob();
+      return [url.href, new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers })];
     }));
     await checkRelease();
     const cache = await caches.open(CACHE);
