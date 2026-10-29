@@ -8,14 +8,14 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),h=require('./br
  const buttons=await row.locator('.entry-actions button').all();assert.equal(buttons.length,5);let previous;
  for(const b of buttons){const box=await b.boundingBox();assert.equal(box.width,28);assert.equal(box.height,32);if(previous)assert.ok(box.x-(previous.x+previous.width)<=3,'icons retain compact spacing');previous=box;}
  const sourceBox=await row.locator('.entry-author').boundingBox(),tagBox=await row.locator('.entry-heading .entry-tag').boundingBox();assert.ok(Math.abs(sourceBox.y-tagBox.y)<8,'name and tag share a row');
- await p.screenshot({path:'/workspace/diary-cards-home.png'});
+ await p.screenshot({path:h.root+'/test-results/diary-cards-home.png'});
  await row.locator('[aria-label="生成日记卡片"]').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);
  const count=p.locator('#card-count');assert.equal(await count.textContent(),'1 / 1');assert.equal(await p.locator('#card-canvas').getAttribute('width'),'1080');assert.equal(await p.locator('#card-canvas').getAttribute('height'),'1080');assert.ok(!(await p.locator('#card-readable').textContent()).includes('private-attachment'));
  const versions=[];for(const theme of ['cream','letter','night']){
   await p.locator('[data-card-style="'+theme+'"]').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);
   const data=await p.locator('#card-canvas').evaluate(c=>c.toDataURL());assert.ok(data.length>2000);versions.push(data);
   const event=p.waitForEvent('download');await p.locator('#card-save').click();const dl=await event,bytes=fs.readFileSync(await dl.path());assert.equal(bytes.subarray(1,4).toString(),'PNG');assert.equal(bytes.readUInt32BE(16),1080);assert.equal(bytes.readUInt32BE(20),1080);assert.match(dl.suggestedFilename(),new RegExp(theme));
-  await p.screenshot({path:'/workspace/diary-card-'+theme+'-preview.png'});
+  await p.screenshot({path:h.root+'/test-results/diary-card-'+theme+'-preview.png'});
  }
  assert.equal(new Set(versions).size,3,'all three themes render distinct artwork');
  // A supported phone can share the already-rendered PNG without a network request.

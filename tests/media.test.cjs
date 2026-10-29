@@ -36,13 +36,13 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  await page.locator('#entry-links').fill('javascript:alert(1)');await page.locator('#sheet-save').click();assert.equal(await page.evaluate(()=>entries.length),0);
  await page.locator('#entry-links').fill('https://weibo.com/example\nhttps://example.com/');await page.locator('#sheet-save').click();
  await page.waitForFunction(()=>!document.querySelector('#sheet').classList.contains('open'));assert.equal(await page.evaluate(()=>entries[0].photos.length),2);assert.equal(calls.length,0);
- await page.screenshot({path:'/workspace/diary-capsule-preview.png'});
+ await page.screenshot({path:path.join(root,'test-results','diary-capsule-preview.png')});
  assert.equal(await page.locator('.entry-card img').count(),0,'capsule has no thumbnails');
  await page.locator('[aria-label="查看日记图片"]').click();await page.waitForFunction(()=>document.querySelector('#photo-slides img')?.naturalWidth>0);
- await page.screenshot({path:'/workspace/diary-gallery-preview.png'});
+ await page.screenshot({path:path.join(root,'test-results','diary-gallery-preview.png')});
  assert.ok((await page.locator('#photo-slides img').first().getAttribute('src')).startsWith('blob:'));
  await page.locator('#photo-next').click();await page.waitForFunction(()=>document.querySelector('#photo-counter').textContent==='2 / 2');await page.locator('#photo-close').click();
- await page.locator('[aria-label="查看日记链接"]').click();assert.equal(await page.locator('#entry-link-list a').count(),2);await page.screenshot({path:'/workspace/diary-links-preview.png'});assert.equal(await page.locator('#entry-link-list a').first().getAttribute('target'),'_blank');await page.locator('#link-close').click();
+ await page.locator('[aria-label="查看日记链接"]').click();assert.equal(await page.locator('#entry-link-list a').count(),2);await page.screenshot({path:path.join(root,'test-results','diary-links-preview.png')});assert.equal(await page.locator('#entry-link-list a').first().getAttribute('target'),'_blank');await page.locator('#link-close').click();
  async function sync(){await page.locator('#sync-btn').click();await page.evaluate(()=>window.lastSyncRun);}
  await sync();assert.equal(uploads,2);assert.equal(remote[0].photos.length,2);assert.equal(remote[0].links.length,2);
  await page.reload();await page.waitForFunction(()=>window.diaryReady&&document.querySelector('#bg-layer').style.backgroundImage.includes('blob:'));
