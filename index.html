@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.01.4">
+<meta name="diary-version" content="2026.11.01.5">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -307,6 +307,9 @@
     z-index: 91;
     max-height: 85vh;
     overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+    width:100%;max-width:100%;
   }
   .sheet.open { transform: translateY(0); }
   .sheet h2 { font-size: 16px; font-weight: 500; margin: 0 0 14px; }
@@ -320,6 +323,9 @@
     background: #FFFFFF;
     font-family: inherit;
   }
+  .sheet input,.sheet textarea,.sheet select { min-width:0;max-width:100%; }
+  .sheet input[type="file"] { display:block;width:100%; }
+  .sheet .tag-chip { max-width:100%;white-space:normal;overflow-wrap:anywhere; }
   .sheet textarea { min-height: 90px; resize: vertical; }
   .source-toggle { display: flex; gap: 8px; margin-top: 4px; }
   .source-toggle button {
@@ -559,8 +565,10 @@
   <textarea id="entry-links" rows="2" style="min-height:70px;" placeholder="https://..."></textarea>
   <label for="entry-location-name">地点（可选）</label>
   <input type="text" id="entry-location-name" maxlength="200" placeholder="例如 The Waterfront Shoppes">
-  <label for="entry-location-url">地图链接（可选）</label>
-  <input type="text" id="entry-location-url" maxlength="2000" inputmode="url" placeholder="粘贴地图分享链接">
+  <div class="cloud-row"><button type="button" class="filter-btn" id="location-search">搜索地点</button><button type="button" class="filter-btn" id="location-current">使用当前位置</button></div>
+  <p id="location-status" class="settings-hint" role="status">可打开地图搜索，或使用手机当前位置。</p>
+  <label for="entry-location-url">地图链接（可选，留空按名称搜索）</label>
+  <input type="text" id="entry-location-url" maxlength="2000" inputmode="url" placeholder="可粘贴地图分享链接，也可以不填">
   <div class="sheet-actions">
     <button class="btn-cancel" id="sheet-cancel">取消</button>
     <button class="btn-save" id="sheet-save">保存</button>
