@@ -6,6 +6,11 @@
   "scripts": {
     "test": "python3 scripts/check-release.py && node --test tests/worker.test.mjs tests/worker-setup.test.mjs && node scripts/test-browsers.cjs"
   },
-  "devDependencies": { "playwright": "1.56.1" },
-  "engines": { "node": ">=22" }
+  "devDependencies": {
+    "playwright": "1.56.1",
+    "leaflet": "1.9.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }
