@@ -1,8 +1,8 @@
-// diary-release: 2026.11.01.6
+// diary-release: 2026.11.01.7
 /* Local blobs live in IndexedDB; metadata alone lives with diary entries. */
 (function () {
   'use strict';
-  var dbPromise, bgObjectUrl, viewerUrls = [], viewerEntry;
+  var dbPromise, bgObjectUrl, viewerUrls = [], viewerEntry,viewerEditing=false,viewerGeneration=0,thumbUrls=[],sheetRenderId=0;
   function database() {
     if(!dbPromise)dbPromise=new Promise(function(resolve,reject){
       var r=indexedDB.open('timeline-diary-assets',2);
@@ -46,20 +46,32 @@
     } finally { URL.revokeObjectURL(source); }
   }
   function draftEvent() { document.getElementById('sheet').dispatchEvent(new Event('change')); }
-  function renderSheet() {
-    var wrap = document.getElementById('sheet-photos');wrap.replaceChildren();
-    sheetPhotos.forEach(function (photo, i) {
-      var group = document.createElement('span'), view = document.createElement('button'), remove = document.createElement('button');
-      view.type = remove.type = 'button';view.append(icon('photo'),document.createTextNode(String(i+1)));view.onclick = function () { openPhotos({id:editingId,photos:sheetPhotos}, i); };
-      remove.textContent = '移除';remove.setAttribute('aria-label','移除图片'+(i+1));remove.onclick = function () { sheetPhotos.splice(i,1);renderSheet();draftEvent(); };
-      group.append(view,remove);wrap.appendChild(group);
-    });
+  function photoActions(){
+    var count=sheetPhotos.length,button=document.getElementById('sheet-add-photo');
+    document.getElementById('sheet-photo-count').textContent=count+' / 8';document.getElementById('sheet-photo-editor').classList.toggle('is-empty',!count);document.getElementById('sheet-photos').hidden=!count;
+    button.disabled=mediaBusy||count>=8;document.getElementById('entry-photos').disabled=button.disabled;button.replaceChildren();
+    var plus=document.createElement('span'),label=document.createElement('span');plus.className='photo-add-icon';plus.textContent='＋';label.textContent=count>=8?'已满':count?'添加':'添加照片';button.append(plus,label);button.setAttribute('aria-label',count>=8?'已添加8张照片':'添加照片');
+    document.querySelectorAll('.sheet-photo-thumb').forEach(function(view){view.disabled=mediaBusy;});document.getElementById('photo-remove').disabled=mediaBusy;
   }
+  function releaseSheet(){sheetRenderId++;thumbUrls.forEach(URL.revokeObjectURL);thumbUrls=[];if(viewerEditing&&document.getElementById('photo-viewer').open)document.getElementById('photo-viewer').close();}
+  function renderSheet() {
+    var wrap=document.getElementById('sheet-photos'),left=wrap.scrollLeft,token=++sheetRenderId;thumbUrls.forEach(URL.revokeObjectURL);thumbUrls=[];wrap.replaceChildren();photoActions();
+    sheetPhotos.forEach(function(photo,i){
+      var view=document.createElement('button'),image=document.createElement('img'),placeholder=document.createElement('span'),number=document.createElement('span');
+      view.type='button';view.className='sheet-photo-thumb';view.disabled=mediaBusy;view.setAttribute('aria-label','预览图片'+(i+1));image.alt='';image.decoding='async';image.width=image.height=72;image.hidden=true;placeholder.className='sheet-photo-placeholder';placeholder.append(icon('photo'));number.className='photo-index';number.textContent=i+1;number.setAttribute('aria-hidden','true');view.append(placeholder,image,number);view.onclick=function(){openPhotos({id:editingId,photos:sheetPhotos},i,true);};wrap.appendChild(view);
+      (async function(){try{
+        var blob=photo.revision&&photo.localRevision!==photo.revision?null:await store('get',photo.cacheKey||photo.id);if(token!==sheetRenderId)return;
+        var src;if(blob instanceof Blob){src=URL.createObjectURL(blob);thumbUrls.push(src);}else if(safeLink(photo.url)&&(!photo.expiresAt||Date.parse(photo.expiresAt)>Date.now()+30000))src=photo.url;
+        if(!src)return;image.onload=function(){if(token===sheetRenderId){image.hidden=false;placeholder.hidden=true;}};image.onerror=function(){image.hidden=true;placeholder.hidden=false;};image.src=src;
+      }catch(_){/* Keep an explicit preview affordance; never refresh Notion just for a thumbnail. */}})();
+    });wrap.scrollLeft=left;
+  }
+  document.getElementById('sheet-add-photo').onclick=function(){if(!mediaBusy&&sheetPhotos.length<8)document.getElementById('entry-photos').click();};
   document.getElementById('entry-photos').onchange = async function (event) {
     if (mediaBusy) { showToast('图片处理中，请稍候');return; }
     var files = Array.from(event.target.files);event.target.value = '';
     if (files.length + sheetPhotos.length > 8) { showToast('每条日记最多8张图片');return; }
-    mediaBusy = true;document.getElementById('entry-photos').disabled = true;document.getElementById('sheet-save').disabled = true;
+    mediaBusy = true;photoActions();document.getElementById('entry-photos').disabled = true;document.getElementById('sheet-save').disabled = true;
     document.getElementById('photo-status').textContent = '正在压缩并保存到本机…';
     try {
       for (var file of files) {
@@ -69,7 +81,7 @@
       }
       renderSheet();draftEvent();document.getElementById('photo-status').textContent = '图片已存本机，点击同步后才上传Notion。';
     } catch (error) { renderSheet();draftEvent();showToast(error.message);document.getElementById('photo-status').textContent = error.message; }
-    finally { mediaBusy = false;document.getElementById('entry-photos').disabled = false;document.getElementById('sheet-save').disabled = false; }
+    finally { mediaBusy = false;photoActions();document.getElementById('sheet-save').disabled = false; }
   };
   var rawBackground = applyBackground;
   applyBackground = async function (url) {
@@ -102,44 +114,54 @@
     if(entry.id)await DiaryStore.patchPhotos(entry.id,value.photos||[]);
     (entry.photos||[]).forEach(function(p){if(mapping.has(p.id))Object.assign(p,mapping.get(p.id));});
   }
-  async function openPhotos(entry, selected) {
+  async function openPhotos(entry, selected, editable) {
     var dialog=document.getElementById('photo-viewer'), slides=document.getElementById('photo-slides');
-    if(dialog.open)dialog.close();viewerUrls.forEach(URL.revokeObjectURL);viewerUrls=[];viewerEntry=entry;slides.replaceChildren();
+    var generation=++viewerGeneration;viewerEditing=!!editable;viewerUrls.forEach(URL.revokeObjectURL);viewerUrls=[];viewerEntry=entry;slides.replaceChildren();
     (entry.photos||[]).forEach(function(photo,i){var section=document.createElement('section'),note=document.createElement('p');section.className='photo-slide';section.dataset.index=i;note.textContent='点击或滑动查看';section.append(note);slides.append(section);});
-    dialog.showModal();slides.scrollLeft=0;
-    await new Promise(requestAnimationFrame);slides.scrollTo({left:slides.clientWidth*(selected||0),behavior:'instant'});updateCounter();await loadVisible();
+    if(!dialog.open)dialog.showModal();slides.scrollLeft=0;
+    await new Promise(requestAnimationFrame);if(generation!==viewerGeneration||!dialog.open)return;slides.scrollTo({left:slides.clientWidth*(selected||0),behavior:'instant'});updateCounter();await loadVisible();
   }
-  var refreshing;
+  var refreshing=new Map();
   async function loadVisible() {
+    var generation=viewerGeneration,entry=viewerEntry;
     var slides=document.getElementById('photo-slides'), index=Math.round(slides.scrollLeft/Math.max(1,slides.clientWidth));
-    var section=slides.children[index],photo=viewerEntry?.photos[index];
+    var section=slides.children[index],photo=entry?.photos[index];
     if(!section||!photo||section.dataset.loaded)return;section.dataset.loaded='true';
     var note=section.querySelector('p');note.textContent='读取图片…';
     try {
       var blob=photo.revision&&photo.localRevision!==photo.revision?null:await store('get',photo.cacheKey||photo.id),src;
+      if(generation!==viewerGeneration)return;
       if(blob){src=URL.createObjectURL(blob);viewerUrls.push(src);}
       else {
         if (!photo.url || (photo.expiresAt && Date.parse(photo.expiresAt)<Date.now()+30000)) {
           if(!navigator.onLine)throw new Error('此图片尚未存本机，请联网后查看');
-          if(!refreshing)refreshing=refreshPhotos(viewerEntry).finally(function(){refreshing=null;});await refreshing;
+          var key=photo.pageId||entry.id;if(!refreshing.has(key))refreshing.set(key,refreshPhotos(entry).finally(function(){refreshing.delete(key);}));await refreshing.get(key);if(generation!==viewerGeneration)return;
         }
         if(!safeLink(photo.url))throw new Error('图片暂不可用，请先同步');src=photo.url;
       }
       section.querySelectorAll('img').forEach(function(img){img.remove();});
-      var image=document.createElement('img');image.alt='日记图片 '+(index+1);image.onload=function(){note.remove();};image.onerror=function(){note.textContent='图片加载失败，请联网后关闭重试或同步。';section.dataset.loaded='';};image.src=src;section.appendChild(image);
-    }catch(error){note.textContent=error.message;section.dataset.loaded='';}
+      var image=document.createElement('img');image.alt='日记图片 '+(index+1);image.onload=function(){if(generation===viewerGeneration)note.remove();};image.onerror=function(){if(generation!==viewerGeneration)return;note.textContent='图片加载失败，请联网后关闭重试或同步。';section.dataset.loaded='';};image.src=src;section.appendChild(image);
+    }catch(error){if(generation===viewerGeneration){note.textContent=error.message;section.dataset.loaded='';}}
   }
   function updateCounter(){
     var slides=document.getElementById('photo-slides'),count=viewerEntry?.photos.length||0,index=Math.round(slides.scrollLeft/Math.max(1,slides.clientWidth));
     document.getElementById('photo-counter').textContent=(index+1)+' / '+count;
     document.getElementById('photo-prev').hidden=document.getElementById('photo-next').hidden=count<=1;
     document.getElementById('photo-prev').disabled=index<=0;document.getElementById('photo-next').disabled=index>=count-1;
+    document.getElementById('photo-remove').hidden=!viewerEditing;document.getElementById('photo-hint').hidden=viewerEditing;
     document.getElementById('photo-hint').textContent=count>1?'左右滑动查看':'轻点窗口外可关闭';
   }
   document.getElementById('photo-slides').onscroll=function(){updateCounter();loadVisible();};
   ['prev','next'].forEach(function(direction){document.getElementById('photo-'+direction).onclick=function(){var slides=document.getElementById('photo-slides');slides.scrollBy({left:slides.clientWidth*(direction==='next'?1:-1),behavior:'smooth'});};});
+  document.getElementById('photo-remove').onclick=function(){
+    if(!viewerEditing||mediaBusy||!document.getElementById('sheet').classList.contains('open')||viewerEntry?.photos!==sheetPhotos)return;
+    var slides=document.getElementById('photo-slides'),index=Math.round(slides.scrollLeft/Math.max(1,slides.clientWidth));if(!sheetPhotos[index])return;
+    sheetPhotos.splice(index,1);renderSheet();draftEvent();
+    if(sheetPhotos.length)openPhotos({id:editingId,photos:sheetPhotos},Math.min(index,sheetPhotos.length-1),true);
+    else{document.getElementById('photo-viewer').close();document.getElementById('sheet-add-photo').focus();}
+  };
   document.getElementById('photo-close').onclick=function(){document.getElementById('photo-viewer').close();};
-  document.getElementById('photo-viewer').onclose=function(){viewerUrls.forEach(URL.revokeObjectURL);viewerUrls=[];viewerEntry=null;};
+  document.getElementById('photo-viewer').onclose=function(){if(this.open)return;viewerGeneration++;viewerUrls.forEach(URL.revokeObjectURL);viewerUrls=[];var editing=viewerEditing;viewerEntry=null;viewerEditing=false;if(editing&&document.getElementById('sheet').classList.contains('open'))renderSheet();};
   document.getElementById('link-close').onclick=function(){document.getElementById('link-viewer').close();};
   function icon(kind){ return actionIcon(kind); }
   ['photo-viewer','link-viewer'].forEach(function(id){document.getElementById(id).addEventListener('click',function(event){if(event.target!==this)return;var r=this.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)this.close();});});
@@ -173,6 +195,6 @@
     }
     return {...entry,photos:photos};
   }
-  window.MediaAssets={store:store,hash:hash,safeLink:safeLink,links:links,renderSheet:renderSheet,decorate:decorate,prepare:prepare,assetInfo:assetInfo,cleanupAssets:cleanupAssets};
+  window.MediaAssets={store:store,hash:hash,safeLink:safeLink,links:links,renderSheet:renderSheet,releaseSheet:releaseSheet,decorate:decorate,prepare:prepare,assetInfo:assetInfo,cleanupAssets:cleanupAssets};
   renderTimeline();
 })();

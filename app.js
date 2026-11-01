@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.6
+// diary-release: 2026.11.01.7
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -397,6 +397,7 @@ function closeSheet() {
   if (mediaBusy) { showToast('图片处理中，请稍候'); return; }
   try { sessionStorage.removeItem(DRAFT_KEY); } catch (_) {}
   if(window.DiaryDrafts)DiaryDrafts.clear().catch(function(){});
+  if(window.MediaAssets)MediaAssets.releaseSheet();
   document.getElementById('sheet-backdrop').classList.remove('open');
   document.getElementById('sheet').classList.remove('open');
 }

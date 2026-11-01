@@ -31,6 +31,9 @@ jobs:
       - run: node tests/map-picker.test.cjs
         env:
           DIARY_BROWSER: webkit
+      - run: node tests/photo-strip.test.cjs
+        env:
+          DIARY_BROWSER: webkit
       - run: python scripts/package-release.py
       - uses: actions/upload-artifact@v4
         with:
