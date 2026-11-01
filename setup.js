@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.1
+// diary-release: 2026.11.01.2
 (function(){
  'use strict';
  const dialog=document.getElementById('setup-dialog'),urlInput=document.getElementById('setup-worker'),secretInput=document.getElementById('setup-secret'),remember=document.getElementById('setup-remember'),status=document.getElementById('setup-status'),save=document.getElementById('setup-save'),check=document.getElementById('setup-check'),config=window.DiarySetupConfig;
@@ -33,7 +33,7 @@
   save.disabled=true;const connection={...verified},remembered=remember.checked;
   try{await DiaryStore.configureSync(connection.url,connection.secret,remembered);try{sessionStorage.setItem('diary_sync_secret',connection.secret);}catch(_){}
    appSettings=loadSettings();document.getElementById('sync-url').value=appSettings.syncUrl;document.getElementById('sync-secret').value=connection.secret;document.getElementById('remember-secret').checked=remembered;
-   banner.hidden=true;dirty=false;dialog.close();await refreshSyncStatus();showToast('连接已保存；日记仍由你手动点击同步');
+   banner.hidden=true;renderConnectionSummary();dirty=false;dialog.close();await refreshSyncStatus();showToast('连接已保存；日记仍由你手动点击同步');
   }catch(error){status.textContent='保存未完成：'+error.message;save.disabled=false;}
  };
  window.DiarySetup={hasUnsaved:()=>dialog.open&&(dirty||checking)};

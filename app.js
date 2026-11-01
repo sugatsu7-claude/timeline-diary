@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.1
+// diary-release: 2026.11.01.2
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -554,20 +554,37 @@ async function renderTrashList() {
 document.getElementById('settings-toggle').onclick = function () {
   document.getElementById('settings-panel').classList.toggle('open');
 };
-document.getElementById('settings-save-btn').onclick=async function(){
-  var next={...appSettings,localBackground:appSettings.localBackground===true,syncUrl:document.getElementById('sync-url').value.trim(),bgUrl:document.getElementById('bg-url').value.trim(),scrim:document.getElementById('bg-scrim-input').value.trim(),cardOpacity:document.getElementById('card-opacity-input').value.trim()};
+function renderConnectionSummary(){
+  document.getElementById('notion-connection-summary').textContent=appSettings.syncUrl?'已保存连接：'+appSettings.syncUrl:'尚未连接 Notion，日记仍保存在本机。';
+}
+renderConnectionSummary();
+document.getElementById('appearance-save-btn').onclick=async function(){
   try{
-    if(next.syncUrl){var target=new URL(next.syncUrl);if(target.protocol!=='https:'||target.pathname!=='/'||target.username||target.password||target.search||target.hash)throw new Error('请使用HTTPS服务根地址');next.syncUrl=target.origin;}
-    if(appSettings.syncUrl&&!next.syncUrl&&!confirm('确定清空已保存的Worker地址？'))return;
-    for(var key of ['scrim','cardOpacity']){if(next[key]!==''&&(!Number.isFinite(Number(next[key]))||Number(next[key])<0||Number(next[key])>100))throw new Error('透明度请填写0至100的数字');}
-    await DiaryStore.setConfig(SETTINGS_KEY,next);
-    var secret=document.getElementById('sync-secret').value;
-    if(document.getElementById('remember-secret').checked)await DiaryStore.secret(secret);else await DiaryStore.secret('');
-    try{sessionStorage.setItem('diary_sync_secret',secret);}catch(_){}
-    appSettings=next;document.getElementById('sync-url').value=next.syncUrl;
-    applyBackground(next.bgUrl);applyScrim(next.scrim);applyCardOpacity(next.cardOpacity);showToast('设置已保存，应用更新会保留');if(window.refreshSyncStatus)await refreshSyncStatus();
-  }catch(error){showToast('设置未保存：'+error.message);}
+    var next={...loadSettings(),bgUrl:document.getElementById('bg-url').value.trim(),scrim:document.getElementById('bg-scrim-input').value.trim(),cardOpacity:document.getElementById('card-opacity-input').value.trim()};
+    for(var key of ['scrim','cardOpacity'])if(next[key]!==''&&(!Number.isFinite(Number(next[key]))||Number(next[key])<0||Number(next[key])>100))throw new Error('透明度请填写0至100的数字');
+    if(next.bgUrl&&!MediaAssets.safeLink(next.bgUrl))throw new Error('请输入HTTP/HTTPS背景图片地址');
+    await DiaryStore.setConfig(SETTINGS_KEY,next);appSettings=next;
+    applyBackground(next.bgUrl);applyScrim(next.scrim);applyCardOpacity(next.cardOpacity);showToast('外观已保存');
+  }catch(error){showToast('外观未保存：'+error.message);}
 };
+document.getElementById('settings-save-btn').onclick=async function(){
+  try{
+    var url=document.getElementById('sync-url').value.trim();
+    if(url){var target=new URL(url);if(target.protocol!=='https:'||target.pathname!=='/'||target.username||target.password||target.search||target.hash)throw new Error('请使用HTTPS服务根地址');url=target.origin;}
+    if(appSettings.syncUrl&&!url&&!confirm('确定清空已保存的Worker地址？'))return;
+    var secret=document.getElementById('sync-secret').value;
+    await DiaryStore.configureSync(url,secret,document.getElementById('remember-secret').checked);
+    try{sessionStorage.setItem('diary_sync_secret',secret);}catch(_){}
+    appSettings=loadSettings();document.getElementById('sync-url').value=appSettings.syncUrl;renderConnectionSummary();
+    showToast('连接设置已保存');if(window.refreshSyncStatus)await refreshSyncStatus();
+  }catch(error){showToast('连接未保存：'+error.message);}
+};
+for(var group of ['data','about']){(function(id){document.getElementById(id+'-toggle').onclick=function(){document.getElementById(id+'-panel').classList.toggle('open');};})(group);}
+for(var group of ['authors','tags','settings','data','about','trash']){(function(id){
+ var toggle=document.getElementById(id+'-toggle');toggle.setAttribute('role','button');toggle.tabIndex=0;toggle.setAttribute('aria-controls',id+'-panel');toggle.setAttribute('aria-expanded','false');
+ toggle.addEventListener('click',function(){queueMicrotask(function(){toggle.setAttribute('aria-expanded',String(document.getElementById(id+'-panel').classList.contains('open')));});});
+ if(id!=='authors')toggle.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle.click();}};
+})(group);}
 document.getElementById('forget-secret').onclick=async function(){try{await DiaryStore.secret('');try{sessionStorage.removeItem('diary_sync_secret');}catch(_){}document.getElementById('sync-secret').value='';document.getElementById('remember-secret').checked=false;showToast('已忘记此设备保存的口令');}catch(error){showToast(error.message);}};
 
 var settingsReturnFocus;
