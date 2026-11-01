@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.2
+// diary-release: 2026.11.01.3
 /* Names and subtitle belong to this browser; historical bylines are immutable here. */
 (function () {
   'use strict';
@@ -30,7 +30,7 @@
       row.append(label,rename,remove);wrap.appendChild(row);
     });
   }
-  document.getElementById('authors-toggle').onclick=async function(){renderList();document.getElementById('authors-panel').classList.toggle('open');};
+  document.getElementById('authors-toggle').onclick=async function(){renderList();toggleSettingsGroup('authors');};
   document.getElementById('authors-toggle').onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();this.click();}};
   document.getElementById('save-authors').onclick=async function(){
     try{var name=validate(document.getElementById('default-author').value),subtitle=document.getElementById('diary-subtitle-input').value.trim();if(subtitle.length>100)throw new Error('顶部说明最多100个字符');

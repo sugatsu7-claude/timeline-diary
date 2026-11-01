@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.2
+// diary-release: 2026.11.01.3
 (function () {
   'use strict';
   var version = document.querySelector('meta[name="diary-version"]').content;
@@ -91,12 +91,12 @@
     if (mediaBusy) { showToast('图片处理中，请稍后更新'); return false; }
     if (document.getElementById('sync-dialog').open) { showToast('正在同步，请完成或停止后再更新'); return false; }
     // Do not silently throw away settings the user has typed.
-    var settingsFields = ['sync-url','bg-url','bg-scrim-input','card-opacity-input'];
-    var storedFields = ['syncUrl','bgUrl','scrim','cardOpacity'];
+    var settingsFields = ['sync-url','bg-scrim-input','card-opacity-input'];
+    var storedFields = ['syncUrl','scrim','cardOpacity'];
     var unsavedSecret = false;var secretInputRemembered=await DiaryStore.secret();
     try { unsavedSecret = document.getElementById('sync-secret').value !== (sessionStorage.getItem('diary_sync_secret') || secretInputRemembered || ''); } catch (_) {}
     if (unsavedSecret || document.getElementById('remember-secret').checked!==!!secretInputRemembered || settingsFields.some(function (id, i) {
-      var fallback = i === 2 ? 72 : i === 3 ? 62 : '';
+      var fallback = i === 1 ? 72 : i === 2 ? 62 : '';
       var input = document.getElementById(id).value.trim();
       if (id === 'sync-url') input = input.replace(/\/$/, '');
       return input !== String(appSettings[storedFields[i]] === undefined ? fallback : appSettings[storedFields[i]]);

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.01.2">
+<meta name="diary-version" content="2026.11.01.3">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -373,8 +373,8 @@
   .settings-panel { display: none; background: #FFFFFF; border-radius: 12px; border: 0.5px solid #E1E0D9; padding: 14px; }
   .settings-panel.open { display: block; }
   .settings-toggle { display:flex;align-items:center;justify-content:space-between;text-align:left;font-size:14px;color:#52514E;margin:12px 0 0;padding:16px;background:rgba(255,255,255,.58);border:1px solid #E1E0D9;border-radius:12px;cursor:pointer; }
-  .settings-toggle::after { content:'＋';color:#898781; }
-  .settings-toggle[aria-expanded="true"]::after { content:'－'; }
+  .settings-toggle::after { content:'';width:7px;height:7px;flex:none;margin-right:3px;border-right:1.5px solid #898781;border-bottom:1.5px solid #898781;transform:rotate(45deg);transition:transform .15s ease; }
+  .settings-toggle[aria-expanded="true"]::after { transform:rotate(225deg); }
   .settings-panel { margin-top:6px; }
   .settings-subheading { font-size:13px;font-weight:500;color:#52514E;margin:20px 0 8px; }
   .settings-subheading:first-child { margin-top:0; }
@@ -579,9 +579,7 @@
   <label for="local-background">从本机相册选择背景</label>
   <input type="file" id="local-background" accept="image/*">
   <p class="settings-hint" id="background-status" role="status">本机背景不会上传或同步。</p>
-  <div class="cloud-row"><button class="backup-btn" id="use-bg-url" type="button">使用网址背景</button><button class="backup-btn" id="reset-background" type="button">恢复默认背景</button></div>
-  <label>自定义背景图片网址（可选，留空则用默认背景图）</label>
-  <input type="text" id="bg-url" placeholder="https://...jpg">
+  <button class="backup-btn" id="reset-background" type="button" style="width:100%;">恢复默认背景</button>
   <label>背景蒙层浓度（数字越大，背景图越淡、字越清楚）</label>
   <input type="text" id="bg-scrim-input" placeholder="72" inputmode="numeric">
   <label>卡片透明度（数字越大，卡片越实、字越清楚；数字越小，越能看见背景）</label>
