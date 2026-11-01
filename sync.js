@@ -27,7 +27,7 @@ window.syncReady=(async function () {
     if (running) return;
     if (!appSettings.syncUrl || !secretInput.value) {
       toggleSettings(true);
-      document.getElementById('settings-panel').classList.add('open');
+      if(!document.getElementById('settings-panel').classList.contains('open'))toggleSettingsGroup('settings');
       showToast('请先填写服务地址和同步口令，再保存设置');
       return;
     }
@@ -46,6 +46,7 @@ window.syncReady=(async function () {
     var dialog = document.getElementById('sync-dialog');
     dialog.showModal();
     dialog.oncancel = function (e) { e.preventDefault(); stop = true; };
+    var runError='';
     var counter = { up: 0, down: 0, conflict: 0, missing: 0, reads: 0, writes: 0, catalogs: 0, images: 0 };
     function precisionCheckDue(base, version) {
       var stamp=Date.parse(version);
@@ -239,12 +240,14 @@ window.syncReady=(async function () {
         (counter.missing ? counter.missing + '条在Notion已移除，未自动重建；请先在Notion恢复。' : '');
       showToast(counter.conflict || counter.missing ? '同步完成，请查看设置里的冲突或移除提示' : '同步完成');
     } catch (error) {
+      runError=error.message;
       if(state&&key){state.lastError=error.message;try{await DiaryStore.saveScope(key,state);}catch(_){}}
       document.getElementById('sync-status').textContent = '同步未完成：' + error.message + '。请保留本机备份。';
       showToast('同步未完成，请查看设置中的提示');
     } finally {
       running = false; button.disabled = false; document.getElementById('full-sync-btn').disabled = false; dialog.close();
       await refreshDiaryData();
+      if(runError)document.getElementById('sync-status').textContent='同步未完成：'+runError+'。请保留本机备份。';
     }
     }).catch(function(error){showToast(error.message);});
   }
