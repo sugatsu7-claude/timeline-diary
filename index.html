@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.01.3">
+<meta name="diary-version" content="2026.11.01.4">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -398,6 +398,9 @@
   .attachment-row button:hover { background:rgba(244,241,234,.35); }
   .attachment-icon { width:15px;height:15px;flex:none;opacity:.8; }
   .entry-actions button.entry-delete { display:inline-flex;align-items:center;justify-content:center;flex:none;position:relative;isolation:isolate;width:28px;height:32px;min-height:32px;padding:0;gap:0;border:0;background:transparent;color:#52514E; }
+  .entry-location { display:flex;align-items:center;gap:6px;margin-top:14px;color:#767570;font-size:12px;line-height:1.6;text-decoration:none;overflow-wrap:anywhere; }
+  .entry-location svg { width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5; }
+  a.entry-location:focus-visible { outline:2px solid #9BA495;outline-offset:3px;border-radius:4px; }
   .entry-actions .attachment-icon { width:12px;height:12px; }
   .entry-actions button.entry-delete::before { content:"";position:absolute;z-index:-1;width:24px;height:24px;border-radius:50%;background:rgba(44,44,42,.06); }
   .entry-actions button.entry-delete:hover::before { background:rgba(44,44,42,.1); }
@@ -554,6 +557,10 @@
   <p id="photo-status" class="settings-hint" role="status"></p>
   <label for="entry-links">链接（每行一个，最多8个）</label>
   <textarea id="entry-links" rows="2" style="min-height:70px;" placeholder="https://..."></textarea>
+  <label for="entry-location-name">地点（可选）</label>
+  <input type="text" id="entry-location-name" maxlength="200" placeholder="例如 The Waterfront Shoppes">
+  <label for="entry-location-url">地图链接（可选）</label>
+  <input type="text" id="entry-location-url" maxlength="2000" inputmode="url" placeholder="粘贴地图分享链接">
   <div class="sheet-actions">
     <button class="btn-cancel" id="sheet-cancel">取消</button>
     <button class="btn-save" id="sheet-save">保存</button>

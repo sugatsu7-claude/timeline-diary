@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.3
+// diary-release: 2026.11.01.4
 (function () {
   'use strict';
   var version = document.querySelector('meta[name="diary-version"]').content;
@@ -33,7 +33,7 @@
     if(value.base)editingBase=value.base;
     document.getElementById('entry-date').value=saved.date;document.getElementById('entry-text').value=saved.text;
     sheetPhotos=Array.isArray(saved.photos)?saved.photos:[];sheetSelectedTags=saved.tags;sheetExtraTags=saved.tags.slice();
-    document.getElementById('entry-links').value=saved.linksText||'';MediaAssets.renderSheet();renderSheetTagChips();
+    document.getElementById('entry-location-name').value=saved.location?.name||'';document.getElementById('entry-location-url').value=saved.location?.url||'';document.getElementById('entry-links').value=saved.linksText||'';MediaAssets.renderSheet();renderSheetTagChips();
     var select=document.getElementById('entry-source');if(!Array.from(select.options).some(o=>o.value===saved.source)){var option=document.createElement('option');option.value=saved.source;option.textContent=saved.source;select.appendChild(option);}select.value=saved.source;showToast('已恢复未保存的草稿');
   }
   window.DiaryDrafts={clear:async function(){clearTimeout(draftTimer);await DiaryStore.draft(draftKey,null);},restore:restoreDraft,persist:persistDraft};

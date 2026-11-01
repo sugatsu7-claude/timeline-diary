@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.3
+// diary-release: 2026.11.01.4
 /* Main journal database. localStorage legacy data is read-only migration input. */
 (function(){
  'use strict';
@@ -7,7 +7,15 @@
  const actor=crypto.randomUUID(),channel=typeof BroadcastChannel==='function'?new BroadcastChannel('timeline-diary-main'):null;
  const copy=v=>v===undefined?undefined:structuredClone(v);
  const snapshot={entries:[],trash:[],deleted:{},hashes:{},configs:{},scopes:{},revision:0,drafts:[]};
- function canonical(e){if(!e)return '__DELETED__';let f=[e.date,e.text,e.source||'未署名',(e.tags||[]).slice().sort()];if((e.photos||[]).length||(e.links||[]).length)f.push((e.photos||[]).map(p=>[p.id,p.revision||'']),e.links||[]);return JSON.stringify(f);}
+ function locationValue(value){
+  if(value==null)return null;
+  if(typeof value!=='object'||Array.isArray(value)||typeof(value.name??'')!=='string'||typeof(value.url??'')!=='string')throw new Error('地点格式不正确');
+  const name=(value.name||'').trim(),url=(value.url||'').trim();
+  if(name.length>200||url.length>2000)throw new Error('地点名称最多200字，地图链接最多2000字');
+  if(url){let u;try{u=new URL(url);}catch(_){throw new Error('地图链接须为HTTP/HTTPS网址');}if(!['http:','https:'].includes(u.protocol)||u.username||u.password)throw new Error('地图链接须为HTTP/HTTPS网址');}
+  return name||url?{name,url}:null;
+ }
+ function canonical(e){if(!e)return '__DELETED__';let f=[e.date,e.text,e.source||'未署名',(e.tags||[]).slice().sort()];if((e.photos||[]).length||(e.links||[]).length)f.push((e.photos||[]).map(p=>[p.id,p.revision||'']),e.links||[]);const loc=locationValue(e.location);if(loc)f.push(['location',loc.name,loc.url]);return JSON.stringify(f);}
  async function digest(text){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),b=>b.toString(16).padStart(2,'0')).join('');}
  const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
  function transact(names,mode,work){return new Promise((resolve,reject)=>{const tx=db.transaction(names,mode);let result,error;tx.oncomplete=()=>resolve(result);tx.onerror=tx.onabort=()=>reject(error||tx.error||new Error('本机事务未完成'));try{work(tx,v=>{result=v;},e=>{error=e;tx.abort();});}catch(e){error=e;tx.abort();}});}
@@ -26,7 +34,7 @@
   return queued.finally(()=>{if(refreshing===queued)refreshing=null;});
  }
  function parseLegacy(key,fallback){const raw=localStorage.getItem(key);return raw===null?fallback:JSON.parse(raw);}
- function validateEntry(e){if(!e||typeof e.id!=='string'||!e.id||e.id.length>100||typeof e.text!=='string'||typeof e.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(e.date)||!Array.isArray(e.tags||[])||(e.tags||[]).some(t=>typeof t!=='string')||(e.source!==undefined&&typeof e.source!=='string')||!Array.isArray(e.photos||[])||!Array.isArray(e.links||[]))throw new Error('日记数据格式不正确，原数据未清除');return e;}
+ function validateEntry(e){locationValue(e?.location);if(!e||typeof e.id!=='string'||!e.id||e.id.length>100||typeof e.text!=='string'||typeof e.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(e.date)||!Array.isArray(e.tags||[])||(e.tags||[]).some(t=>typeof t!=='string')||(e.source!==undefined&&typeof e.source!=='string')||!Array.isArray(e.photos||[])||!Array.isArray(e.links||[]))throw new Error('日记数据格式不正确，原数据未清除');return e;}
  async function ready(){
   if(initializing)return initializing;
   initializing=(async()=>{
@@ -114,5 +122,5 @@
  window.addEventListener('storage',event=>{if(db)legacyEvent(event);});
  async function operation(value){if(value)await transact(['operations'],'readwrite',tx=>tx.objectStore('operations').put(copy(value)));return req(db.transaction('operations').objectStore('operations').getAll());}
  async function allSync(){const tx=db.transaction(['scopes','baselines']);const [scopes,baselines]=await Promise.all([req(tx.objectStore('scopes').getAll()),req(tx.objectStore('baselines').getAll())]);return{scopes,baselines};}
- window.DiaryStore={ready,refresh,snapshot,canonical,digest,upsert,remove,restore,purge,purgeExpired,config,setConfig,configureSync,secret,readSync,saveScope,syncCommit,exclusive,draft,dump,importData,patchPhotos,validateEntry,onChange:fn=>changeHook=fn,actor,operation,allSync};
+ window.DiaryStore={locationValue,ready,refresh,snapshot,canonical,digest,upsert,remove,restore,purge,purgeExpired,config,setConfig,configureSync,secret,readSync,saveScope,syncCommit,exclusive,draft,dump,importData,patchPhotos,validateEntry,onChange:fn=>changeHook=fn,actor,operation,allSync};
 })();

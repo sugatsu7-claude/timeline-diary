@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.3
+// diary-release: 2026.11.01.4
 /* Notion sync is invoked ONLY by the sync button. No timers or lifecycle listeners. */
 window.syncReady=(async function () {
   'use strict';
@@ -12,12 +12,13 @@ window.syncReady=(async function () {
     if (!entry) return '__DELETED__';
     var fields=[entry.date,entry.text,sourceName(entry.source),(entry.tags||[]).slice().sort()];
     if((entry.photos||[]).length||(entry.links||[]).length)fields.push((entry.photos||[]).map(function(p){return [p.id,p.revision||''];}),entry.links||[]);
+    var loc=DiaryStore.locationValue(entry.location);if(loc)fields.push(['location',loc.name,loc.url]);
     return JSON.stringify(fields);
   }
   function remoteEntry(value,trustUploaded) {
     if (typeof value.id !== 'string' || typeof value.text !== 'string' || !Array.isArray(value.tags)) throw new Error('同步服务返回无效日记');
     return { id: value.id, date: value.date, text: value.text, tags: value.tags,
-      photos: (value.photos || []).map(function(photo){var old=photoIndex.get(value.id+':'+photo.id);return {...old,...photo,localRevision:old ? (old.localRevision || old.revision || (trustUploaded?photo.revision:'unknown')) : undefined,pageId:value.pageId};}), links:value.links||[],
+      photos: (value.photos || []).map(function(photo){var old=photoIndex.get(value.id+':'+photo.id);return {...old,...photo,localRevision:old ? (old.localRevision || old.revision || (trustUploaded?photo.revision:'unknown')) : undefined,pageId:value.pageId};}), links:value.links||[],location:DiaryStore.locationValue(value.location),
       source: sourceName(value.source), createdAt: value.createdAt || Date.now(),
       readOnly: !!value.readOnly, notionUrl: /^https:\/\/(www\.)?notion\.so\//.test(value.url || '') ? value.url : undefined };
   }
@@ -26,7 +27,7 @@ window.syncReady=(async function () {
     if (running) return;
     if (!appSettings.syncUrl || !secretInput.value) {
       toggleSettings(true);
-      document.getElementById('settings-panel').classList.add('open');
+      if(!document.getElementById('settings-panel').classList.contains('open'))toggleSettingsGroup('settings');
       showToast('请先填写服务地址和同步口令，再保存设置');
       return;
     }
@@ -45,6 +46,7 @@ window.syncReady=(async function () {
     var dialog = document.getElementById('sync-dialog');
     dialog.showModal();
     dialog.oncancel = function (e) { e.preventDefault(); stop = true; };
+    var runError='';
     var counter = { up: 0, down: 0, conflict: 0, missing: 0, reads: 0, writes: 0, catalogs: 0, images: 0 };
     function precisionCheckDue(base, version) {
       var stamp=Date.parse(version);
@@ -123,6 +125,7 @@ window.syncReady=(async function () {
         document.getElementById('sync-progress').textContent = incremental ? '检查Notion新增与修改…' : '完整核对Notion日记目录…';
         var batch = await call('/catalog', { cursor: cursor, since: since });
         if (batch.protocol !== 2 || batch.media !== 1 || batch.reliability !== 1 || !Array.isArray(batch.entries) || !batch.database || !Number.isFinite(Date.parse(batch.syncStartedAt)) || batch.since !== since) throw new Error('请先部署可靠性升级版Worker，再更新PWA');
+        if(batch.location!==1&&(entries.concat(trash,Object.values(DiaryStore.snapshot.deleted)).some(e=>e.location)||(await DiaryStore.operation()).some(o=>o.status==='pending'&&o.payload?.entry?.location)))throw new Error('日记包含地点，请先部署支持地点的新版 Worker，再同步；本机记录已保留');
         if (database && database !== batch.database) throw new Error('同步期间数据库配置发生变化，请重试');
         if (knownDatabase && knownDatabase !== batch.database && incremental) {
           // Never apply an old database watermark to a new database.
@@ -209,7 +212,7 @@ window.syncReady=(async function () {
           var incoming = value.deleted ? undefined : remoteEntry(value);
           var incomingSig = await DiaryStore.digest(signature(incoming));
           if (base && localChanged && incomingSig === base.hash) {
-            var uploadPayload = local || { id:id,date:value.date,text:value.text,source:value.source,tags:value.tags,photos:value.photos||[],links:value.links||[] };
+            var uploadPayload = local || { id:id,date:value.date,text:value.text,source:value.source,tags:value.tags,photos:value.photos||[],links:value.links||[],location:value.location||null };
             var uploaded = await write( { pageId: base.pageId, baseVersion: value.version, baseHash: incomingSig,
               entry: { ...uploadPayload, source: sourceName(uploadPayload.source) }, deleted: !local });
             await commit(id,uploaded,uploaded.deleted?undefined:remoteEntry(uploaded,true),local); counter.up++;
@@ -237,12 +240,14 @@ window.syncReady=(async function () {
         (counter.missing ? counter.missing + '条在Notion已移除，未自动重建；请先在Notion恢复。' : '');
       showToast(counter.conflict || counter.missing ? '同步完成，请查看设置里的冲突或移除提示' : '同步完成');
     } catch (error) {
+      runError=error.message;
       if(state&&key){state.lastError=error.message;try{await DiaryStore.saveScope(key,state);}catch(_){}}
       document.getElementById('sync-status').textContent = '同步未完成：' + error.message + '。请保留本机备份。';
       showToast('同步未完成，请查看设置中的提示');
     } finally {
       running = false; button.disabled = false; document.getElementById('full-sync-btn').disabled = false; dialog.close();
       await refreshDiaryData();
+      if(runError)document.getElementById('sync-status').textContent='同步未完成：'+runError+'。请保留本机备份。';
     }
     }).catch(function(error){showToast(error.message);});
   }

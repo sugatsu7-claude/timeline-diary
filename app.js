@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.3
+// diary-release: 2026.11.01.4
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -109,7 +109,8 @@ function matchesFilter(entry) {
     var q = activeFilters.search.toLowerCase();
     var inText = (entry.text || '').toLowerCase().indexOf(q) > -1;
     var inTags = (entry.tags || []).some(function (t) { return t.toLowerCase().indexOf(q) > -1; });
-    if (!inText && !inTags) return false;
+    var inLocation=((entry.location?.name||'')+' '+(entry.location?.url||'')).toLowerCase().includes(q);
+    if (!inText && !inTags && !inLocation) return false;
   }
   return true;
 }
@@ -249,6 +250,13 @@ function appendTimelineBatch(batch) {
       content.appendChild(textSpan);
       card.appendChild(content);
 
+      if(entry.location&&(entry.location.name||entry.location.url)){
+        var place=document.createElement(entry.location.url?'a':'div');place.className='entry-location';
+        if(entry.location.url){place.href=entry.location.url;place.target='_blank';place.rel='noopener noreferrer';}
+        var pin=document.createElementNS('http://www.w3.org/2000/svg','svg');pin.setAttribute('viewBox','0 0 24 24');pin.setAttribute('aria-hidden','true');
+        var path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d','M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z');pin.appendChild(path);
+        place.append(pin,document.createTextNode(entry.location.name||new URL(entry.location.url).hostname));card.appendChild(place);
+      }
       row.appendChild(card);
       group.appendChild(row);
     });
@@ -335,7 +343,7 @@ var editingBase=null;
 var sheetInitialSnapshot = '';
 var DRAFT_KEY = 'penang_timeline_draft';
 function sheetSnapshot() {
-  return JSON.stringify({ id: editingId, date: document.getElementById('entry-date').value, text: document.getElementById('entry-text').value, tags: sheetSelectedTags.slice(), source: document.getElementById('entry-source').value, photos: sheetPhotos, linksText: document.getElementById('entry-links').value });
+  return JSON.stringify({ id: editingId, date: document.getElementById('entry-date').value, text: document.getElementById('entry-text').value, tags: sheetSelectedTags.slice(), source: document.getElementById('entry-source').value, photos: sheetPhotos, location:{name:document.getElementById('entry-location-name').value,url:document.getElementById('entry-location-url').value}, linksText: document.getElementById('entry-links').value });
 }
 function hasDiaryDraft() { return document.getElementById('sheet').classList.contains('open') && sheetSnapshot() !== sheetInitialSnapshot; }
 
@@ -345,6 +353,8 @@ function openSheet(editEntry) {
   editingId = editEntry ? editEntry.id : null;
   editingBase=editEntry&&editEntry.id?structuredClone(editEntry):undefined;
   sheetExtraTags=editEntry?(editEntry.tags||[]).slice():[];
+  document.getElementById('entry-location-name').value=editEntry?.location?.name||'';
+  document.getElementById('entry-location-url').value=editEntry?.location?.url||'';
   sheetPhotos = editEntry ? (editEntry.photos || []).map(function (p) { return {...p}; }) : [];
   document.getElementById('entry-links').value = editEntry ? (editEntry.links || []).join('\n') : '';
   if (window.MediaAssets) MediaAssets.renderSheet();
@@ -375,16 +385,16 @@ document.getElementById('sheet-backdrop').onclick = closeSheet;
 
 document.getElementById('sheet-save').onclick = async function () {
   if (mediaBusy) { showToast('图片处理中，请稍候'); return; }
-  var links;
-  try { links = window.MediaAssets ? MediaAssets.links() : []; } catch (error) { showToast(error.message); return; }
+  var links,location;
+  try { location=DiaryStore.locationValue({name:document.getElementById('entry-location-name').value,url:document.getElementById('entry-location-url').value});links = window.MediaAssets ? MediaAssets.links() : []; } catch (error) { showToast(error.message); return; }
   var date = document.getElementById('entry-date').value || todayStr();
   var text = document.getElementById('entry-text').value.trim();
-  if (!text && !sheetPhotos.length && !links.length) { showToast('记点什么或添加附件再保存吧'); return; }
+  if (!text && !sheetPhotos.length && !links.length && !location) { showToast('记点什么或添加附件再保存吧'); return; }
   var tags = sheetSelectedTags.slice();
   var selectedSource = document.getElementById('entry-source').value;
   if (!selectedSource) { showToast('请先填写记录人的名字'); return; }
   var savedEntryId = editingId || uid();
-  var savedEntry={...(editingBase||{}),id:savedEntryId,date:date,text:text,tags:tags,source:selectedSource,photos:sheetPhotos.map(function(p){return {...p};}),links:links,createdAt:editingBase?.createdAt||Date.now()};
+  var savedEntry={...(editingBase||{}),id:savedEntryId,date:date,text:text,tags:tags,source:selectedSource,photos:sheetPhotos.map(function(p){return {...p};}),links:links,location:location,createdAt:editingBase?.createdAt||Date.now()};
   var conflict=false;
   document.getElementById('sheet-save').disabled=true;
   try{var result=await DiaryStore.upsert(savedEntry,editingBase);savedEntryId=result.id;conflict=result.conflict;await refreshDiaryData(false);}
