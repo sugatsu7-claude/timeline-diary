@@ -1,4 +1,4 @@
-// diary-release: 2026.10.29.3
+// diary-release: 2026.11.01.1
 (function(){
  'use strict';
  const status=document.getElementById('backup-status');
@@ -7,39 +7,50 @@
  function download(value,name){const url=URL.createObjectURL(value instanceof Blob?value:new Blob([JSON.stringify(value)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
  function photoRefs(snapshot){const refs=[];for(const entry of snapshot.entries.concat(snapshot.trash)){for(const photo of entry.photos||[])refs.push({entry,photo});}for(const draft of snapshot.drafts||[]){const value=draft.value.snapshot||draft.value;for(const photo of value.photos||[])refs.push({entry:value,photo});}return refs;}
  async function validBlob(photo){if(photo.revision&&photo.localRevision!==photo.revision)return null;const key=photo.cacheKey||photo.id,blob=await MediaAssets.store('get',key);if(!(blob instanceof Blob))return null;return blob;}
+ async function stableBlob(blob){return new Blob([await blob.arrayBuffer()],{type:blob.type});}
  async function fetchPhoto(photo){const c=DiaryNet.credentials();if(!photo.pageId)throw new Error('图片没有云端页面引用，本机文件也缺失');return DiaryNet.request(c.url+'/download',{method:'POST',headers:{...c.headers,'Content-Type':'application/json'},body:JSON.stringify({pageId:photo.pageId,photoId:photo.id,revision:photo.revision})},120000,'blob');}
  async function exportBackup(full){
+  let stage='读取本机日记';
   try{await DiaryStore.exclusive('maintenance',async()=>{
    document.getElementById('full-backup-btn').disabled=document.getElementById('export-json-btn').disabled=true;
    try{
     const snapshot=await DiaryStore.dump();const from=document.getElementById('backup-from').value,to=document.getElementById('backup-to').value;if(from&&to&&from>to)throw new Error('备份起始日期不能晚于结束日期');const inRange=e=>(!from||e.date>=from)&&(!to||e.date<=to);snapshot.entries=snapshot.entries.filter(inRange);snapshot.trash=snapshot.trash.filter(inRange);snapshot.drafts=snapshot.drafts.filter(d=>inRange(d.value.snapshot||d.value));snapshot.configs=Object.fromEntries(configKeys.filter(k=>snapshot.configs[k]!==undefined).map(k=>[k,snapshot.configs[k]]));
     if(snapshot.configs.penang_timeline_settings)snapshot.configs.penang_timeline_settings=Object.fromEntries(['syncUrl','bgUrl','scrim','cardOpacity','localBackground'].filter(k=>snapshot.configs.penang_timeline_settings[k]!==undefined).map(k=>[k,snapshot.configs.penang_timeline_settings[k]]));
     const backup={format:'timeline-diary',version:4,createdAt:new Date().toISOString(),...snapshot,assets:[],manifest:{complete:true,missing:[],mode:full?'full':'local',range:{from,to}}};
-    const zipFiles=new Map();const seen=new Map(),refs=photoRefs(backup),retrieved=new Map();
+    const cached=new Set(),zipFiles=new Map();const seen=new Map(),refs=photoRefs(backup),retrieved=new Map();
     for(let i=0;i<refs.length;i++){
      const {entry,photo}=refs[i],identity=(photo.pageId||'local')+':'+photo.id+':'+(photo.revision||'');
      status.textContent=(full?'完整备份':'本机备份')+'：处理图片 '+(i+1)+' / '+refs.length;
      try{
-      let blob=await validBlob(photo);
-      if(!blob&&full){blob=retrieved.get(identity);if(!blob){blob=await fetchPhoto(photo);retrieved.set(identity,blob);}}
+      let blob;
+      try{const local=await validBlob(photo);if(local)blob=await stableBlob(local);}catch(error){if(!full)throw error;}
+      const localKey=blob&&(photo.cacheKey||photo.id);
+      if(!blob&&full){blob=retrieved.get(identity);if(!blob){blob=await stableBlob(await fetchPhoto(photo));retrieved.set(identity,blob);}}
       if(!blob)throw new Error('图片仅在云端，未包含原文件');
       const hash=await MediaAssets.hash(blob);
       if(!seen.has(hash)){const path='assets/'+hash+'.bin';backup.assets.push({key:hash,hash,mime:blob.type,path});zipFiles.set(path,blob);seen.set(hash,true);}
       photo.cacheKey=hash;photo.localRevision=photo.revision;
-      await MediaAssets.store('put',hash,blob);
+      // Keep ZIP inputs independent of IndexedDB's file-backed Blob lifetime.
+      if(localKey===hash)cached.add(hash);
+      else try{await MediaAssets.store('put',hash,blob);cached.add(hash);}catch(_){}
      }catch(error){backup.manifest.complete=false;backup.manifest.missing.push({entryId:entry.id||'draft',photoId:photo.id,reason:error.message});}
     }
     if(full)for(const entry of backup.entries.concat(backup.trash)){if(entry.readOnly){backup.manifest.complete=false;backup.manifest.missing.push({entryId:entry.id,reason:'此Notion页面含复杂格式或超限内容，PWA只保存预览；原页面需另行从Notion导出'});}}
-    const background=await MediaAssets.store('get','background');
-    if(background instanceof Blob){const hash=await MediaAssets.hash(background);backup.backgroundKey=hash;if(!seen.has(hash)){const path='assets/'+hash+'.bin';backup.assets.push({key:hash,hash,mime:background.type,path});zipFiles.set(path,background);}}
+    stage='读取本机背景图';
+    try{
+     const stored=await MediaAssets.store('get','background');
+     if(stored instanceof Blob){const background=await stableBlob(stored),hash=await MediaAssets.hash(background);backup.backgroundKey=hash;if(!seen.has(hash)){const path='assets/'+hash+'.bin';backup.assets.push({key:hash,hash,mime:background.type,path});zipFiles.set(path,background);}}
+    }catch(error){backup.manifest.complete=false;backup.manifest.missing.push({asset:'background',reason:'本机背景图无法读取：'+error.message});}
+    stage='读取同步备份信息';
     backup.archivedSync=await DiaryStore.allSync();backup.archivedOperations=await DiaryStore.operation();
     if(full&&!backup.manifest.complete&&!confirm('有'+backup.manifest.missing.length+'项未取得完整内容。是否导出明确标记为“不完整”的备份？')){status.textContent='完整备份未完成，未下载文件。请先同步或查看缺失提示。';return;}
     // Store cache references as metadata only; never replay a stale document snapshot into the live database.
-    for(const entry of backup.entries){const photos=entry.photos||[];if(photos.length)await DiaryStore.patchPhotos(entry.id,photos.map(p=>({id:p.id,cacheKey:p.cacheKey,localRevision:p.localRevision}))).catch(()=>{});}
+    for(const entry of backup.entries){const photos=entry.photos||[];if(photos.length)await DiaryStore.patchPhotos(entry.id,photos.filter(p=>cached.has(p.cacheKey)).map(p=>({id:p.id,cacheKey:p.cacheKey,localRevision:p.localRevision}))).catch(()=>{});}
+    stage='生成备份压缩包';
     const zip=await DiaryArchive.build([{name:'manifest.json',blob:new Blob([JSON.stringify(backup)],{type:'application/json'})}].concat(Array.from(zipFiles,([name,blob])=>({name,blob}))));download(zip,'timeline-diary-'+(backup.manifest.complete?'complete':'partial')+'-'+todayStr()+'.zip');
     status.textContent=(backup.manifest.complete?'备份完成':'已导出不完整备份')+'：'+backup.entries.length+'篇日记、'+backup.trash.length+'条回收站、'+backup.assets.length+'个图片文件'+(backup.manifest.missing.length?'；缺失'+backup.manifest.missing.length+'项，详情在文件manifest中':'')+'。不包含口令。';
    }finally{document.getElementById('full-backup-btn').disabled=document.getElementById('export-json-btn').disabled=false;}
-  });}catch(error){status.textContent='备份未完成：'+error.message;}
+  });}catch(error){status.textContent='备份未完成（'+stage+'）：'+(error.name==='NotFoundError'?'手机无法读取对应的本机文件或存储项目；请保留本机数据，重新打开日记后再试。':error.message);}
  }
  function validEntry(e){DiaryStore.validateEntry(e);if((e.tags||[]).some(t=>typeof t!=='string')||(e.source&&e.source.length>100)||(!e.readOnly&&((e.photos||[]).length>8||(e.links||[]).length>8))||(e.photos||[]).some(p=>!p||! /^[a-zA-Z0-9_-]{1,100}$/.test(p.id))||(e.links||[]).some(u=>!MediaAssets.safeLink(u)))throw new Error('备份日记格式不正确');return e;}
  async function importBackup(file){

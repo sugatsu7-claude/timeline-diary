@@ -1,4 +1,4 @@
-// diary-release: 2026.10.29.3
+// diary-release: 2026.11.01.1
 (async function(){
  const status=document.getElementById('boot-status'),base=new URL('./',location.href);
  try{
