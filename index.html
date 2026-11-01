@@ -4,9 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.01.5">
+<meta name="diary-version" content="2026.11.01.6">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="./leaflet.css">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <style>
@@ -404,6 +405,20 @@
   .attachment-row button:hover { background:rgba(244,241,234,.35); }
   .attachment-icon { width:15px;height:15px;flex:none;opacity:.8; }
   .entry-actions button.entry-delete { display:inline-flex;align-items:center;justify-content:center;flex:none;position:relative;isolation:isolate;width:28px;height:32px;min-height:32px;padding:0;gap:0;border:0;background:transparent;color:#52514E; }
+  #map-picker { max-width:560px; }
+  #map-picker-canvas { height:clamp(230px,38dvh,360px);width:100%;border-radius:16px;overflow:hidden;background:#e9e6df;margin:12px 0; }
+  .map-picker-search { display:flex;gap:8px; }
+  .map-picker-search input,#map-picker-name { min-width:0;width:100%;padding:10px;font:inherit;border:1px solid #E1E0D9;border-radius:10px;box-sizing:border-box;background:#fffefa; }
+  #map-picker-results { max-height:160px;overflow:auto;margin-top:10px; }
+  .map-picker-result { display:block;width:100%;text-align:left;padding:10px;border:0;border-bottom:1px solid #e5e0d9;background:transparent;color:#52514E;font-size:13px;overflow-wrap:anywhere; }
+  .map-picker-result small { display:block;margin-top:4px;color:#898781;font-size:11px; }
+  .diary-map-pin span { display:block;width:22px;height:22px;background:#8b7a9b;border:2px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px #6b657755; }
+  .diary-map-pin span::after { content:'';display:block;width:6px;height:6px;border-radius:50%;background:#fff;margin:6px; }
+  .map-picker-actions { display:flex;gap:8px;margin-top:12px; }
+  .map-picker-actions button { flex:1;padding:12px;border:1px solid #E1E0D9;border-radius:12px;font:inherit;font-size:13px; }
+  .map-picker-actions button:disabled { opacity:.45;cursor:default; }
+  #map-picker .leaflet-bar a { background:#faf8f3;color:#676064; }
+  #map-picker label { display:block;font-size:12px;margin:10px 0 5px; }
   .entry-location { display:flex;align-items:center;gap:6px;margin-top:14px;color:#767570;font-size:12px;line-height:1.6;text-decoration:none;overflow-wrap:anywhere; }
   .entry-location svg { width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5; }
   a.entry-location:focus-visible { outline:2px solid #9BA495;outline-offset:3px;border-radius:4px; }
@@ -565,9 +580,9 @@
   <textarea id="entry-links" rows="2" style="min-height:70px;" placeholder="https://..."></textarea>
   <label for="entry-location-name">地点（可选）</label>
   <input type="text" id="entry-location-name" maxlength="200" placeholder="例如 The Waterfront Shoppes">
-  <div class="cloud-row"><button type="button" class="filter-btn" id="location-search">搜索地点</button><button type="button" class="filter-btn" id="location-current">使用当前位置</button></div>
+  <div class="cloud-row"><button type="button" class="filter-btn" id="location-search">搜索／地图选点</button><button type="button" class="filter-btn" id="location-current">使用当前位置</button></div>
   <p id="location-status" class="settings-hint" role="status">可打开地图搜索，或使用手机当前位置。</p>
-  <label for="entry-location-url">地图链接（可选，留空按名称搜索）</label>
+  <label for="entry-location-url">地图链接（可选，也可在上方选点）</label>
   <input type="text" id="entry-location-url" maxlength="2000" inputmode="url" placeholder="可粘贴地图分享链接，也可以不填">
   <div class="sheet-actions">
     <button class="btn-cancel" id="sheet-cancel">取消</button>
@@ -670,6 +685,18 @@
 
 </section>
 
+<dialog id="map-picker" class="soft-dialog" aria-labelledby="map-picker-title">
+ <div class="attachment-heading"><h3 id="map-picker-title">选择地点</h3><button id="map-picker-close" class="close-viewer" aria-label="关闭地点选择">×</button></div>
+ <div class="map-picker-search"><input id="map-picker-query" maxlength="200" aria-label="搜索地点名称" placeholder="地点名称，可加上城市"><button id="map-picker-search" class="filter-btn" type="button">搜索</button></div>
+ <p id="map-picker-status" class="settings-hint" role="status"></p>
+ <div id="map-picker-results"></div>
+ <div id="map-picker-canvas" aria-label="点击地图放置图钉"></div>
+ <p id="map-picker-tile-status" class="settings-hint" role="status"></p>
+ <label for="map-picker-name">显示名称</label><input id="map-picker-name" maxlength="200" placeholder="选中地点后可修改名称">
+ <p id="map-picker-coordinates" class="settings-hint"></p>
+ <div class="map-picker-actions"><button id="map-picker-current" class="backup-btn" type="button">移到当前位置</button><button id="map-picker-confirm" class="btn-save" type="button" disabled>使用这个位置</button></div>
+ <p class="settings-hint">地图和搜索需联网。搜索由 Photon 提供，地图数据来自 OpenStreetMap；部分地点可能未收录，可手动选点。</p>
+</dialog>
 <dialog id="author-onboarding" aria-labelledby="author-welcome-title" style="max-width:90vw;border:0;border-radius:16px;padding:24px;">
   <h3 id="author-welcome-title">你想用什么名字记录？</h3>
   <p class="settings-hint">用于新增日记的署名，以后可以在设置里修改。</p>

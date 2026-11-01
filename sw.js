@@ -1,9 +1,9 @@
 /* Offline app shell only. No diary data, API responses, secrets or remote backgrounds are cached. */
-const RELEASE = '2026.11.01.5';
+const RELEASE = '2026.11.01.6';
 const ROOT = new URL('./', self.location.href);
 const PREFIX = 'timeline-diary-shell:' + ROOT.href + ':';
 const CACHE = PREFIX + RELEASE;
-const FILES = ['index.html','storage.js','network.js','boot.js','app.js','authors.js','media.js','cards.js','sync.js','archive.js','backup.js','setup-config.js','setup.js','updates.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','assets/IMG_0586.jpg'];
+const FILES = ['index.html','storage.js','network.js','boot.js','app.js','authors.js','media.js','map-picker.js','leaflet.css','Leaflet-LICENSE.txt','cards.js','sync.js','archive.js','backup.js','setup-config.js','setup.js','updates.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','assets/IMG_0586.jpg'];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     async function checkRelease() {

@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.5
+// diary-release: 2026.11.01.6
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -251,8 +251,8 @@ function appendTimelineBatch(batch) {
       card.appendChild(content);
 
       if(entry.location&&(entry.location.name||entry.location.url)){
-        var place=document.createElement('a');place.className='entry-location';
-        place.href=entry.location.url||mapSearchUrl(entry.location.name);place.target='_blank';place.rel='noopener noreferrer';
+        var place=document.createElement(entry.location.url?'a':'div');place.className='entry-location';
+        if(entry.location.url){place.href=entry.location.url;place.target='_blank';place.rel='noopener noreferrer';}
         var pin=document.createElementNS('http://www.w3.org/2000/svg','svg');pin.setAttribute('viewBox','0 0 24 24');pin.setAttribute('aria-hidden','true');
         var path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d','M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z');pin.appendChild(path);
         place.append(pin,document.createTextNode(entry.location.name||new URL(entry.location.url).hostname));card.appendChild(place);
@@ -338,12 +338,7 @@ function renderSheetTagChips() {
 
 function mapSearchUrl(query){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);}
 var locationRequest=0;
-function resetLocationRequest(){locationRequest++;document.getElementById('location-current').disabled=false;document.getElementById('location-current').textContent='使用当前位置';document.getElementById('location-status').textContent='可打开地图搜索，或使用手机当前位置。';}
-document.getElementById('location-search').onclick=function(){
- var name=document.getElementById('entry-location-name').value.trim();if(!name){document.getElementById('location-status').textContent='先填写地点名称，再打开地图搜索。';return;}
- resetLocationRequest();var url=mapSearchUrl(name);document.getElementById('entry-location-url').value=url;document.getElementById('entry-location-url').dispatchEvent(new Event('input',{bubbles:true}));
- window.open(url,'_blank','noopener,noreferrer');document.getElementById('location-status').textContent='已按名称打开地图搜索；若需精确到某家店，可粘贴地图分享链接。';
-};
+function resetLocationRequest(){locationRequest++;document.getElementById('location-current').disabled=false;document.getElementById('location-current').textContent='使用当前位置';document.getElementById('location-status').textContent='可选择地图位置，或使用手机当前位置。';}
 document.getElementById('location-current').onclick=function(){
  var status=document.getElementById('location-status');if(!navigator.geolocation){status.textContent='当前浏览器不支持定位，可填写地点名称搜索。';return;}
  var token=++locationRequest,button=this;button.disabled=true;button.textContent='定位中…';status.textContent='正在请求当前位置，请允许手机定位权限。';
@@ -371,6 +366,7 @@ function hasDiaryDraft() { return document.getElementById('sheet').classList.con
 
 function openSheet(editEntry) {
   if (mediaBusy) { showToast('图片处理中，请稍候'); return; }
+  if(window.DiaryMapPicker?.isOpen())DiaryMapPicker.close();
   resetLocationRequest();
   if (!editEntry && window.AuthorSettings && !AuthorSettings.defaultName()) { AuthorSettings.begin(); return; }
   editingId = editEntry ? editEntry.id : null;
@@ -396,6 +392,7 @@ function openSheet(editEntry) {
   document.getElementById('sheet').classList.add('open');
 }
 function closeSheet() {
+  if(window.DiaryMapPicker?.isOpen())DiaryMapPicker.close();
   resetLocationRequest();
   if (mediaBusy) { showToast('图片处理中，请稍候'); return; }
   try { sessionStorage.removeItem(DRAFT_KEY); } catch (_) {}
@@ -410,7 +407,7 @@ document.getElementById('sheet-backdrop').onclick = closeSheet;
 document.getElementById('sheet-save').onclick = async function () {
   if (mediaBusy) { showToast('图片处理中，请稍候'); return; }
   var links,location;
-  try { location=DiaryStore.locationValue({name:document.getElementById('entry-location-name').value,url:document.getElementById('entry-location-url').value});if(location&&location.name&&!location.url)location.url=mapSearchUrl(location.name);links = window.MediaAssets ? MediaAssets.links() : []; } catch (error) { showToast(error.message); return; }
+  try { location=DiaryStore.locationValue({name:document.getElementById('entry-location-name').value,url:document.getElementById('entry-location-url').value});links = window.MediaAssets ? MediaAssets.links() : []; } catch (error) { showToast(error.message); return; }
   var date = document.getElementById('entry-date').value || todayStr();
   var text = document.getElementById('entry-text').value.trim();
   if (!text && !sheetPhotos.length && !links.length && !location) { showToast('记点什么或添加附件再保存吧'); return; }
