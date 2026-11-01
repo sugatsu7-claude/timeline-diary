@@ -56,7 +56,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  await page.waitForFunction(()=>document.querySelector('#photo-slides img')?.naturalWidth>0);
  assert.ok(imageRequests.includes('https://images.test/replaced.jpg'));assert.ok(calls.slice(before).includes('/read'),'expired URL is refreshed only when viewed');await page.locator('#photo-close').click();
  // Removing an already-synced image does not re-upload the remaining one.
- await page.locator('[aria-label="编辑日记"]').click();await page.locator('[aria-label="移除图片1"]').click();await saveEntry();await page.waitForFunction(()=>!document.querySelector('#sheet').classList.contains('open'));await sync();assert.equal(uploads,2);assert.equal(remote[0].photos.length,1);
+ await page.locator('[aria-label="编辑日记"]').click();await page.locator('[aria-label="预览图片1"]').click();await page.locator('#photo-remove').click();await page.locator('#photo-close').click();await saveEntry();await page.waitForFunction(()=>!document.querySelector('#sheet').classList.contains('open'));await sync();assert.equal(uploads,2);assert.equal(remote[0].photos.length,1);
  const beforeReset=calls.length;await page.locator('#open-settings').click();await page.locator('#authors-toggle').click();await page.locator('#reset-background').click();await page.waitForFunction(()=>!appSettings.localBackground&&appSettings.bgUrl===''&&document.getElementById('bg-layer').style.backgroundImage.includes('/assets/IMG_0586.jpg'));
  await page.reload();await page.waitForFunction(()=>window.diaryReady&&document.getElementById('bg-layer').style.backgroundImage.includes('/assets/IMG_0586.jpg'));assert.equal(calls.length,beforeReset,'changing/resetting backgrounds never calls Worker');
  assert.deepEqual(errors,[]);
