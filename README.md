@@ -8,7 +8,7 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fsugatsu7-claude%2Ftimeline-diary%2Ftree%2Fmain%2Fworker)
 
-版本 `2026.11.01.3` 新增首次连接向导、独立 Worker 部署模板和数据库链接识别。现有用户继续使用原来的 Worker 地址与连接码，普通同步协议兼容；想使用新向导的「检查连接」需部署本仓库新版 Worker。
+版本 `2026.11.01.4` 新增首次连接向导、独立 Worker 部署模板和数据库链接识别。现有用户继续使用原来的 Worker 地址与连接码，普通同步协议兼容；想使用新向导的「检查连接」需部署本仓库新版 Worker。
 
 ## 第一次使用
 
@@ -68,3 +68,9 @@ python scripts/package-release.py
 `dist/frontend.zip` 仅包含网站必需文件；`dist/worker.mjs` 为 Worker 入口；`dist/source.zip` 为源码。手动上传 Pages 时解压前端包并上传全部内容，包括新增 JS 和 icons 文件夹。不要只传 index.html。
 
 CI 校验版本、运行浏览器/Worker测试和 Worker dry-run，输出前端包；不会自动部署 Cloudflare、修改 Notion 或合并 PR。
+
+## 可选地点
+
+编辑日记时可填写地点名称与 HTTP/HTTPS 地图分享链接；两项都不填时胶囊不显示地点行。支持按地点名称搜索，地点会随草稿、本机备份和手动 Notion 同步保留。
+
+已有用户需先将 `worker/index.mjs` 更新部署到自己的 Cloudflare Worker，原有环境变量保持不变。新版 Worker 会在首次写入地点时自动补建「地点名称」（文本）和「地图链接」（URL）字段；也可在 Notion 修改这两列后手动同步回来。旧 Worker 遇到带地点的本机记录会提示升级，防止地点丢失。没有地点的普通记录继续兼容。

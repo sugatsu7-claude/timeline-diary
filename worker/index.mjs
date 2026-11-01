@@ -20,18 +20,28 @@ function rich(text) {
   for (let i = 0; i < chars.length; i += 1000) parts.push({ type: 'text', text: { content: chars.slice(i, i + 1000).join('') } });
   return parts;
 }
+function locationValue(value){
+  if(value==null)return null;
+  if(typeof value!=='object'||Array.isArray(value)||typeof(value.name??'')!=='string'||typeof(value.url??'')!=='string')fail(400,'地点格式不正确');
+  const name=(value.name||'').trim(),url=(value.url||'').trim();
+  if(name.length>200||url.length>2000)fail(400,'地点名称最多200字，地图链接最多2000字');
+  if(url){let u;try{u=new URL(url);}catch(_){fail(400,'地图链接须为HTTP/HTTPS网址');}if(!['http:','https:'].includes(u.protocol)||u.username||u.password)fail(400,'地图链接须为HTTP/HTTPS网址');}
+  return name||url?{name,url}:null;
+ }
 function metadata(page) {
   const p = page.properties;
-  return { id: plain(p['日记ID']?.rich_text) || 'notion-' + compact(page.id), pageId: page.id,
+  const location=locationValue({name:plain(p['地点名称']?.rich_text),url:p['地图链接']?.url||''});
+  return { location, id: plain(p['日记ID']?.rich_text) || 'notion-' + compact(page.id), pageId: page.id,
     version: page.last_edited_time, deleted: p['已删除']?.checkbox === true,
     date: p['日期']?.date?.start?.slice(0, 10) || '', source: p['记录人']?.select?.name || '未署名',
     tags: (p['标签']?.multi_select || []).map(t => t.name), title: plain(p['标题']?.title),
     createdAt: p['原始创建时间']?.number || Date.parse(page.created_time) || 0 };
 }
 function validate(entry) {
+  locationValue(entry?.location);
   if (!entry || typeof entry.id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(entry.id) ||
       ['__proto__', 'constructor', 'prototype'].includes(entry.id) ||
-      typeof entry.text !== 'string' || (!entry.text.trim() && !(entry.photos || []).length && !(entry.links || []).length) || entry.text.length > MAX_TEXT ||
+      typeof entry.text !== 'string' || (!entry.text.trim() && !(entry.photos || []).length && !(entry.links || []).length && !locationValue(entry.location)) || entry.text.length > MAX_TEXT ||
       !/^\d{4}-\d{2}-\d{2}$/.test(entry.date) || Number.isNaN(Date.parse(entry.date)) ||
       typeof entry.source !== 'string' || !entry.source.trim() || entry.source.length > 100 || entry.source.includes(',') ||
       !Array.isArray(entry.tags) || entry.tags.length > 30 || entry.tags.some(t => typeof t !== 'string' || !t || t.length > 100 || t.includes(','))) {
@@ -55,7 +65,8 @@ function children(entry) {
     .concat((entry.photos || []).map(imageBlock), (entry.links || []).map(url => ({ object: 'block', type: 'bookmark', bookmark: { url } })));
 }
 function properties(entry, deleted = false) {
-  return { '标题': { title: rich(entry.text.slice(0, 60).replace(/\s+/g, ' ') || entry.date) },
+  const loc=locationValue(entry.location),places=Object.hasOwn(entry,'location')?{'地点名称':{rich_text:rich(loc?.name||'')},'地图链接':{url:loc?.url||null}}:{};
+  return { ...places,'标题': { title: rich(entry.text.slice(0, 60).replace(/\s+/g, ' ') || entry.date) },
     '日期': { date: { start: entry.date } }, '记录人': { select: { name: entry.source } },
     '标签': { multi_select: [...new Set(entry.tags)].map(name => ({ name })) },
     '日记ID': { rich_text: rich(entry.id) }, '已删除': { checkbox: deleted },
@@ -65,10 +76,11 @@ function signature(entry) {
   if (entry.deleted) return '__DELETED__';
   const fields = [entry.date, entry.text, entry.source, entry.tags.slice().sort()];
   if ((entry.photos || []).length || (entry.links || []).length) fields.push((entry.photos || []).map(p=>[p.id,p.revision||'']), entry.links || []);
+  const loc=locationValue(entry.location);if(loc)fields.push(['location',loc.name,loc.url]);
   return JSON.stringify(fields);
 }
 function same(a,b){
-  return a.text===b.text&&a.date===b.date&&a.source===b.source&&JSON.stringify(a.tags.slice().sort())===JSON.stringify(b.tags.slice().sort())&&JSON.stringify(a.links||[])===JSON.stringify(b.links||[])&&
+  return JSON.stringify(locationValue(a.location))===JSON.stringify(locationValue(b.location))&&a.text===b.text&&a.date===b.date&&a.source===b.source&&JSON.stringify(a.tags.slice().sort())===JSON.stringify(b.tags.slice().sort())&&JSON.stringify(a.links||[])===JSON.stringify(b.links||[])&&
     (a.photos||[]).length===(b.photos||[]).length&&(b.photos||[]).every((p,i)=>a.photos[i].id===p.id&&(!p.revision||a.photos[i].revision===p.revision));
 }
 function marker(page){try{return JSON.parse(plain(page.properties['同步操作']?.rich_text)||'null');}catch{fail(409,'Notion同步操作记录格式有误，请先检查该页面');}}
@@ -143,7 +155,7 @@ export default {
         const ds=await api('data_sources/'+env.NOTION_DATA_SOURCE_ID),expected={'标题':'title','日期':'date','记录人':'select','标签':'multi_select','日记ID':'rich_text','已删除':'checkbox','原始创建时间':'number'};
         const missing=Object.entries(expected).filter(([name,type])=>ds.properties?.[name]?.type!==type).map(([name,type])=>name+' ('+type+')');
         if(missing.length)fail(400,'数据库字段缺失或类型不符：'+missing.join('、'));
-        return respond({ok:true,protocol:2,media:1,reliability:1,database:env.NOTION_DATA_SOURCE_ID,title:plain(ds.title)||'日记数据库'});
+        return respond({ok:true,protocol:2,media:1,reliability:1,location:1,database:env.NOTION_DATA_SOURCE_ID,title:plain(ds.title)||'日记数据库'});
       }
       const validPage = id => { if (typeof id !== 'string' || !/^[a-f0-9-]{32,36}$/i.test(id)) fail(400, '无效页面ID'); };
       async function pageInDatabase(id) {
@@ -231,12 +243,17 @@ export default {
         });
       }
       if(path==='/download')return await photoDownload();
-      async function ensureSchema(){
-        if((schemaReady.get(env.NOTION_DATA_SOURCE_ID)||0)>Date.now()-3600000)return;
+      async function ensureSchema(withLocation){
+        const cacheKey=env.NOTION_DATA_SOURCE_ID+(withLocation?':location':'');
+        if((schemaReady.get(cacheKey)||0)>Date.now()-3600000)return;
         const ds=await api('data_sources/'+env.NOTION_DATA_SOURCE_ID);
         if(ds.properties['同步操作']&&ds.properties['同步操作'].type!=='rich_text')fail(400,'数据库的同步操作字段必须是文本类型');
         if(!ds.properties['同步操作'])await api('data_sources/'+env.NOTION_DATA_SOURCE_ID,'PATCH',{properties:{'同步操作':{rich_text:{}}}});
-        schemaReady.set(env.NOTION_DATA_SOURCE_ID,Date.now());
+        if(withLocation){
+          const missing={};for(const [name,type] of [['地点名称','rich_text'],['地图链接','url']]){if(ds.properties[name]&&ds.properties[name].type!==type)fail(400,'数据库的'+name+'字段类型不正确');if(!ds.properties[name])missing[name]={[type]:{}};}
+          if(Object.keys(missing).length)await api('data_sources/'+env.NOTION_DATA_SOURCE_ID,'PATCH',{properties:missing});
+        }
+        schemaReady.set(cacheKey,Date.now());
       }
       async function fingerprint(block){
         if(block.type==='paragraph')return digest('paragraph:'+JSON.stringify(block.paragraph));
@@ -255,7 +272,7 @@ export default {
         }
         if (input.cursor) { if (typeof input.cursor !== 'string' || input.cursor.length > 100) fail(400, '无效游标'); query.start_cursor = input.cursor; }
         const result = await api('data_sources/' + env.NOTION_DATA_SOURCE_ID + '/query', 'POST', query);
-        return respond({ protocol: 2, media: 1, reliability: 1, syncStartedAt: startedAt, since, database: env.NOTION_DATA_SOURCE_ID, entries: result.results.map(metadata), cursor: result.next_cursor, hasMore: result.has_more });
+        return respond({ protocol: 2, media: 1, reliability: 1, location: 1, syncStartedAt: startedAt, since, database: env.NOTION_DATA_SOURCE_ID, entries: result.results.map(metadata), cursor: result.next_cursor, hasMore: result.has_more });
       }
       if (path === '/read') {
         const result = await read(await pageInDatabase(input.pageId));
@@ -264,7 +281,7 @@ export default {
       }
       if (path !== '/write') fail(404, '接口不存在；旧/add-entry已停用');
       if(!input.operationId||!/^[a-zA-Z0-9_-]{1,100}$/.test(input.operationId))fail(409,'请更新PWA到可靠性升级版本后再同步');
-      await ensureSchema();
+      await ensureSchema(Object.hasOwn(input.entry||{},'location'));
       validate(input.entry);
       attachments(input.entry);
       const entry = input.entry;

@@ -5,7 +5,7 @@ const DS = '11111111-1111-4111-8111-111111111111';
 const PID = '22222222-2222-4222-8222-222222222222';
 const env = { WORKER_SECRET: 'test-secret', NOTION_TOKEN: 'notion-secret', NOTION_DATA_SOURCE_ID: DS, ALLOWED_ORIGIN: 'https://diary.test' };
 const entry = { id: 'entry1', date: '2026-10-26', text: '五月的日记\n第二行', source: '叙', tags: ['日常'] };
-const sig = e => {const f=[e.date,e.text,e.source,e.tags.slice().sort()];if((e.photos||[]).length||(e.links||[]).length)f.push((e.photos||[]).map(p=>[p.id,p.revision||'']),e.links||[]);return JSON.stringify(f)};
+const sig = e => {const f=[e.date,e.text,e.source,e.tags.slice().sort()];if((e.photos||[]).length||(e.links||[]).length)f.push((e.photos||[]).map(p=>[p.id,p.revision||'']),e.links||[]);if(e.location&&(e.location.name||e.location.url))f.push(['location',e.location.name||'',e.location.url||'']);return JSON.stringify(f)};
 const rt = s => [{ type: 'text', text: { content: s }, plain_text: s }];
 function fixture() {
  let page = null, blocks = [], calls = [], n = 0;
@@ -75,6 +75,19 @@ test('Worker authorization, isolation, conflict, safe content and deletion', asy
   assert.equal(f.blocks.length,1); assert.equal(f.blocks[0].paragraph.rich_text[0].text.content,'New');
   let removed=await request('/write',{entry:{...entry,text:'New'},pageId:PID,baseVersion:updated.data.version,baseSignature:sig({...entry,text:'New'}),deleted:true});
   assert.equal(removed.data.deleted,true); assert.equal(f.blocks.length,1,'soft delete retains text');
+  // Location properties round-trip, participate in conflicts, and can be cleared.
+  f.seed();
+  const loc={name:'The Waterfront Shoppes',url:'https://maps.google.com/?q=Waterfront'};
+  let beforeLocation=await request('/read',{pageId:PID});
+  let located=await request('/write',{entry:{...entry,location:loc},pageId:PID,baseVersion:beforeLocation.data.version,baseSignature:sig(entry)});
+  assert.equal(located.status,200,JSON.stringify(located.data));assert.deepEqual(located.data.location,loc);
+  assert.ok(f.calls.some(([m,p,b])=>m==='PATCH'&&p==='data_sources/'+DS&&b.properties?.['地点名称']?.rich_text));
+  assert.deepEqual((await request('/read',{pageId:PID})).data.location,loc);
+  f.page.properties['地点名称']={rich_text:rt('Notion renamed this place')};
+  assert.equal((await request('/write',{entry:{...entry,location:null},pageId:PID,baseVersion:located.data.version,baseSignature:sig(located.data)})).status,409,'location-only remote change must not be overwritten');
+  const renamed=await request('/read',{pageId:PID});assert.equal(renamed.data.location.name,'Notion renamed this place');
+  const cleared=await request('/write',{entry:{...entry,location:null},pageId:PID,baseVersion:renamed.data.version,baseSignature:sig(renamed.data)});assert.equal(cleared.status,200);assert.equal(cleared.data.location,null);assert.equal(f.page.properties['地图链接'].url,null);
+  for(const location of ['invalid',{name:'x',url:'javascript:alert(1)'},{name:'x'.repeat(201)}])assert.equal((await request('/write',{entry:{...entry,location}})).status,400);
   f.seed(true); read=await request('/read',{pageId:PID}); assert.equal(read.data.readOnly,true);
   assert.equal((await request('/write',{entry:{...entry,text:'New'},pageId:PID,baseVersion:read.data.version,baseSignature:sig(entry)})).status,409);
   f.seed();
