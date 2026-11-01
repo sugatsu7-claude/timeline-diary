@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.2
+// diary-release: 2026.11.01.3
 /* Local blobs live in IndexedDB; metadata alone lives with diary entries. */
 (function () {
   'use strict';
@@ -87,14 +87,8 @@
     try { var blob = await compress(file,2000);await store('put','background',blob);var next={...appSettings,localBackground:true};await DiaryStore.setConfig(SETTINGS_KEY,next);appSettings=next;await applyBackground(appSettings.bgUrl);showToast('本机背景已应用'); }
     catch(error) { showToast(error.message); } finally { mediaBusy=false; }
   };
-  document.getElementById('use-bg-url').onclick = async function () {
-    var url = document.getElementById('bg-url').value.trim();
-    if (url && !safeLink(url)) { showToast('请输入HTTP/HTTPS图片地址');return; }
-    var next={...appSettings,bgUrl:url,localBackground:false};
-    try {await DiaryStore.setConfig(SETTINGS_KEY,next);appSettings=next;applyBackground(url);document.getElementById('background-status').textContent=url?'使用网址背景；外部图片需要联网。':'正在使用默认背景图。';}catch(_){showToast('设置未保存');}
-  };
   document.getElementById('reset-background').onclick = async function () {
-    try {var next={...appSettings,localBackground:false,bgUrl:''};await DiaryStore.setConfig(SETTINGS_KEY,next);appSettings=next;document.getElementById('bg-url').value='';applyBackground('');document.getElementById('background-status').textContent='已恢复默认背景图。';}catch(_){showToast('恢复默认背景失败');}
+    try {var next={...appSettings,localBackground:false,bgUrl:''};await DiaryStore.setConfig(SETTINGS_KEY,next);appSettings=next;applyBackground('');document.getElementById('background-status').textContent='已恢复默认背景图。';}catch(_){showToast('恢复默认背景失败');}
   };
   applyBackground(appSettings.bgUrl);
 

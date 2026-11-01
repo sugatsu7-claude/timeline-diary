@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.2
+// diary-release: 2026.11.01.3
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -414,7 +414,6 @@ document.getElementById('sheet-save').onclick = async function () {
 function loadSettings(){return DiaryStore.config(SETTINGS_KEY,{});}
 var appSettings=loadSettings();
 document.getElementById('sync-url').value = appSettings.syncUrl || '';
-document.getElementById('bg-url').value = appSettings.bgUrl || '';
 document.getElementById('bg-scrim-input').value = appSettings.scrim === undefined ? 72 : appSettings.scrim;
 document.getElementById('card-opacity-input').value = appSettings.cardOpacity === undefined ? 62 : appSettings.cardOpacity;
 if (!appSettings.localBackground) applyBackground(appSettings.bgUrl);
@@ -435,7 +434,7 @@ function applyCardOpacity(val) {
 }
 
 document.getElementById('tags-toggle').onclick = function () {
-  document.getElementById('tags-panel').classList.toggle('open');
+  toggleSettingsGroup('tags');
 };
 
 function renderManageTagChips() {
@@ -517,7 +516,7 @@ document.getElementById('add-tag-btn').onclick = async function () {
 renderManageTagChips();
 
 document.getElementById('trash-toggle').onclick = function () {
-  document.getElementById('trash-panel').classList.toggle('open');
+  toggleSettingsGroup('trash');
   renderTrashList();
 };
 
@@ -552,7 +551,7 @@ async function renderTrashList() {
 }
 
 document.getElementById('settings-toggle').onclick = function () {
-  document.getElementById('settings-panel').classList.toggle('open');
+  toggleSettingsGroup('settings');
 };
 function renderConnectionSummary(){
   document.getElementById('notion-connection-summary').textContent=appSettings.syncUrl?'已保存连接：'+appSettings.syncUrl:'尚未连接 Notion，日记仍保存在本机。';
@@ -560,9 +559,8 @@ function renderConnectionSummary(){
 renderConnectionSummary();
 document.getElementById('appearance-save-btn').onclick=async function(){
   try{
-    var next={...loadSettings(),bgUrl:document.getElementById('bg-url').value.trim(),scrim:document.getElementById('bg-scrim-input').value.trim(),cardOpacity:document.getElementById('card-opacity-input').value.trim()};
+    var next={...loadSettings(),scrim:document.getElementById('bg-scrim-input').value.trim(),cardOpacity:document.getElementById('card-opacity-input').value.trim()};
     for(var key of ['scrim','cardOpacity'])if(next[key]!==''&&(!Number.isFinite(Number(next[key]))||Number(next[key])<0||Number(next[key])>100))throw new Error('透明度请填写0至100的数字');
-    if(next.bgUrl&&!MediaAssets.safeLink(next.bgUrl))throw new Error('请输入HTTP/HTTPS背景图片地址');
     await DiaryStore.setConfig(SETTINGS_KEY,next);appSettings=next;
     applyBackground(next.bgUrl);applyScrim(next.scrim);applyCardOpacity(next.cardOpacity);showToast('外观已保存');
   }catch(error){showToast('外观未保存：'+error.message);}
@@ -579,10 +577,13 @@ document.getElementById('settings-save-btn').onclick=async function(){
     showToast('连接设置已保存');if(window.refreshSyncStatus)await refreshSyncStatus();
   }catch(error){showToast('连接未保存：'+error.message);}
 };
-for(var group of ['data','about']){(function(id){document.getElementById(id+'-toggle').onclick=function(){document.getElementById(id+'-panel').classList.toggle('open');};})(group);}
+function toggleSettingsGroup(id){
+ var panel=document.getElementById(id+'-panel'),open=panel.classList.toggle('open');
+ document.getElementById(id+'-toggle').setAttribute('aria-expanded',String(open));
+}
+for(var group of ['data','about']){(function(id){document.getElementById(id+'-toggle').onclick=function(){toggleSettingsGroup(id);};})(group);}
 for(var group of ['authors','tags','settings','data','about','trash']){(function(id){
  var toggle=document.getElementById(id+'-toggle');toggle.setAttribute('role','button');toggle.tabIndex=0;toggle.setAttribute('aria-controls',id+'-panel');toggle.setAttribute('aria-expanded','false');
- toggle.addEventListener('click',function(){queueMicrotask(function(){toggle.setAttribute('aria-expanded',String(document.getElementById(id+'-panel').classList.contains('open')));});});
  if(id!=='authors')toggle.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle.click();}};
 })(group);}
 document.getElementById('forget-secret').onclick=async function(){try{await DiaryStore.secret('');try{sessionStorage.removeItem('diary_sync_secret');}catch(_){}document.getElementById('sync-secret').value='';document.getElementById('remember-secret').checked=false;showToast('已忘记此设备保存的口令');}catch(error){showToast(error.message);}};
