@@ -28,11 +28,11 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  assert.equal(calls.length,0);
  assert.ok(await page.evaluate(()=>document.getElementById('bg-layer').style.backgroundImage.includes('/assets/IMG_0586.jpg')));
  await page.evaluate(()=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>image.naturalWidth?resolve():reject(Error('Default background is empty'));image.onerror=()=>reject(Error('Default background missing'));image.src=DEFAULT_BACKGROUND_URL}));
- await page.locator('#open-settings').click();await page.locator('#settings-toggle').click();
+ await page.locator('#open-settings').click();await page.locator('#authors-toggle').click();
  await page.locator('#local-background').setInputFiles(path.join(root,'icons/icon-512.png'));
  await page.waitForFunction(()=>appSettings.localBackground===true&&document.querySelector('#bg-layer').style.backgroundImage.includes('blob:'));
  assert.equal(calls.length,0,'local background never calls Worker');
- await page.locator('#sync-url').fill('https://worker.test');await page.locator('#sync-secret').fill('test-secret');await page.locator('#settings-save-btn').click();await page.locator('#close-settings').click();
+ await page.locator('#settings-toggle').click();await page.locator('#manual-connection summary').click();await page.locator('#sync-url').fill('https://worker.test');await page.locator('#sync-secret').fill('test-secret');await page.locator('#settings-save-btn').click();await page.locator('#close-settings').click();
  await page.locator('#add-fab').click();await page.locator('#first-author').fill('测试记录人');await page.locator('#confirm-first-author').click();await page.waitForFunction(()=>document.querySelector('#sheet').classList.contains('open'));await page.locator('#entry-text').fill('Photos and links');
  await page.locator('#entry-photos').setInputFiles([path.join(root,'icons/icon-192.png'),path.join(root,'icons/icon-512.png')]);
  await page.waitForFunction(()=>!mediaBusy&&sheetPhotos.length===2);
@@ -57,9 +57,9 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  assert.ok(imageRequests.includes('https://images.test/replaced.jpg'));assert.ok(calls.slice(before).includes('/read'),'expired URL is refreshed only when viewed');await page.locator('#photo-close').click();
  // Removing an already-synced image does not re-upload the remaining one.
  await page.locator('[aria-label="编辑日记"]').click();await page.locator('[aria-label="移除图片1"]').click();await saveEntry();await page.waitForFunction(()=>!document.querySelector('#sheet').classList.contains('open'));await sync();assert.equal(uploads,2);assert.equal(remote[0].photos.length,1);
- await page.locator('#open-settings').click();await page.locator('#settings-toggle').click();await page.locator('#bg-url').fill('https://images.test/custom.jpg');await page.locator('#use-bg-url').click();await page.waitForFunction(()=>document.getElementById('bg-layer').style.backgroundImage.includes('https://images.test/custom.jpg'));
+ await page.locator('#open-settings').click();await page.locator('#authors-toggle').click();await page.locator('#bg-url').fill('https://images.test/custom.jpg');await page.locator('#use-bg-url').click();await page.waitForFunction(()=>document.getElementById('bg-layer').style.backgroundImage.includes('https://images.test/custom.jpg'));
  await page.reload();await page.waitForFunction(()=>window.diaryReady&&document.getElementById('bg-layer').style.backgroundImage.includes('https://images.test/custom.jpg'));
- const beforeReset=calls.length;await page.locator('#open-settings').click();await page.locator('#settings-toggle').click();await page.locator('#reset-background').click();await page.waitForFunction(()=>!appSettings.localBackground&&appSettings.bgUrl===''&&document.getElementById('bg-layer').style.backgroundImage.includes('/assets/IMG_0586.jpg'));
+ const beforeReset=calls.length;await page.locator('#open-settings').click();await page.locator('#authors-toggle').click();await page.locator('#reset-background').click();await page.waitForFunction(()=>!appSettings.localBackground&&appSettings.bgUrl===''&&document.getElementById('bg-layer').style.backgroundImage.includes('/assets/IMG_0586.jpg'));
  await page.reload();await page.waitForFunction(()=>window.diaryReady&&document.getElementById('bg-layer').style.backgroundImage.includes('/assets/IMG_0586.jpg'));assert.equal(calls.length,beforeReset,'changing/resetting backgrounds never calls Worker');
  assert.deepEqual(errors,[]);
  console.log('PASS: local background persistence/no requests, compression and local blobs, safe links, icon-only capsules, gallery navigation, manual uploads, remote image replacement and expired URL refresh, remove without reupload.');

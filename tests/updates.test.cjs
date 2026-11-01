@@ -41,7 +41,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
  // A release waits for consent and protects drafts in every open tab.
  release=next;
  await offlinePage.evaluate(()=>openSheet(entries[0]));await offlinePage.locator('#entry-text').fill('Other tab draft');
- await page.locator('#open-settings').click();await page.locator('#check-update').click();
+ await page.locator('#open-settings').click();await page.locator('#about-toggle').click();await page.locator('#check-update').click();
  await page.waitForFunction(async()=>!!(await navigator.serviceWorker.getRegistration()).waiting);
  await page.waitForFunction(()=>!document.querySelector('#settings-update-now').hidden);
  const bannerBox=await page.locator('#update-banner').boundingBox();
@@ -64,7 +64,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
  await page.locator('#sheet-save').click();await page.waitForFunction(()=>!document.querySelector('#sheet').classList.contains('open'));
  await offlinePage.reload();await offlinePage.waitForFunction(()=>document.querySelector('#entry-text').value==='Other tab draft');
  release=after;broken=true;
- await page.locator('#open-settings').click();await page.locator('#check-update').click();
+ await page.locator('#open-settings').click();await page.locator('#about-toggle').click();await page.locator('#check-update').click();
  await page.waitForFunction(async()=>{const r=await navigator.serviceWorker.getRegistration();return !r.installing&&!r.waiting});
  await context.setOffline(true);await page.reload();await page.waitForFunction(()=>window.diaryReady);
  assert.equal(await page.evaluate(()=>document.querySelector('meta[name="diary-version"]').content),next);
