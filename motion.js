@@ -10,9 +10,9 @@
   function reduced(){return preference.matches;}
   function blocked(){return document.hidden||document.getElementById('sheet').classList.contains('open')||!document.getElementById('settings-drawer').hidden||document.getElementById('filter-panel').classList.contains('open')||!!document.querySelector('dialog[open]')||!!document.activeElement?.matches('input,textarea,select,[contenteditable="true"]')||(window.visualViewport&&window.visualViewport.height<innerHeight-100);}
   function setCompact(value){if(compact===value)return;compact=value;toolbar.classList.toggle('is-compact',value);}
-  function measure(){maxScroll=Math.max(0,document.documentElement.scrollHeight-innerHeight);schedule();}
+  function measure(){schedule();}
   function tick(){
-    frame=0;var y=Math.max(0,Math.min(window.scrollY,maxScroll)),delta=y-lastY;lastY=y;
+    frame=0;maxScroll=Math.max(0,document.documentElement.scrollHeight-innerHeight);var y=Math.max(0,Math.min(window.scrollY,maxScroll)),delta=y-lastY;lastY=y;
     progress.style.transform='scaleX('+(maxScroll?Math.min(1,y/maxScroll):0)+')';
     if(reduced()||blocked()||savedRow||y<72){setCompact(false);direction=0;distance=0;return;}
     if(Math.abs(delta)<1)return;

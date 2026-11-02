@@ -5,7 +5,7 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
  const p=await h.page(context,{penang_timeline_diary:seed,penang_timeline_authors:{defaultName:'小夏',names:['小夏']}});
  let remote=0;await p.route('https://worker.test/**',r=>{remote++;return r.abort();});
  await p.evaluate(()=>{window.reveals=[];const original=Element.prototype.animate;Element.prototype.animate=function(...args){if(this.matches('.entry-row'))window.reveals.push(this.dataset.entryId);return original.apply(this,args);};});
- async function scroll(y){await p.evaluate(y=>scrollTo(0,y),y);await p.waitForTimeout(260);}
+ async function scroll(y){await p.evaluate(y=>{scrollTo(0,y);return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));},y);await p.waitForTimeout(260);}
  await scroll(550);console.log('SCROLL',await p.evaluate(()=>({reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,y:scrollY,height:innerHeight,documentHeight:document.documentElement.scrollHeight,bodyHeight:document.body.scrollHeight,vv:visualViewport.height,hidden:document.hidden,active:document.activeElement.outerHTML.slice(0,200),dialog:!!document.querySelector('dialog[open]'),sheet:document.getElementById('sheet').className,settingsHidden:document.getElementById('settings-drawer').hidden,toolbar:document.querySelector('.toolbar').className,progress:document.getElementById('reading-progress').style.transform})));assert.equal(await p.locator('.toolbar').evaluate(el=>el.classList.contains('is-compact')),true);
  assert.ok(await p.locator('#reading-progress').evaluate(el=>new DOMMatrix(getComputedStyle(el).transform).a>0));
  await scroll(400);assert.equal(await p.locator('.toolbar').evaluate(el=>el.classList.contains('is-compact')),false);
