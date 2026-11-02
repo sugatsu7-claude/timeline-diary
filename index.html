@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.02.2">
+<meta name="diary-version" content="2026.11.02.3">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -538,6 +538,8 @@
   .setup-actions { display:flex;gap:8px; }
   #setup-origin { user-select:all;overflow-wrap:anywhere; }
 
+  .reading-motion .entry-card { transform:scale(var(--reading-scale,1));opacity:var(--reading-opacity,1);transform-origin:center; }
+  button.touch-pressed,.tag-chip.touch-pressed,.fab.touch-pressed { transform:translateY(2px) scale(.94); }
   /* Quiet movement: native scroll, no parallax or persistent card transforms. */
   .toolbar { transition:transform 220ms cubic-bezier(.22,.75,.25,1); }
   .toolbar .search-box,.toolbar .filter-btn { transition:padding 220ms ease,background-color 160ms ease,box-shadow 220ms ease; }
@@ -554,6 +556,7 @@
   @media (prefers-reduced-motion:reduce) {
     .toolbar,.toolbar .search-box,.toolbar .filter-btn,.sheet,.sheet-backdrop,button,.tag-chip,.fab,.top-fab,.toast,#reading-progress { transition:none; }
     .filter-panel.open,.saved-highlight .entry-card { animation:none; }
+    .reading-motion .entry-card,button.touch-pressed,.tag-chip.touch-pressed,.fab.touch-pressed { transform:none;opacity:1; }
     button:enabled:active,.tag-chip:active,.fab:active,.toolbar.is-compact { transform:none; }
   }
 </style>
