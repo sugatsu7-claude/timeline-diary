@@ -1,0 +1,30 @@
+const assert=require('node:assert/strict'),{devices}=require('playwright'),h=require('./browser-utils.cjs');
+(async()=>{
+ const browser=await h.launch(),{defaultBrowserType,...phone}=devices['iPhone 13'];
+ const context=await browser.newContext({...phone,serviceWorkers:'block',reducedMotion:'no-preference'}),errors=[];
+ context.on('page',page=>page.on('pageerror',error=>errors.push(error.message)));
+ const p=await h.page(context,{penang_timeline_diary:Array.from({length:20},(_,i)=>({id:'old'+i,date:'2026-11-01',text:'安静地记录一天。\n\n晚风很温柔。',source:'小夏',tags:[],createdAt:20-i})),penang_timeline_authors:{defaultName:'小夏',names:['小夏']}});
+ const sample=()=>p.locator('[data-entry-id="rendered"]').evaluate(row=>{const style=getComputedStyle(row);return{opacity:Number(style.opacity),y:new DOMMatrix(style.transform).m42,playing:row.getAnimations().map(a=>a.playState)};});
+ // Check intermediate rendered properties, not merely a call to animate().
+ await p.evaluate(async()=>{await DiaryStore.upsert({id:'rendered',date:'2026-11-02',text:'让生活慢一点。\n\n今天的晚风很温柔。',source:'小夏',tags:[],createdAt:2});await refreshDiaryData();});
+ await p.waitForTimeout(120);await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));const during=await sample();await p.waitForTimeout(600);await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));const after=await sample();
+ console.log('PHONE ROW',JSON.stringify({during,after}));assert.ok(during.opacity>.3&&during.opacity<.99,JSON.stringify(during));assert.ok(during.y>1,JSON.stringify(during));assert.equal(after.opacity,1);assert.equal(after.y,0);
+ await p.locator('[data-entry-id="rendered"] [aria-label="编辑日记"]').click();await p.waitForTimeout(110);
+ const sheetDuring=await p.locator('#sheet').evaluate(el=>({y:el.getBoundingClientRect().y,opacity:Number(getComputedStyle(el).opacity)}));const backdropDuring=await p.locator('#sheet-backdrop').evaluate(el=>Number(getComputedStyle(el).opacity));
+ await p.waitForTimeout(400);const sheetAfter=await p.locator('#sheet').evaluate(el=>({y:el.getBoundingClientRect().y,opacity:Number(getComputedStyle(el).opacity)}));console.log('PHONE SHEET',JSON.stringify({sheetDuring,sheetAfter,backdropDuring}));assert.ok(sheetDuring.y>sheetAfter.y+3);assert.ok(sheetDuring.opacity<1);assert.equal(sheetAfter.opacity,1);assert.ok(backdropDuring>0&&backdropDuring<1);
+ await p.locator('#sheet-cancel').click();await p.waitForTimeout(400);assert.equal(await p.locator('#sheet').evaluate(el=>getComputedStyle(el).visibility),'hidden');
+ // Verify the actual rendered card responds on every pass through the reading area.
+ async function position(targetY){await p.evaluate(y=>{const row=document.querySelector('[data-entry-id="old4"]'),box=row.getBoundingClientRect();scrollTo(0,scrollY+box.top+box.height/2-y);return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));},targetY);}
+ const renderedCard=p.locator('[data-entry-id="old4"] .entry-card');
+ await position(790);await p.waitForFunction(()=>new DOMMatrix(getComputedStyle(document.querySelector('[data-entry-id="old4"] .entry-card')).transform).a<.98);
+ const edgeWidth=(await renderedCard.boundingBox()).width;
+ await position(455);await p.waitForFunction(()=>new DOMMatrix(getComputedStyle(document.querySelector('[data-entry-id="old4"] .entry-card')).transform).a>.995);
+ const centerWidth=(await renderedCard.boundingBox()).width;assert.ok(centerWidth>edgeWidth+5,'capsule visibly expands into the reading area');
+ await position(790);await p.waitForFunction(()=>new DOMMatrix(getComputedStyle(document.querySelector('[data-entry-id="old4"] .entry-card')).transform).a<.98);
+ const button=await p.locator('#filter-toggle').boundingBox();await p.mouse.move(button.x+button.width/2,button.y+button.height/2);await p.mouse.down();await p.waitForTimeout(80);assert.equal(await p.locator('#filter-toggle').evaluate(el=>el.classList.contains('touch-pressed')),true);await p.mouse.up();await p.locator('#close-filters').click();
+ await p.evaluate(async()=>{await DiaryStore.upsert({id:'long',date:'2026-11-03',text:'长一点的记录，慢慢读。\n'.repeat(80),source:'小夏',tags:[],createdAt:3});await refreshDiaryData();});await p.waitForTimeout(600);
+ await p.evaluate(()=>{scrollTo(0,400);return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));});
+ const longStyle=await p.locator('[data-entry-id="long"] .entry-card').evaluate(el=>({scale:new DOMMatrix(getComputedStyle(el).transform).a,opacity:Number(getComputedStyle(el).opacity)}));assert.equal(longStyle.scale,1);assert.equal(longStyle.opacity,1);
+ await p.emulateMedia({reducedMotion:'reduce'});await p.locator('[data-entry-id="old4"] [aria-label="编辑日记"]').click();assert.equal(await p.locator('#sheet').evaluate(el=>getComputedStyle(el).transitionDuration),'0s');assert.deepEqual(errors,[]);
+ console.log('PASS: iPhone touch viewport renders intermediate capsule opacity/translation and sheet/backdrop transitions, settles correctly, responds on repeat scrolling, gives explicit touch feedback and honors reduced motion.');await browser.close();
+})().catch(error=>{console.error(error);process.exit(1)});

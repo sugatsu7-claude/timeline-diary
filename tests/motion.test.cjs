@@ -4,7 +4,7 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
  const seed=Array.from({length:65},(_,i)=>({id:'motion'+i,date:'2026-11-01',text:'日记 '+i+'\n\n慢慢记录生活。',source:'小夏',tags:i%2?['散步']:['日常'],createdAt:65-i}));
  const p=await h.page(context,{penang_timeline_diary:seed,penang_timeline_authors:{defaultName:'小夏',names:['小夏']}});
  let remote=0;await p.route('https://worker.test/**',r=>{remote++;return r.abort();});
- await p.evaluate(()=>{window.reveals=[];const original=Element.prototype.animate;Element.prototype.animate=function(...args){if(this.matches('.entry-row'))window.reveals.push(this.dataset.entryId);return original.apply(this,args);};});
+ await p.evaluate(()=>{window.reveals=[];const active=new WeakSet();new MutationObserver(records=>records.forEach(record=>{const row=record.target;if(!row.matches('.entry-row'))return;if(row.style.opacity){if(!active.has(row)){active.add(row);window.reveals.push(row.dataset.entryId);}}else active.delete(row);})).observe(document.getElementById('timeline'),{subtree:true,attributes:true,attributeFilter:['style']});});
  async function scroll(y){await p.evaluate(y=>{scrollTo(0,y);return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));},y);await p.waitForTimeout(260);}
  await scroll(550);assert.equal(await p.locator('.toolbar').evaluate(el=>el.classList.contains('is-compact')),true);
  assert.ok(await p.locator('#reading-progress').evaluate(el=>new DOMMatrix(getComputedStyle(el).transform).a>0));
