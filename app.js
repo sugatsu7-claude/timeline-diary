@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.7
+// diary-release: 2026.11.02.1
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -147,6 +147,7 @@ function updateTimelinePagination() {
 function renderTimeline(options) {
   clearTimeout(searchRenderTimer);
   var container=document.getElementById('timeline'),key=JSON.stringify(activeFilters);
+  var filterChanged=timelineView.key!==null&&timelineView.key!==key;
   var limit=timelineView.key===key?Math.max(TIMELINE_BATCH_SIZE,timelineView.shown):TIMELINE_BATCH_SIZE;
   timelineView.key=key;
   timelineView.filtered=entries.filter(matchesFilter).sort(timelineOrder);
@@ -160,6 +161,7 @@ function renderTimeline(options) {
   if(!timelineView.shown)container.innerHTML='<div class="empty-state">还没有符合条件的记录<br>点右下角 + 开始记录吧</div>';
   else appendTimelineBatch(timelineView.filtered.slice(0,timelineView.shown));
   updateTimelinePagination();
+  if(window.DiaryMotion)DiaryMotion.timelineChanged(container,filterChanged,options&&options.focusId);
 }
 function appendTimelineBatch(batch) {
   var container=document.getElementById('timeline');
@@ -267,6 +269,7 @@ document.getElementById('load-more-entries').onclick=function(){
   var start=timelineView.shown,end=Math.min(start+TIMELINE_BATCH_SIZE,timelineView.filtered.length);
   appendTimelineBatch(timelineView.filtered.slice(start,end));
   timelineView.shown=end;updateTimelinePagination();
+  if(window.DiaryMotion)DiaryMotion.timelineChanged(document.getElementById('timeline'),false);
 };
 
 document.getElementById('search-input').oninput = function (e) {
@@ -398,6 +401,7 @@ function closeSheet() {
   try { sessionStorage.removeItem(DRAFT_KEY); } catch (_) {}
   if(window.DiaryDrafts)DiaryDrafts.clear().catch(function(){});
   if(window.MediaAssets)MediaAssets.releaseSheet();
+  if(document.getElementById('sheet').contains(document.activeElement))document.activeElement.blur();
   document.getElementById('sheet-backdrop').classList.remove('open');
   document.getElementById('sheet').classList.remove('open');
 }
@@ -432,15 +436,7 @@ document.getElementById('sheet-save').onclick = async function () {
     renderTimeline({focusId:savedEntryId});
     showToast('已保存；已清除筛选以显示该记录');
   }
-  if (savedEntryId) {
-    requestAnimationFrame(function () {
-      var el = Array.from(document.querySelectorAll('[data-entry-id]')).find(function (row) { return row.dataset.entryId === savedEntryId; });
-      if (el) {
-        el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
-        el.classList.add('saved-highlight');
-      }
-    });
-  }
+  if (savedEntryId && window.DiaryMotion) DiaryMotion.focusSaved(savedEntryId);
 };
 
 function loadSettings(){return DiaryStore.config(SETTINGS_KEY,{});}
@@ -644,7 +640,7 @@ updateFilterBtnState();
 var topFab = document.getElementById('top-fab');
 window.addEventListener('scroll', function () {
   topFab.classList.toggle('show', window.scrollY > 400);
-});
+},{passive:true});
 topFab.onclick = function () {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth' });
 };
