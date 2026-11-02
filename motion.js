@@ -1,4 +1,4 @@
-// diary-release: 2026.11.02.1
+// diary-release: 2026.11.02.2
 /* Native scrolling, bounded one-shot reveals, and quiet feedback. No network work. */
 (function () {
   'use strict';
@@ -27,19 +27,19 @@
   }
   function reveal(row){
     var id=row.dataset.entryId;if(seen.has(id))return;seen.add(id);
-    animate(row,[{opacity:.65,transform:'translateY(8px)'},{opacity:1,transform:'translateY(0)'}],{duration:340,easing:'cubic-bezier(.22,.75,.25,1)'});
+    animate(row,[{opacity:.3,transform:'translateY(16px)'},{opacity:1,transform:'translateY(0)'}],{duration:480,easing:'cubic-bezier(.22,.75,.25,1)'});
   }
   if('IntersectionObserver' in window)observer=new IntersectionObserver(function(records){
     records.forEach(function(record){if(record.isIntersecting){observer.unobserve(record.target);reveal(record.target);}});
-  },{threshold:0,rootMargin:'0px 0px -16px 0px'});
+  },{threshold:0,rootMargin:'0px 0px -96px 0px'});
   function timelineChanged(container,filterChanged,focusId){
     if(observer)observer.disconnect();
-    if(filterChanged)animate(container,[{opacity:.7},{opacity:1}],{duration:180,easing:'ease-out'});
+    if(filterChanged)animate(container,[{opacity:.5},{opacity:1}],{duration:260,easing:'ease-out'});
     var rows=container.querySelectorAll('.entry-row');
     rows.forEach(function(row){
       var box=row.getBoundingClientRect(),visible=box.bottom>0&&box.top<innerHeight-16;
       if(reduced()||!observer||seen.has(row.dataset.entryId)||row.dataset.entryId===focusId){seen.add(row.dataset.entryId);return;}
-      if(visible)seen.add(row.dataset.entryId);
+      if(visible)reveal(row);
       else observer.observe(row);
     });measure();
   }
@@ -49,17 +49,21 @@
   function arrived(){
     clearTimeout(arrivalTimer);clearTimeout(arrivalMax);if(!savedRow)return;
     var row=savedRow;savedRow=null;if(!row.isConnected)return;
-    row.classList.add('saved-highlight');setTimeout(function(){row.classList.remove('saved-highlight');},1800);
+    row.classList.add('saved-highlight');setTimeout(function(){row.classList.remove('saved-highlight');},2300);
   }
   function focusSaved(id){
     cancelReturn();var token=returnToken;
-    savedTimer=setTimeout(function(){
-      if(token!==returnToken||blocked())return;
+    function returnWhenReady(attempt){
+      if(token!==returnToken)return;
+      // iOS keyboard dismissal can outlast the sheet animation. Wait briefly,
+      // while a new gesture still cancels this return immediately.
+      if(blocked()){if(attempt<10)savedTimer=setTimeout(function(){returnWhenReady(attempt+1);},100);return;}
       var row=Array.from(document.querySelectorAll('[data-entry-id]')).find(function(el){return el.dataset.entryId===id;});if(!row)return;
       setCompact(false);savedRow=row;
       row.scrollIntoView({behavior:reduced()?'auto':'smooth',block:'center'});
       arrivalTimer=setTimeout(arrived,reduced()?0:160);arrivalMax=setTimeout(arrived,1400);
-    },reduced()?0:280);
+    }
+    savedTimer=setTimeout(function(){returnWhenReady(0);},reduced()?0:340);
   }
   window.addEventListener('scroll',function(){
     schedule();

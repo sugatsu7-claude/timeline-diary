@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.02.1">
+<meta name="diary-version" content="2026.11.02.2">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -293,7 +293,7 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 240ms ease, visibility 0s linear 260ms;
+    transition: opacity 300ms ease, visibility 0s linear 320ms;
     position: fixed;
     inset: 0;
     background: rgba(44,44,42,0.4);
@@ -307,7 +307,8 @@
     border-radius: 20px 20px 0 0;
     padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
     transform: translateY(100%);
-    transition: transform 260ms cubic-bezier(.22,.75,.25,1), visibility 0s linear 260ms;
+    opacity:.65;
+    transition: transform 320ms cubic-bezier(.22,.75,.25,1), opacity 220ms ease, visibility 0s linear 320ms;
     visibility:hidden;pointer-events:none;
     z-index: 91;
     max-height: 85vh;
@@ -316,7 +317,7 @@
     overscroll-behavior-x: none;
     width:100%;max-width:100%;
   }
-  .sheet.open { transform: translateY(0);visibility:visible;pointer-events:auto;transition-delay:0s; }
+  .sheet.open { transform: translateY(0);opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s; }
   .sheet h2 { font-size: 16px; font-weight: 500; margin: 0 0 14px; }
   .sheet label { font-size: 12px; color: #767570; display: block; margin: 12px 0 5px; }
   .sheet input[type="date"], .sheet textarea, .sheet input[type="text"] {
@@ -488,8 +489,8 @@
   .has-app-update .top-fab { bottom:calc(144px + env(safe-area-inset-bottom)); }
   .settings-heading h2 { margin: 0; font-size: 20px; }
   .entry-row { scroll-margin-top: 90px; }
-  @keyframes saved-highlight { 0%, 25% { box-shadow:0 0 0 2px rgba(155,164,149,.5),0 5px 24px rgba(155,164,149,.16); } 100% { box-shadow:0 0 0 2px transparent,0 4px 16px rgba(44,44,42,.08); } }
-  .saved-highlight .entry-card { animation: saved-highlight 1500ms ease-out; }
+  @keyframes saved-highlight { 0%, 25% { box-shadow:0 0 0 2px rgba(139,154,126,.85),0 6px 28px rgba(155,164,149,.3); } 100% { box-shadow:0 0 0 2px transparent,0 4px 16px rgba(44,44,42,.08); } }
+  .saved-highlight .entry-card { animation: saved-highlight 2100ms ease-out; }
   @media (prefers-reduced-motion: reduce) { .saved-highlight .entry-card { animation: none; } }
   .toast {
     position: fixed;
@@ -542,11 +543,11 @@
   .toolbar .search-box,.toolbar .filter-btn { transition:padding 220ms ease,background-color 160ms ease,box-shadow 220ms ease; }
   .toolbar.is-compact { transform:translateY(-3px); }
   .toolbar.is-compact .search-box,.toolbar.is-compact .filter-btn { padding-top:6px;padding-bottom:6px;background:rgba(250,248,243,.96);box-shadow:0 3px 16px rgba(80,74,63,.06); }
-  #reading-progress { position:absolute;left:2px;right:2px;bottom:0;height:2px;border-radius:2px;background:#9ba495;transform:scaleX(0);transform-origin:left;opacity:.18;pointer-events:none;transition:opacity 180ms ease; }
-  .is-scrolling #reading-progress { opacity:.65; }
+  #reading-progress { position:absolute;left:2px;right:2px;bottom:0;height:3px;border-radius:3px;background:#87977d;transform:scaleX(0);transform-origin:left;opacity:.4;pointer-events:none;transition:opacity 180ms ease; }
+  .is-scrolling #reading-progress { opacity:.9; }
   button,.tag-chip,.fab { transition:transform 120ms ease,background-color 160ms ease; }
   @media (hover:hover) { .entry-delete:hover { background:rgba(155,164,149,.16); } }
-  button:enabled:active,.tag-chip:active,.fab:active { transform:translateY(1px) scale(.97); }
+  button:enabled:active,.tag-chip:active,.fab:active { transform:translateY(2px) scale(.94); }
   .fab:active { transform:scale(.95); }
   .filter-panel.open { animation:filter-arrive 180ms ease-out; }
   @keyframes filter-arrive { from { opacity:.7;transform:translateY(-4px); } to { opacity:1;transform:translateY(0); } }

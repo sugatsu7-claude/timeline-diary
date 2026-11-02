@@ -1,4 +1,4 @@
-// diary-release: 2026.11.02.1
+// diary-release: 2026.11.02.2
 /* Explicit, online-only map selection. No background geolocation or Worker calls. */
 (function(){
  'use strict';
