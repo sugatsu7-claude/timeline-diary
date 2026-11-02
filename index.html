@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.02.3">
+<meta name="diary-version" content="2026.11.02.4">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -538,13 +538,27 @@
   .setup-actions { display:flex;gap:8px; }
   #setup-origin { user-select:all;overflow-wrap:anywhere; }
 
-  .reading-motion .entry-card { transform:scale(var(--reading-scale,1));opacity:var(--reading-opacity,1);transform-origin:center; }
+  .reading-motion.reading-fallback .entry-card { transform:translate3d(0,var(--reading-shift,0px),0) scale(var(--reading-scale,1));opacity:var(--reading-opacity,1);transform-origin:center; }
+  .reading-motion .reading-active:not(.reading-long)>.entry-card { will-change:transform,opacity; }
+  @supports (animation-timeline:view()) {
+    .reading-motion.reading-native .entry-row { view-timeline-name:--diary-reading;view-timeline-axis:block;view-timeline-inset:calc(env(safe-area-inset-top) + 68px) 16px; }
+    .reading-motion.reading-native .entry-row:not(.reading-long)>.entry-card {
+      animation-name:reading-breathe;animation-duration:auto;animation-timing-function:cubic-bezier(.42,0,.58,1);animation-fill-mode:both;
+      animation-timeline:--diary-reading;animation-range:cover 0% cover 100%;transform-origin:center;
+    }
+    @keyframes reading-breathe {
+      0% { transform:translate3d(0,12px,0) scale(.955);opacity:.82; }
+      32%,68% { transform:translate3d(0,0,0) scale(1);opacity:1; }
+      100% { transform:translate3d(0,-8px,0) scale(.97);opacity:.9; }
+    }
+    .reading-motion.reading-native .saved-highlight:not(.reading-long)>.entry-card { animation-name:reading-breathe,saved-highlight;animation-duration:auto,2100ms;animation-timing-function:cubic-bezier(.42,0,.58,1),ease-out;animation-fill-mode:both,none;animation-timeline:--diary-reading,auto;animation-range:cover 0% cover 100%,normal; }
+  }
   button.touch-pressed,.tag-chip.touch-pressed,.fab.touch-pressed { transform:translateY(2px) scale(.94); }
-  /* Quiet movement: native scroll, no parallax or persistent card transforms. */
-  .toolbar { transition:transform 220ms cubic-bezier(.22,.75,.25,1); }
-  .toolbar .search-box,.toolbar .filter-btn { transition:padding 220ms ease,background-color 160ms ease,box-shadow 220ms ease; }
-  .toolbar.is-compact { transform:translateY(-3px); }
-  .toolbar.is-compact .search-box,.toolbar.is-compact .filter-btn { padding-top:6px;padding-bottom:6px;background:rgba(250,248,243,.96);box-shadow:0 3px 16px rgba(80,74,63,.06); }
+  /* Scroll-driven movement settles quietly; the toolbar never changes layout height. */
+  .toolbar { transition:transform 220ms cubic-bezier(.22,.75,.25,1);transform-origin:top center; }
+  .toolbar .search-box,.toolbar .filter-btn { transition:background-color 160ms ease,box-shadow 220ms ease; }
+  .toolbar.is-compact { transform:translateY(-3px) scale(.985); }
+  .toolbar.is-compact .search-box,.toolbar.is-compact .filter-btn { background:rgba(250,248,243,.96);box-shadow:0 3px 16px rgba(80,74,63,.06); }
   #reading-progress { position:absolute;left:2px;right:2px;bottom:0;height:3px;border-radius:3px;background:#87977d;transform:scaleX(0);transform-origin:left;opacity:.4;pointer-events:none;transition:opacity 180ms ease; }
   .is-scrolling #reading-progress { opacity:.9; }
   button,.tag-chip,.fab { transition:transform 120ms ease,background-color 160ms ease; }
@@ -556,7 +570,7 @@
   @media (prefers-reduced-motion:reduce) {
     .toolbar,.toolbar .search-box,.toolbar .filter-btn,.sheet,.sheet-backdrop,button,.tag-chip,.fab,.top-fab,.toast,#reading-progress { transition:none; }
     .filter-panel.open,.saved-highlight .entry-card { animation:none; }
-    .reading-motion .entry-card,button.touch-pressed,.tag-chip.touch-pressed,.fab.touch-pressed { transform:none;opacity:1; }
+    .reading-motion .entry-row>.entry-card,button.touch-pressed,.tag-chip.touch-pressed,.fab.touch-pressed { animation:none!important;transform:none!important;opacity:1!important;will-change:auto; }
     button:enabled:active,.tag-chip:active,.fab:active,.toolbar.is-compact { transform:none; }
   }
 </style>

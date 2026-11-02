@@ -9,8 +9,8 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
  await scroll(550);assert.equal(await p.locator('.toolbar').evaluate(el=>el.classList.contains('is-compact')),true);
  assert.ok(await p.locator('#reading-progress').evaluate(el=>new DOMMatrix(getComputedStyle(el).transform).a>0));
  await scroll(400);assert.equal(await p.locator('.toolbar').evaluate(el=>el.classList.contains('is-compact')),false);
- await scroll(900);await scroll(1200);const reveals=await p.evaluate(()=>window.reveals.slice());assert.ok(reveals.length>0,'new rows respond as they enter view');
- await scroll(400);await scroll(1200);const repeated=await p.evaluate(()=>window.reveals);assert.equal(new Set(repeated).size,repeated.length,'visible diary IDs never replay their reveal');
+ await scroll(900);await scroll(1200);const reveals=await p.evaluate(()=>window.reveals.slice());assert.equal(reveals.length,0,'scrolling must not start a second JS entrance animation');
+ await scroll(400);await scroll(1200);const repeated=await p.evaluate(()=>window.reveals);assert.equal(repeated.length,0,'repeat scrolling stays free of JS entrance animations');
  await p.locator('#filter-toggle').click();await p.waitForTimeout(300);const toolbar=await p.locator('.toolbar').boundingBox(),panel=await p.locator('#filter-panel').boundingBox();assert.ok(panel.y>=toolbar.y+toolbar.height,'expanded filters stay below toolbar');assert.equal(await p.locator('.toolbar').evaluate(el=>el.classList.contains('is-compact')),false);await p.locator('#close-filters').click();
  // Loading retains old nodes, grows only one batch and keeps the page inside the viewport.
  await p.evaluate(()=>window.firstRow=document.querySelector('.entry-row'));await p.locator('#load-more-entries').click();assert.equal(await p.locator('.entry-row').count(),60);assert.equal(await p.evaluate(()=>window.firstRow===document.querySelector('.entry-row')),true);
@@ -23,5 +23,5 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
  await p.waitForFunction(()=>document.querySelector('[data-entry-id="motion59"]').classList.contains('saved-highlight'));
  const keyboardSaved=await p.locator('[data-entry-id="motion59"]').boundingBox();assert.ok(keyboardSaved.y>=0&&keyboardSaved.y<844,'return resumes after keyboard dismissal');
  await p.emulateMedia({reducedMotion:'reduce'});const before=await p.evaluate(()=>window.reveals.length);await scroll(1700);assert.equal(await p.locator('.toolbar').evaluate(el=>el.classList.contains('is-compact')),false);assert.equal(await p.evaluate(()=>window.reveals.length),before);assert.equal(await p.locator('#sheet').evaluate(el=>getComputedStyle(el).transitionDuration),'0s');assert.equal(remote,0);
- console.log('PASS: native scroll feedback, direction hysteresis, one-shot reveals, filter alignment, stable batch nodes/mobile widths, saved return/keyboard dismissal and gesture cancellation, reduced motion, no Worker requests.');await browser.close();
+ console.log('PASS: native scroll feedback, direction hysteresis, scroll-driven capsules without stacked entrance animations, filter alignment, stable batch nodes/mobile widths, saved return/keyboard dismissal and gesture cancellation, reduced motion, no Worker requests.');await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

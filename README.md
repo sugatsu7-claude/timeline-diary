@@ -8,7 +8,7 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fsugatsu7-claude%2Ftimeline-diary%2Ftree%2Fmain%2Fworker)
 
-版本 `2026.11.02.3` 新增首次连接向导、独立 Worker 部署模板和数据库链接识别。现有用户继续使用原来的 Worker 地址与连接码，普通同步协议兼容；想使用新向导的「检查连接」需部署本仓库新版 Worker。
+版本 `2026.11.02.4` 新增首次连接向导、独立 Worker 部署模板和数据库链接识别。现有用户继续使用原来的 Worker 地址与连接码，普通同步协议兼容；想使用新向导的「检查连接」需部署本仓库新版 Worker。
 
 ## 第一次使用
 
@@ -82,3 +82,5 @@ CI 校验版本、运行浏览器/Worker测试和 Worker dry-run，输出前端�
 界面使用原生滚动与轻量动效：工具栏随阅读方向收紧/展开，细线显示阅读位置，新进入视野的日记仅浮现一次，保存后柔和归位。遵循系统「减少动态效果」设置，不增加同步请求。
 
 短胶囊随滚动位置轻微收拢与舒展，长日记保持原尺寸；系统减少动态效果开启时保持静态。触屏按钮使用明确的按压状态。
+
+滚动效果优先使用浏览器的滚动时间线；不支持时缓存胶囊位置并短暂平滑收敛。停下后动效停止，不额外播放首次浮现，长文字保持原尺寸。
