@@ -1,4 +1,4 @@
-// diary-release: 2026.11.01.7
+// diary-release: 2026.11.02.1
 (function () {
   'use strict';
   var version = document.querySelector('meta[name="diary-version"]').content;
