@@ -40,7 +40,7 @@
   function animate(row,frames,options){
     if(reduced())return;
     var previous=activeAnimations.get(row);if(previous)previous.cancel();
-    var opacity=row.style.opacity,transform=row.style.transform,start=performance.now(),id=0,done=false;
+    var opacity=row.style.opacity,transform=row.style.transform,start=null,id=0,done=false;
     var from=Number(frames[0].opacity),to=Number(frames[1].opacity),move=frames[0].transform?16:0;
     function restore(){row.style.opacity=opacity;if(move)row.style.transform=transform;}
     var effect={cancel:function(){if(done)return;done=true;cancelAnimationFrame(id);restore();animations.delete(effect);activeAnimations.delete(row);}};
@@ -49,7 +49,8 @@
     function draw(now){
       if(done)return;
       if(reduced()||document.hidden||!row.isConnected){effect.cancel();return;}
-      var fraction=Math.min(1,(now-start)/options.duration),ease=1-Math.pow(1-fraction,3);
+      if(start===null)start=now;
+      var fraction=Math.min(1,Math.max(0,(now-start)/options.duration)),ease=1-Math.pow(1-fraction,3);
       row.style.opacity=String(from+(to-from)*ease);
       if(move)row.style.transform='translateY('+(move*(1-ease)).toFixed(3)+'px)';
       if(fraction>=1){effect.cancel();return;}id=requestAnimationFrame(draw);
