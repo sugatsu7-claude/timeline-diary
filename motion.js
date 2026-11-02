@@ -14,7 +14,7 @@
   function tick(){
     frame=0;var y=Math.max(0,Math.min(window.scrollY,maxScroll)),delta=y-lastY;lastY=y;
     progress.style.transform='scaleX('+(maxScroll?Math.min(1,y/maxScroll):0)+')';
-    if(reduced()||blocked()||y<72){setCompact(false);direction=0;distance=0;return;}
+    if(reduced()||blocked()||savedRow||y<72){setCompact(false);direction=0;distance=0;return;}
     if(Math.abs(delta)<1)return;
     var next=delta>0?1:-1;if(next!==direction){distance=0;direction=next;}distance+=Math.abs(delta);
     if(distance>(direction>0?28:18)){setCompact(direction>0);distance=0;}
@@ -34,11 +34,12 @@
   },{threshold:0,rootMargin:'0px 0px -16px 0px'});
   function timelineChanged(container,filterChanged,focusId){
     if(observer)observer.disconnect();
+    if(filterChanged)animate(container,[{opacity:.7},{opacity:1}],{duration:180,easing:'ease-out'});
     var rows=container.querySelectorAll('.entry-row');
     rows.forEach(function(row){
       var box=row.getBoundingClientRect(),visible=box.bottom>0&&box.top<innerHeight-16;
       if(reduced()||!observer||seen.has(row.dataset.entryId)||row.dataset.entryId===focusId){seen.add(row.dataset.entryId);return;}
-      if(visible){seen.add(row.dataset.entryId);if(filterChanged)animate(row,[{opacity:.7},{opacity:1}],{duration:180,easing:'ease-out'});}
+      if(visible)seen.add(row.dataset.entryId);
       else observer.observe(row);
     });measure();
   }
