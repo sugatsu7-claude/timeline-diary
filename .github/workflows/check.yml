@@ -24,6 +24,9 @@ jobs:
         working-directory: worker
       - run: npx wrangler deploy --dry-run
         working-directory: worker
+      - run: node tests/mobile-motion-render.test.cjs
+        env:
+          DIARY_BROWSER: webkit
       - run: node tests/motion.test.cjs
         env:
           DIARY_BROWSER: webkit
