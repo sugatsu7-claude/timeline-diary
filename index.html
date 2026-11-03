@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.03.3">
+<meta name="diary-version" content="2026.11.03.4">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -320,6 +320,22 @@
     width:100%;max-width:100%;
   }
   .sheet.open { transform: translateY(0);opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s; }
+  /* Opening feels springy and leads the eye top-down; closing is quicker and eases away.
+     Overshoot is hidden by the shadow fill below the sheet. */
+  @media (prefers-reduced-motion:no-preference) {
+    .sheet { transition:transform 240ms cubic-bezier(.5,0,.9,.4),opacity 200ms ease,visibility 0s linear 240ms;box-shadow:0 60px 0 0 #F4F1EA; }
+    .sheet.open { transition:transform 460ms cubic-bezier(.2,.95,.25,1.07),opacity 220ms ease,visibility 0s linear 0s; }
+    .sheet-backdrop { transition:opacity 240ms ease,visibility 0s linear 260ms; }
+    .sheet-backdrop.open { transition:opacity 320ms ease; }
+    .sheet.open>* { animation:sheet-item 420ms cubic-bezier(.2,.8,.25,1) both; }
+    .sheet.open>*:nth-child(1) { animation-delay:40ms; } .sheet.open>*:nth-child(2) { animation-delay:75ms; }
+    .sheet.open>*:nth-child(3) { animation-delay:110ms; } .sheet.open>*:nth-child(4) { animation-delay:145ms; }
+    .sheet.open>*:nth-child(5) { animation-delay:180ms; } .sheet.open>*:nth-child(6) { animation-delay:215ms; }
+    .sheet.open>*:nth-child(n+7) { animation-delay:250ms; }
+    @keyframes sheet-item { from { opacity:0;transform:translate3d(0,14px,0); } to { opacity:1;transform:none; } }
+    .entry-row.edit-source>.entry-card { animation:edit-source 700ms ease-out; }
+    @keyframes edit-source { 0% { box-shadow:0 0 0 0 rgba(139,154,126,.7),0 4px 16px rgba(44,44,42,.08); transform:scale(1); } 30% { box-shadow:0 0 0 5px rgba(139,154,126,.35),0 8px 28px rgba(139,154,126,.35);transform:scale(1.015); } 100% { box-shadow:0 0 0 12px rgba(139,154,126,0),0 4px 16px rgba(44,44,42,.08);transform:scale(1); } }
+  }
   .sheet h2 { font-size: 16px; font-weight: 500; margin: 0 0 14px; }
   .sheet label { font-size: 12px; color: #767570; display: block; margin: 12px 0 5px; }
   .sheet input[type="date"], .sheet textarea, .sheet input[type="text"] {
@@ -709,7 +725,7 @@
 </div>
 <div class="settings-toggle" id="feedback-toggle">触感与声音</div>
 <div class="settings-panel" id="feedback-panel">
-  <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="feedback-haptics" style="width:auto;">触感反馈（点按、保存、滑动换卡）</label>
+  <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="feedback-haptics" style="width:auto;">触感反馈（点按、保存、滑动换卡；仅支持震动的设备）</label>
   <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="feedback-sound" style="width:auto;">轻柔提示音（点按、保存、提醒）</label>
   <button class="settings-save" id="feedback-test">试一下</button>
   <p class="settings-hint" id="feedback-note"></p>

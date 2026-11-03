@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.3
+// diary-release: 2026.11.03.4
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -392,8 +392,13 @@ function openSheet(editEntry) {
   authorOptions.forEach(function (name) { var option = document.createElement('option'); option.value = name; option.textContent = name; sourceSelect.appendChild(option); });
   sourceSelect.value = editEntry ? sourceName(editEntry.source) : (window.AuthorSettings ? AuthorSettings.defaultName() : sourceNames()[0] || '');
   sheetInitialSnapshot = sheetSnapshot();
+  var sheetEl=document.getElementById('sheet');
+  // The sheet scrolls itself; always start at the top so the date is visible.
+  sheetEl.scrollTop=0;
   document.getElementById('sheet-backdrop').classList.add('open');
-  document.getElementById('sheet').classList.add('open');
+  sheetEl.classList.add('open');
+  sheetEl.scrollTop=0;requestAnimationFrame(function(){sheetEl.scrollTop=0;});
+  if(editEntry&&editEntry.id){var source=document.querySelector('[data-entry-id="'+String(editEntry.id).replace(/["\\]/g,'')+'"]');if(source){source.classList.remove('edit-source');void source.offsetWidth;source.classList.add('edit-source');setTimeout(function(){source.classList.remove('edit-source');},700);}}
 }
 function closeSheet() {
   if(window.DiaryMapPicker?.isOpen())DiaryMapPicker.close();

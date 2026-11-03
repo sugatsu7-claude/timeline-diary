@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.3
+// diary-release: 2026.11.03.4
 /* Stored ZIP archives: blobs remain blobs, avoiding whole-library base64 strings. */
 (function(){
  'use strict';
