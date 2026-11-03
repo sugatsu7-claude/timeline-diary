@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.03.2">
+<meta name="diary-version" content="2026.11.03.3">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -706,6 +706,14 @@
   <label>卡片透明度（数字越大，卡片越实、字越清楚；数字越小，越能看见背景）</label>
   <input type="text" id="card-opacity-input" placeholder="62" inputmode="numeric">
   <button class="settings-save" id="appearance-save-btn">保存外观</button>
+</div>
+<div class="settings-toggle" id="feedback-toggle">触感与声音</div>
+<div class="settings-panel" id="feedback-panel">
+  <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="feedback-haptics" style="width:auto;">触感反馈（点按、保存、滑动换卡）</label>
+  <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="feedback-sound" style="width:auto;">轻柔提示音（点按、保存、提醒）</label>
+  <button class="settings-save" id="feedback-test">试一下</button>
+  <p class="settings-hint" id="feedback-note"></p>
+  <p class="settings-hint">默认关闭，仅保存在当前设备。系统开启「减少动态效果」时自动停用。iPhone 静音拨片打开时没有声音。</p>
 </div>
 <div class="settings-toggle" id="tags-toggle">管理标签</div>
 <div class="settings-panel" id="tags-panel">

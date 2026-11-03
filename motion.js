@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.2
+// diary-release: 2026.11.03.3
 /* Native scrolling, bounded one-shot reveals, and quiet feedback. No network work. */
 (function () {
   'use strict';
@@ -67,7 +67,7 @@
   root.classList.toggle('reading-motion',!reduced());root.classList.add(nativeReading?'reading-native':'reading-fallback');
   // The capsule resting at the middle of the screen gets a slow halo (CSS) while scrolling is idle.
   var focusObserver='IntersectionObserver' in window?new IntersectionObserver(function(records){
-    records.forEach(function(record){record.target.classList.toggle('reading-focus',record.isIntersecting);});
+    records.forEach(function(record){record.target.classList.toggle('reading-focus',record.isIntersecting);if(record.isIntersecting&&root.classList.contains('is-scrolling')&&window.DiaryFeedback)DiaryFeedback.snap();});
   },{rootMargin:'-42% 0px -42% 0px'}):null;
   function schedule(){if(!frame)frame=requestAnimationFrame(tick);}
   function animate(row,frames,options){
