@@ -1,4 +1,4 @@
-// diary-release: 2026.11.02.4
+// diary-release: 2026.11.03.1
 /* Native scrolling, bounded one-shot reveals, and quiet feedback. No network work. */
 (function () {
   'use strict';
@@ -45,8 +45,8 @@
       var data=geometry.get(row);if(!data)return;
       var phase=(viewportHeight-16-(data.top-y))/Math.max(1,viewportHeight-readingTop-16+data.height);
       var scale=1,opacity=1,shift=0;
-      if(!data.long&&phase<.32){var enter=1-smooth(phase/.32);scale=1-enter*.045;opacity=1-enter*.18;shift=enter*12;}
-      else if(!data.long&&phase>.68){var exit=smooth((phase-.68)/.32);scale=1-exit*.03;opacity=1-exit*.1;shift=-exit*8;}
+      if(!data.long&&phase<.32){var enter=1-smooth(phase/.32);scale=1-enter*.075;opacity=1-enter*.5;shift=enter*22;}
+      else if(!data.long&&phase>.68){var exit=smooth((phase-.68)/.32);scale=1-exit*.05;opacity=1-exit*.32;shift=-exit*14;}
       // Prime a capsule before it reaches the screen; then gently settle changes.
       var prime=data.first&&(data.top-y>=viewportHeight||data.top+data.height-y<=0);data.first=false;
       var nextScale=prime?scale:data.scale+(scale-data.scale)*alpha;
@@ -65,6 +65,10 @@
     records.forEach(function(record){var row=record.target;if(record.isIntersecting)readingRows.add(row);else readingRows.delete(row);row.classList.toggle('reading-active',record.isIntersecting);});schedule();
   },{rootMargin:'140px 0px 140px 0px'}):null;
   root.classList.toggle('reading-motion',!reduced());root.classList.add(nativeReading?'reading-native':'reading-fallback');
+  // The capsule resting at the middle of the screen gets a slow halo (CSS) while scrolling is idle.
+  var focusObserver='IntersectionObserver' in window?new IntersectionObserver(function(records){
+    records.forEach(function(record){record.target.classList.toggle('reading-focus',record.isIntersecting);});
+  },{rootMargin:'-42% 0px -42% 0px'}):null;
   function schedule(){if(!frame)frame=requestAnimationFrame(tick);}
   function animate(row,frames,options){
     if(reduced())return;
@@ -87,9 +91,9 @@
     id=requestAnimationFrame(draw);
   }
   function timelineChanged(container,filterChanged){
-    if(readingObserver)readingObserver.disconnect();readingRows.clear();
+    if(readingObserver)readingObserver.disconnect();if(focusObserver)focusObserver.disconnect();readingRows.clear();
     if(filterChanged)animate(container,[{opacity:.7},{opacity:1}],{duration:260});
-    container.querySelectorAll('.entry-row').forEach(function(row){if(readingObserver)readingObserver.observe(row);else readingRows.add(row);});
+    container.querySelectorAll('.entry-row').forEach(function(row){if(focusObserver)focusObserver.observe(row);if(readingObserver)readingObserver.observe(row);else readingRows.add(row);});
     measure();
   }
   function cancelReturn(){

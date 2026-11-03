@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.02.4">
+<meta name="diary-version" content="2026.11.03.1">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -540,19 +540,43 @@
   .setup-actions { display:flex;gap:8px; }
   #setup-origin { user-select:all;overflow-wrap:anywhere; }
 
+  /* Breathing: capsules swell toward the reading centre, recede at the edges, the date column
+     drifts a little further (parallax), a soft glow peaks at the centre, and the capsule you rest on
+     keeps a slow halo. Everything animates transform/opacity only, so it stays on the compositor. */
+  .entry-card { position:relative; }
+  .entry-card::before,.entry-card::after { content:"";position:absolute;pointer-events:none;border-radius:inherit;opacity:0; }
+  .entry-card::after { inset:0;box-shadow:0 10px 34px rgba(139,154,126,.34); }
+  .entry-card::before { inset:-3px;border-radius:17px;border:1px solid rgba(139,154,126,.42); }
   .reading-motion.reading-fallback .entry-card { transform:translate3d(0,var(--reading-shift,0px),0) scale(var(--reading-scale,1));opacity:var(--reading-opacity,1);transform-origin:center; }
-  .reading-motion .reading-active:not(.reading-long)>.entry-card { will-change:transform,opacity; }
+  .reading-motion.reading-fallback .entry-card::after { opacity:calc((var(--reading-scale,1) - .93) * 14.3); }
+  .reading-motion.reading-fallback .entry-date-col { transform:translate3d(0,calc(var(--reading-shift,0px) * 1.5),0);opacity:var(--reading-opacity,1); }
+  .reading-motion .reading-active:not(.reading-long)>.entry-card,.reading-motion .reading-active:not(.reading-long)>.entry-date-col { will-change:transform,opacity; }
+  html:not(.is-scrolling).reading-motion .reading-focus>.entry-card::before { animation:reading-halo 4.8s ease-in-out infinite; }
+  @keyframes reading-halo { 0%,100% { opacity:.12;transform:scale(1); } 50% { opacity:.8;transform:scale(1.012); } }
   @supports (animation-timeline:view()) {
     .reading-motion.reading-native .entry-row { view-timeline-name:--diary-reading;view-timeline-axis:block;view-timeline-inset:calc(env(safe-area-inset-top) + 68px) 16px; }
     .reading-motion.reading-native .entry-row:not(.reading-long)>.entry-card {
       animation-name:reading-breathe;animation-duration:auto;animation-timing-function:cubic-bezier(.42,0,.58,1);animation-fill-mode:both;
       animation-timeline:--diary-reading;animation-range:cover 0% cover 100%;transform-origin:center;
     }
-    @keyframes reading-breathe {
-      0% { transform:translate3d(0,12px,0) scale(.955);opacity:.82; }
-      32%,68% { transform:translate3d(0,0,0) scale(1);opacity:1; }
-      100% { transform:translate3d(0,-8px,0) scale(.97);opacity:.9; }
+    .reading-motion.reading-native .entry-row:not(.reading-long)>.entry-card::after,
+    .reading-motion.reading-native .entry-row:not(.reading-long)>.entry-date-col {
+      animation-duration:auto;animation-timing-function:cubic-bezier(.42,0,.58,1);animation-fill-mode:both;
+      animation-timeline:--diary-reading;animation-range:cover 0% cover 100%;
     }
+    .reading-motion.reading-native .entry-row:not(.reading-long)>.entry-card::after { animation-name:reading-glow; }
+    .reading-motion.reading-native .entry-row:not(.reading-long)>.entry-date-col { animation-name:reading-date; }
+    @keyframes reading-breathe {
+      0% { transform:translate3d(0,22px,0) scale(.925);opacity:.5; }
+      34%,66% { transform:translate3d(0,0,0) scale(1);opacity:1; }
+      100% { transform:translate3d(0,-14px,0) scale(.95);opacity:.68; }
+    }
+    @keyframes reading-date {
+      0% { transform:translate3d(0,32px,0);opacity:.3; }
+      34%,66% { transform:translate3d(0,0,0);opacity:1; }
+      100% { transform:translate3d(0,-20px,0);opacity:.5; }
+    }
+    @keyframes reading-glow { 0%,28% { opacity:0; } 50% { opacity:1; } 72%,100% { opacity:0; } }
     .reading-motion.reading-native .saved-highlight:not(.reading-long)>.entry-card { animation-name:reading-breathe,saved-highlight;animation-duration:auto,2100ms;animation-timing-function:cubic-bezier(.42,0,.58,1),ease-out;animation-fill-mode:both,none;animation-timeline:--diary-reading,auto;animation-range:cover 0% cover 100%,normal; }
   }
   button.touch-pressed,.tag-chip.touch-pressed,.fab.touch-pressed { transform:translateY(2px) scale(.94); }
@@ -572,7 +596,7 @@
   @media (prefers-reduced-motion:reduce) {
     .toolbar,.toolbar .search-box,.toolbar .filter-btn,.sheet,.sheet-backdrop,button,.tag-chip,.fab,.top-fab,.toast,#reading-progress { transition:none; }
     .filter-panel.open,.saved-highlight .entry-card { animation:none; }
-    .reading-motion .entry-row>.entry-card,button.touch-pressed,.tag-chip.touch-pressed,.fab.touch-pressed { animation:none!important;transform:none!important;opacity:1!important;will-change:auto; }
+    .reading-motion .entry-row>.entry-card,.reading-motion .entry-row>.entry-date-col,.reading-motion .entry-card::before,.reading-motion .entry-card::after,button.touch-pressed,.tag-chip.touch-pressed,.fab.touch-pressed { animation:none!important;transform:none!important;opacity:1!important;will-change:auto; }
     button:enabled:active,.tag-chip:active,.fab:active,.toolbar.is-compact { transform:none; }
   }
 </style>
