@@ -1,10 +1,14 @@
-// diary-release: 2026.11.03.7
+// diary-release: 2026.11.03.8
 /* Interface themes. The choice is stored on this device and applied as html[data-theme]. */
 (function () {
   'use strict';
   var KEY='theme',root=document.documentElement;
   function valid(value){return value==='ink'?'ink':'default';}
-  function apply(value){if(value==='ink')root.setAttribute('data-theme','ink');else root.removeAttribute('data-theme');}
+  function apply(value){
+    if(value==='ink')root.setAttribute('data-theme','ink');else root.removeAttribute('data-theme');
+    // The built-in background follows the theme (a user-chosen photo is left alone).
+    if(typeof applyBackground==='function'&&typeof appSettings!=='undefined'&&!appSettings.localBackground&&!appSettings.bgUrl)applyBackground('');
+  }
   var current='default';
   try{current=valid(DiaryStore.config(KEY,'default'));}catch(e){}
   apply(current);
