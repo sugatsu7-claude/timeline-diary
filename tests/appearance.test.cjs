@@ -10,7 +10,7 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
   assert.notEqual(await box.evaluate(el=>getComputedStyle(el).appearance),'none',theme+': checkbox keeps native appearance');
   await box.check();assert.equal(await box.isChecked(),true);await box.uncheck();
   await p.locator('#feedback-toggle').click();
-  await p.locator('#data-toggle').click();
+  await p.locator('#data-toggle').click();await p.locator('.range-chip[data-range="custom"]').click();
   for(const id of ['backup-from','backup-to'])assert.ok((await p.locator('#'+id).boundingBox()).height>=36,theme+': '+id+' has a normal height');
   await p.locator('#data-toggle').click();
   // Sliders: live preview, restore on close, persist on save.

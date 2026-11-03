@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.10
+// diary-release: 2026.11.03.12
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -34,13 +34,21 @@ function cnNumber(n) {
   return digits[Math.floor(n / 10)] + '十' + (n % 10 ? digits[n % 10] : '');
 }
 function cnDay(n) { return n >= 21 && n <= 29 ? '廿' + cnNumber(n % 10) : cnNumber(n); }
-function showToast(msg) {
+// action (optional): { label, onClick, duration } adds a tappable button, e.g. 撤销.
+function showToast(msg, action) {
   var t = document.getElementById('toast');
   t.textContent = msg;
+  t.classList.toggle('has-action', !!action);
+  if (action) {
+    var button = document.createElement('button');
+    button.type = 'button';button.className = 'toast-action';button.textContent = action.label;
+    button.onclick = function () { clearTimeout(showToast._timer);t.classList.remove('show');action.onClick(); };
+    t.appendChild(button);
+  }
   if (window.DiaryFeedback) DiaryFeedback.toast(msg);
   t.classList.add('show');
   clearTimeout(showToast._timer);
-  showToast._timer = setTimeout(function () { t.classList.remove('show'); }, 2000);
+  showToast._timer = setTimeout(function () { t.classList.remove('show'); }, action ? (action.duration || 6000) : 2000);
 }
 
 function uid() {
@@ -249,8 +257,11 @@ function appendTimelineBatch(batch) {
       del.disabled = !!entry.readOnly;
       del.setAttribute('aria-label', '删除日记');
       del.onclick = async function () {
-        if(!confirm('删除这条记录？会移入回收站，7天内可恢复。'))return;
-        try{await DiaryStore.remove(entry.id,entry);await refreshDiaryData();}catch(error){showToast(error.message);}
+        // No confirm dialog: deleting only moves the diary to the 7-day trash, and the toast offers 撤销.
+        try{await DiaryStore.remove(entry.id,entry);await refreshDiaryData();}catch(error){showToast(error.message);return;}
+        showToast('已删除，7 天内可在回收站找回',{label:'撤销',duration:6000,onClick:async function(){
+          try{await DiaryStore.restore(entry.id);await refreshDiaryData();showToast('已恢复');}catch(error){showToast('恢复未完成：'+error.message);}
+        }});
       };
       actions.appendChild(del);
       top.appendChild(actions);
@@ -505,70 +516,132 @@ document.getElementById('tags-toggle').onclick = function () {
   toggleSettingsGroup('tags');
 };
 
+var selectedManageTag = null, lastAddedTag = null;
+function tagUsage(tag) { return entries.filter(function (e) { return (e.tags || []).indexOf(tag) > -1; }).length; }
+// Tags are chips; tapping one selects it and reveals large move / delete buttons below.
 function renderManageTagChips() {
-  var wrap = document.getElementById('manage-tag-chips');
-  wrap.innerHTML = '';
+  var wrap = document.getElementById('manage-tag-chips'), bar = document.getElementById('tag-actions');
+  wrap.replaceChildren();
+  if (selectedManageTag && PRESET_TAGS.indexOf(selectedManageTag) < 0) selectedManageTag = null;
+  document.getElementById('tag-summary').textContent = PRESET_TAGS.length ? '共 ' + PRESET_TAGS.length + ' 个标签 · 按住标签拖动可排序，点一下可选中' : '';
   if (PRESET_TAGS.length === 0) {
-    wrap.innerHTML = '<span style="font-size:12px;color:#C7C6BE;">还没有标签，先加一个吧</span>';
-    return;
+    var empty = document.createElement('p');empty.className = 'tag-empty';empty.textContent = '还没有标签，先在下面添加一个吧';wrap.appendChild(empty);
+    bar.hidden = true;return;
   }
-  wrap.style.display = 'flex';
-  wrap.style.flexDirection = 'column';
-  wrap.style.gap = '6px';
-  PRESET_TAGS.forEach(function (tag, idx) {
-    var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:6px;background:#FCFCFB;border:0.5px solid #E1E0D9;border-radius:10px;padding:6px 8px;';
-    var label = document.createElement('span');
-    label.textContent = tag;
-    label.style.cssText = 'flex:1;font-size:13px;color:#52514E;';
-    row.appendChild(label);
-
-    var upBtn = document.createElement('button');
-    upBtn.type = 'button';
-    upBtn.textContent = '↑';
-    upBtn.disabled = idx === 0;
-    upBtn.style.cssText = 'background:transparent;border:none;font-size:14px;color:' + (idx === 0 ? '#E1E0D9' : '#767570') + ';padding:2px 6px;';
-    upBtn.onclick = async function () {
-      if (idx === 0) return;
-      var tmp = PRESET_TAGS[idx - 1];
-      PRESET_TAGS[idx - 1] = PRESET_TAGS[idx];
-      PRESET_TAGS[idx] = tmp;
-      if(!await savePresetTags())return;
-      renderManageTagChips();
-    };
-    row.appendChild(upBtn);
-
-    var downBtn = document.createElement('button');
-    downBtn.type = 'button';
-    downBtn.textContent = '↓';
-    downBtn.disabled = idx === PRESET_TAGS.length - 1;
-    downBtn.style.cssText = 'background:transparent;border:none;font-size:14px;color:' + (idx === PRESET_TAGS.length - 1 ? '#E1E0D9' : '#767570') + ';padding:2px 6px;';
-    downBtn.onclick = async function () {
-      if (idx === PRESET_TAGS.length - 1) return;
-      var tmp = PRESET_TAGS[idx + 1];
-      PRESET_TAGS[idx + 1] = PRESET_TAGS[idx];
-      PRESET_TAGS[idx] = tmp;
-      if(!await savePresetTags())return;
-      renderManageTagChips();
-    };
-    row.appendChild(downBtn);
-
-    var removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.innerHTML = '✕';
-    removeBtn.style.cssText = 'background:transparent;border:none;font-size:13px;color:#C7C6BE;padding:2px 6px;';
-    removeBtn.onclick = async function () {
-      if (!confirm('删除标签"' + tag + '"？已记录的内容不会受影响。')) return;
-      PRESET_TAGS = PRESET_TAGS.filter(function (t) { return t !== tag; });
-      if(!await savePresetTags())return;
-      renderManageTagChips();
-    };
-    row.appendChild(removeBtn);
-
-    wrap.appendChild(row);
+  PRESET_TAGS.forEach(function (tag) {
+    var chip = document.createElement('button');
+    chip.type = 'button';chip.dataset.tag = tag;chip.className = 'manage-tag-chip' + (tag === selectedManageTag ? ' is-selected' : '') + (tag === lastAddedTag ? ' is-new' : '');
+    chip.setAttribute('aria-pressed', String(tag === selectedManageTag));
+    var name = document.createElement('span');name.textContent = tag;chip.appendChild(name);
+    var count = tagUsage(tag), badge = document.createElement('small');badge.textContent = count ? String(count) : '';
+    if (count) { badge.setAttribute('aria-label', count + ' 篇日记使用'); chip.appendChild(badge); }
+    chip.onclick = function () { if (suppressTagClick) return;selectedManageTag = selectedManageTag === tag ? null : tag; lastAddedTag = null; renderManageTagChips(); };
+    wrap.appendChild(chip);
   });
+  lastAddedTag = null;
+  bar.hidden = !selectedManageTag;
+  if (selectedManageTag) {
+    var index = PRESET_TAGS.indexOf(selectedManageTag);
+    document.getElementById('tag-selected-name').textContent = '「' + selectedManageTag + '」';
+    document.getElementById('tag-move-earlier').disabled = index === 0;
+    document.getElementById('tag-move-later').disabled = index === PRESET_TAGS.length - 1;
+  }
 }
-
+// Press and hold a tag chip, then drag it to a new place; the others slide out of the way.
+var tagDrag = null, suppressTagClick = false;
+(function setupTagDrag() {
+  var wrap = document.getElementById('manage-tag-chips'), drawer = document.getElementById('settings-drawer');
+  function chipsOf() { return Array.prototype.slice.call(wrap.querySelectorAll('.manage-tag-chip')); }
+  function place() {
+    var d = tagDrag, chip = d.chip;
+    chip.style.transform = 'none';
+    var r = chip.getBoundingClientRect();
+    d.tx = d.x - d.grabX - (r.left + r.width / 2);d.ty = d.y - d.grabY - (r.top + r.height / 2);
+    chip.style.transform = 'translate(' + d.tx + 'px,' + d.ty + 'px) scale(1.06)';
+  }
+  function reorder() {
+    var d = tagDrag, chips = chipsOf().filter(function (c) { return c !== d.chip; });
+    // Hit-test on layout positions (offset*), which ignore the slide animations still running on the others.
+    var box = wrap.getBoundingClientRect(), px = d.x - box.left, py = d.y - box.top;
+    var target = chips.filter(function (c) { return px >= c.offsetLeft && px <= c.offsetLeft + c.offsetWidth && py >= c.offsetTop && py <= c.offsetTop + c.offsetHeight; })[0];
+    if (!target) return;
+    var all = chipsOf(), before = {};
+    all.forEach(function (c) { before[c.dataset.tag] = c.getBoundingClientRect(); });
+    if (all.indexOf(d.chip) < all.indexOf(target)) target.after(d.chip);else target.before(d.chip);
+    chipsOf().forEach(function (c) { // slide the others from their old spot to the new one
+      if (c === d.chip) return;
+      var from = before[c.dataset.tag], to = c.getBoundingClientRect();
+      var dx = from.left - to.left, dy = from.top - to.top;
+      if (!dx && !dy) return;
+      c.style.transition = 'none';c.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      requestAnimationFrame(function () { c.style.transition = '';c.style.transform = ''; });
+    });
+  }
+  function frame() {
+    var d = tagDrag;if (!d || !d.active) return;
+    var r = drawer.getBoundingClientRect(), dy = d.y < r.top + 80 ? -10 : d.y > r.bottom - 80 ? 10 : 0;
+    if (dy) { drawer.scrollTop += dy;place();reorder(); }
+    requestAnimationFrame(frame);
+  }
+  function begin() {
+    var d = tagDrag;if (!d) return;
+    d.active = true;wrap.classList.add('is-sorting');d.chip.classList.add('is-dragging');
+    try { d.chip.setPointerCapture(d.pointerId); } catch (_) {}
+    if (window.DiaryFeedback) DiaryFeedback.tick();
+    place();requestAnimationFrame(frame);
+  }
+  function finish(cancelled) {
+    var d = tagDrag;if (!d) return;
+    clearTimeout(d.timer);tagDrag = null;
+    if (!d.active) return;
+    suppressTagClick = true;setTimeout(function () { suppressTagClick = false; }, 60);
+    wrap.classList.remove('is-sorting');d.chip.classList.remove('is-dragging');d.chip.style.transform = '';
+    var names = chipsOf().map(function (c) { return c.dataset.tag; });
+    if (cancelled || names.join('\n') === PRESET_TAGS.join('\n')) { renderManageTagChips();return; }
+    PRESET_TAGS = names;selectedManageTag = d.chip.dataset.tag;
+    savePresetTags().then(function () { renderManageTagChips(); });
+  }
+  // iOS would otherwise scroll the page while the chip is being dragged.
+  wrap.addEventListener('touchmove', function (e) { if (tagDrag && tagDrag.active) e.preventDefault(); }, { passive: false });
+  wrap.addEventListener('contextmenu', function (e) { if (tagDrag) e.preventDefault(); });
+  wrap.addEventListener('pointerdown', function (e) {
+    var chip = e.target.closest('.manage-tag-chip');
+    if (!chip || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    var r = chip.getBoundingClientRect();
+    tagDrag = { chip: chip, pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY, grabX: e.clientX - (r.left + r.width / 2), grabY: e.clientY - (r.top + r.height / 2), active: false, tx: 0, ty: 0 };
+    tagDrag.timer = setTimeout(begin, 240);
+  });
+  wrap.addEventListener('pointermove', function (e) {
+    var d = tagDrag;if (!d || e.pointerId !== d.pointerId) return;
+    d.x = e.clientX;d.y = e.clientY;
+    if (!d.active) { if (Math.hypot(d.x - d.startX, d.y - d.startY) > 8) { clearTimeout(d.timer);tagDrag = null; } return; } // moved before the hold finished: a scroll or swipe
+    e.preventDefault();place();reorder();
+  });
+  wrap.addEventListener('pointerup', function () { finish(false); });
+  wrap.addEventListener('pointercancel', function () { finish(true); });
+})();
+async function moveManageTag(step) {
+  var index = PRESET_TAGS.indexOf(selectedManageTag), target = index + step;
+  if (index < 0 || target < 0 || target >= PRESET_TAGS.length) return;
+  var swap = PRESET_TAGS[target];PRESET_TAGS[target] = PRESET_TAGS[index];PRESET_TAGS[index] = swap;
+  if (!await savePresetTags()) return;
+  renderManageTagChips();
+}
+document.getElementById('tag-move-earlier').onclick = function () { moveManageTag(-1); };
+document.getElementById('tag-move-later').onclick = function () { moveManageTag(1); };
+document.getElementById('tag-delete').onclick = async function () {
+  var tag = selectedManageTag;if (!tag) return;
+  var used = tagUsage(tag), position = PRESET_TAGS.indexOf(tag);
+  PRESET_TAGS = PRESET_TAGS.filter(function (t) { return t !== tag; });
+  selectedManageTag = null;
+  if (!await savePresetTags()) return;
+  renderManageTagChips();
+  showToast('已删除标签「' + tag + '」' + (used ? '（' + used + ' 篇日记用过它，内容不受影响）' : ''), { label: '撤销', duration: 6000, onClick: async function () {
+    if (PRESET_TAGS.indexOf(tag) < 0) PRESET_TAGS.splice(Math.min(position, PRESET_TAGS.length), 0, tag);
+    if (!await savePresetTags()) return;
+    selectedManageTag = tag;renderManageTagChips();showToast('已恢复标签');
+  } });
+};
 document.getElementById('add-tag-btn').onclick = async function () {
   var input = document.getElementById('new-tag-input');
   var val = input.value.trim();
@@ -577,9 +650,13 @@ document.getElementById('add-tag-btn').onclick = async function () {
   PRESET_TAGS.push(val);
   if(!await savePresetTags())return;
   input.value = '';
+  selectedManageTag = null;lastAddedTag = val;
   renderManageTagChips();
   showToast('标签已添加');
 };
+document.getElementById('new-tag-input').addEventListener('keydown', function (event) {
+  if (event.key === 'Enter' && !event.isComposing) { event.preventDefault();document.getElementById('add-tag-btn').click(); }
+});
 
 renderManageTagChips();
 

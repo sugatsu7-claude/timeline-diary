@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.10
+// diary-release: 2026.11.03.12
 (function(){
  'use strict';
  const status=document.getElementById('backup-status');
@@ -103,5 +103,27 @@
  document.getElementById('import-json-btn').onclick=()=>document.getElementById('import-json-input').click();
  document.getElementById('import-json-input').onchange=async event=>{const file=event.target.files[0];event.target.value='';if(!file)return;try{await DiaryStore.exclusive('maintenance',()=>importBackup(file));}catch(error){status.textContent='导入未完成，原日记未清空：'+error.message;}};
  document.getElementById('storage-refresh').onclick=()=>storageInfo().catch(e=>showToast(e.message));document.getElementById('storage-cleanup').onclick=cleanup;
+ // Range chips fill the (kept) date inputs; the summary says how many diaries a backup will contain.
+ const fromEl=document.getElementById('backup-from'),toEl=document.getElementById('backup-to'),summary=document.getElementById('backup-summary');
+ const pad=n=>String(n).padStart(2,'0'),iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+ function updateSummary(){
+  const from=fromEl.value,to=toEl.value,bad=from&&to&&from>to;summary.classList.toggle('is-error',!!bad);
+  if(bad){summary.textContent='起始日期不能晚于结束日期';return;}
+  const count=entries.filter(e=>(!from||e.date>=from)&&(!to||e.date<=to)).length;
+  summary.textContent='将备份 '+count+' 篇日记 · '+(from||to?(from||'最早')+' 至 '+(to||'今天'):'全部日期');
+ }
+ function setRange(kind){
+  document.querySelectorAll('.range-chip').forEach(chip=>{const on=chip.dataset.range===kind;chip.classList.toggle('is-active',on);chip.setAttribute('aria-pressed',String(on));});
+  document.getElementById('backup-custom-range').hidden=kind!=='custom';
+  const now=new Date();
+  if(kind==='all'){fromEl.value='';toEl.value='';}
+  else if(kind==='30'){const d=new Date(now);d.setDate(d.getDate()-29);fromEl.value=iso(d);toEl.value='';}
+  else if(kind==='year'){fromEl.value=now.getFullYear()+'-01-01';toEl.value='';}
+  updateSummary();
+ }
+ document.querySelectorAll('.range-chip').forEach(chip=>chip.onclick=()=>setRange(chip.dataset.range));
+ fromEl.addEventListener('change',updateSummary);toEl.addEventListener('change',updateSummary);
+ document.getElementById('data-toggle').addEventListener('click',updateSummary);
+ setRange('all');
  window.DiaryBackup={exportBackup,importBackup,storageInfo,cleanup};
 })();

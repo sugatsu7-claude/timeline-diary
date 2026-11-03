@@ -6,7 +6,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),h=require('./br
  let workerCalls=0;await p.route('https://worker.test/**',r=>{workerCalls++;return r.abort()});
  const row=p.locator('[data-entry-id="card-one"]');assert.equal(await row.locator('.entry-heading .entry-tag').textContent(),'日常');assert.equal(await row.locator('.entry-content .entry-tag').count(),0);assert.equal(await row.locator('.entry-content').textContent(),body);
  const buttons=await row.locator('.entry-actions button').all();assert.equal(buttons.length,5);let previous;
- for(const b of buttons){const box=await b.boundingBox();assert.equal(box.width,28);assert.equal(box.height,32);if(previous)assert.ok(box.x-(previous.x+previous.width)<=3,'icons retain compact spacing');previous=box;}
+ for(const b of buttons){const box=await b.boundingBox();assert.equal(box.width,34);assert.equal(box.height,40,'touch targets are at least 40px tall');if(previous)assert.ok(box.x-(previous.x+previous.width)<=3||box.x-(previous.x+previous.width)<=10&&b===buttons.at(-1),'icons stay close, delete sits slightly apart');previous=box;}
  const sourceBox=await row.locator('.entry-author').boundingBox(),tagBox=await row.locator('.entry-heading .entry-tag').boundingBox();assert.ok(Math.abs(sourceBox.y-tagBox.y)<8,'name and tag share a row');
  await p.screenshot({path:h.root+'/test-results/diary-cards-home.png'});
  await row.locator('[aria-label="生成日记卡片"]').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);
