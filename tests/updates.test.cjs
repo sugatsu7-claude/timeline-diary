@@ -36,7 +36,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
  await offlinePage.locator('[aria-label="生成日记卡片"]').click();await offlinePage.waitForFunction(()=>!document.getElementById('card-save').disabled);assert.equal(await offlinePage.locator('#card-canvas').getAttribute('width'),'1080');await offlinePage.locator('#card-close').click();
  // No database requests are cached; this service worker stores exactly the static shell.
  const cacheUrls=await page.evaluate(async()=>{let result=[];for(const k of await caches.keys())for(const req of await(await caches.open(k)).keys())result.push(req.url);return result});
- assert.equal(cacheUrls.length,24);assert.ok(cacheUrls.every(u=>!u.includes('version.json')&&!u.includes('worker')));
+ assert.equal(cacheUrls.length,25);assert.ok(cacheUrls.every(u=>!u.includes('version.json')&&!u.includes('worker')));
  await context.setOffline(false);
  // A release waits for consent and protects drafts in every open tab.
  release=next;

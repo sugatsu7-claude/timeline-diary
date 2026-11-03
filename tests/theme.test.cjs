@@ -9,6 +9,11 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
  await p.locator('#theme-select').selectOption('ink');
  assert.equal(await p.evaluate(()=>document.documentElement.getAttribute('data-theme')),'ink');
  await p.waitForTimeout(300);assert.notEqual(await css('.fab','backgroundColor'),before);assert.equal(await css('.fab','backgroundColor'),'rgb(176, 88, 75)');
+ // Each theme has its own built-in background; the ink one is the willow painting.
+ const bg=()=>p.locator('#bg-layer').evaluate(el=>el.style.backgroundImage);
+ assert.ok((await bg()).includes('ink-bg.jpg'),'ink theme uses its own background');
+ await p.locator('#theme-select').selectOption('default');await p.waitForTimeout(200);assert.ok((await bg()).includes('IMG_0586.jpg'),'default theme keeps its photo');
+ await p.locator('#theme-select').selectOption('ink');await p.waitForTimeout(200);assert.ok((await bg()).includes('ink-bg.jpg'));
  // Chinese date numerals, and a custom background stays visible (scrim follows the opacity setting).
  assert.deepEqual(await p.evaluate(()=>[1,10,11,20,21,23,29,30,31].map(cnDay)),['一','十','十一','二十','廿一','廿三','廿九','三十','三十一']);
  assert.equal(await p.locator('.entry-date-day').first().getAttribute('data-cn'),'一');assert.equal(await p.locator('.entry-date-month').first().getAttribute('data-cn'),'十一月');

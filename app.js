@@ -1,9 +1,12 @@
-// diary-release: 2026.11.03.7
+// diary-release: 2026.11.03.8
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
 var SETTINGS_KEY='penang_timeline_settings';
 var DEFAULT_BACKGROUND_URL=new URL('assets/IMG_0586.jpg',document.baseURI).href;
+var INK_BACKGROUND_URL=new URL('assets/ink-bg.jpg',document.baseURI).href;
+// Each theme has its own built-in background; a photo the user picks applies to both.
+function defaultBackgroundUrl(){return document.documentElement.getAttribute('data-theme')==='ink'?INK_BACKGROUND_URL:DEFAULT_BACKGROUND_URL;}
 var entries=structuredClone(DiaryStore.snapshot.entries);
 function legacySourceName(value){return value==='user'?'五月':value==='yan'?'言':value==='G老师'?'叙':value||'未署名';}
 function sourceName(value){return typeof value==='string'&&value?value:'未署名';}
@@ -257,7 +260,11 @@ function appendTimelineBatch(batch) {
       content.className = 'entry-content';
       var textSpan = document.createElement('span');
       textSpan.className = 'entry-text-inline';
-      textSpan.textContent = entry.text;
+      // One block per line the writer typed, so soft-wrapped lines can sit tighter than Enter breaks.
+      String(entry.text).split('\n').forEach(function (line, index) {
+        if (index) textSpan.appendChild(document.createTextNode('\n'));
+        var para = document.createElement('span');para.className = 'entry-line';if (line) para.textContent = line;else para.appendChild(document.createElement('br'));textSpan.appendChild(para);
+      });
       content.appendChild(textSpan);
       card.appendChild(content);
 
@@ -464,7 +471,7 @@ applyCardOpacity(appSettings.cardOpacity);
 
 function applyBackground(url) {
   var layer = document.getElementById('bg-layer');
-  layer.style.backgroundImage = 'url(' + JSON.stringify(url || DEFAULT_BACKGROUND_URL) + ')';
+  layer.style.backgroundImage = 'url(' + JSON.stringify(url || defaultBackgroundUrl()) + ')';
   if (url) layer.setAttribute('data-custom', ''); else layer.removeAttribute('data-custom');
 }
 function applyScrim(val) {

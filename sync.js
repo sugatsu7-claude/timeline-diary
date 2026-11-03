@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.7
+// diary-release: 2026.11.03.8
 /* Notion sync is invoked ONLY by the sync button. No timers or lifecycle listeners. */
 window.syncReady=(async function () {
   'use strict';
