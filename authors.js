@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.3
+// diary-release: 2026.11.03.4
 /* Names and subtitle belong to this browser; historical bylines are immutable here. */
 (function () {
   'use strict';

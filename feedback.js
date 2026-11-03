@@ -1,28 +1,15 @@
-// diary-release: 2026.11.03.3
+// diary-release: 2026.11.03.4
 /* Optional haptics and soft sounds. Off by default; nothing runs until the user turns it on. */
 (function () {
   'use strict';
-  var KEY='feedback',state={haptics:false,sound:false},ctx=null,lastSnap=0,lastTick=0,switchLabel=null;
+  var KEY='feedback',state={haptics:false,sound:false},ctx=null,lastSnap=0,lastTick=0;
   function load(){try{var v=DiaryStore.config(KEY,{});state={haptics:v.haptics===true,sound:v.sound===true};}catch(e){}}
   function save(){return DiaryStore.setConfig(KEY,state);}
   function reduced(){return matchMedia('(prefers-reduced-motion: reduce)').matches;}
   function canVibrate(){return typeof navigator.vibrate==='function';}
-  // iOS Safari has no Vibration API; toggling a hidden <input switch> gives a light system tap (iOS 17.4+).
-  function iosTap(){
-    try{
-      if(!switchLabel){
-        switchLabel=document.createElement('label');switchLabel.setAttribute('aria-hidden','true');
-        switchLabel.style.cssText='position:fixed;left:-60px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;';
-        var input=document.createElement('input');input.type='checkbox';input.setAttribute('switch','');input.tabIndex=-1;
-        switchLabel.appendChild(input);document.body.appendChild(switchLabel);
-      }
-      switchLabel.click();
-    }catch(e){}
-  }
   function buzz(pattern){
     if(!state.haptics||reduced())return;
     if(canVibrate())navigator.vibrate(pattern);
-    else iosTap();
   }
   function audio(){
     if(ctx)return ctx;
@@ -66,7 +53,8 @@
     toggle.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle.click();}};
     var haptics=document.getElementById('feedback-haptics'),sound=document.getElementById('feedback-sound'),test=document.getElementById('feedback-test'),note=document.getElementById('feedback-note');
     haptics.checked=state.haptics;sound.checked=state.sound;
-    note.textContent=canVibrate()?'此设备支持系统震动。':'此设备的浏览器没有震动接口，将尝试 iOS 的轻触反馈（iOS 17.4 以上）；点「试一下」确认是否有感觉。';
+    if(!canVibrate())haptics.closest('label').style.display='none';
+    note.textContent=canVibrate()?'此设备支持系统震动。':'iPhone/iPad 的网页不支持震动，这里只提供提示音。';
     haptics.onchange=async function(){state.haptics=haptics.checked;try{await save();}catch(e){}if(state.haptics)buzz(15);};
     sound.onchange=async function(){state.sound=sound.checked;try{await save();}catch(e){}if(state.sound){unlock();play('success');}};
     test.onclick=function(){api.success();};
