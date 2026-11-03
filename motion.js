@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.1
+// diary-release: 2026.11.03.2
 /* Native scrolling, bounded one-shot reveals, and quiet feedback. No network work. */
 (function () {
   'use strict';
@@ -45,8 +45,8 @@
       var data=geometry.get(row);if(!data)return;
       var phase=(viewportHeight-16-(data.top-y))/Math.max(1,viewportHeight-readingTop-16+data.height);
       var scale=1,opacity=1,shift=0;
-      if(!data.long&&phase<.32){var enter=1-smooth(phase/.32);scale=1-enter*.075;opacity=1-enter*.5;shift=enter*22;}
-      else if(!data.long&&phase>.68){var exit=smooth((phase-.68)/.32);scale=1-exit*.05;opacity=1-exit*.32;shift=-exit*14;}
+      if(!data.long&&phase<.32){var enter=1-smooth(phase/.32);scale=1-enter*.11;opacity=1-enter*.68;shift=enter*34;}
+      else if(!data.long&&phase>.68){var exit=smooth((phase-.68)/.32);scale=1-exit*.08;opacity=1-exit*.5;shift=-exit*22;}
       // Prime a capsule before it reaches the screen; then gently settle changes.
       var prime=data.first&&(data.top-y>=viewportHeight||data.top+data.height-y<=0);data.first=false;
       var nextScale=prime?scale:data.scale+(scale-data.scale)*alpha;

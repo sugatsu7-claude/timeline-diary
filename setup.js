@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.1
+// diary-release: 2026.11.03.2
 (function(){
  'use strict';
  const dialog=document.getElementById('setup-dialog'),urlInput=document.getElementById('setup-worker'),secretInput=document.getElementById('setup-secret'),remember=document.getElementById('setup-remember'),status=document.getElementById('setup-status'),save=document.getElementById('setup-save'),check=document.getElementById('setup-check'),config=window.DiarySetupConfig;
