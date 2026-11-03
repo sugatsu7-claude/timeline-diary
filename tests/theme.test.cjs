@@ -8,13 +8,20 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
  await p.locator('#open-settings').click();await p.locator('#authors-toggle').click();
  await p.locator('#theme-select').selectOption('ink');
  assert.equal(await p.evaluate(()=>document.documentElement.getAttribute('data-theme')),'ink');
- await p.waitForTimeout(300);assert.notEqual(await css('.fab','backgroundColor'),before);assert.equal(await css('.fab','backgroundColor'),'rgb(166, 58, 43)');
+ await p.waitForTimeout(300);assert.notEqual(await css('.fab','backgroundColor'),before);assert.equal(await css('.fab','backgroundColor'),'rgb(176, 88, 75)');
  // Chinese date numerals, and a custom background stays visible (scrim follows the opacity setting).
  assert.deepEqual(await p.evaluate(()=>[1,10,11,20,21,23,29,30,31].map(cnDay)),['一','十','十一','二十','廿一','廿三','廿九','三十','三十一']);
  assert.equal(await p.locator('.entry-date-day').first().getAttribute('data-cn'),'一');assert.equal(await p.locator('.entry-date-month').first().getAttribute('data-cn'),'十一月');
  await p.evaluate(()=>{applyBackground('data:image/gif;base64,R0lGODlhAQABAAAAACw=');applyScrim(30);});
  assert.equal(await p.evaluate(()=>getComputedStyle(document.getElementById('bg-scrim')).backgroundColor.length>0&&getComputedStyle(document.documentElement).getPropertyValue('--scrim-alpha').trim()),'0.3');
  assert.equal(await p.evaluate(()=>document.getElementById('bg-layer').hasAttribute('data-custom')),true);
+ // Saved highlight under the ink theme is a soft glow, not the default green ring.
+ await p.evaluate(()=>document.querySelector('.entry-row').classList.add('saved-highlight'));await p.waitForTimeout(200);
+ assert.ok((await p.locator('.entry-row.saved-highlight .entry-card').evaluate(el=>getComputedStyle(el).animationName)).includes('saved-highlight-ink'));
+ assert.ok(!(await p.locator('.entry-row.saved-highlight .entry-card').evaluate(el=>getComputedStyle(el).boxShadow)).includes('139, 154, 126'));
+ await p.evaluate(()=>document.querySelector('.entry-row').classList.remove('saved-highlight'));
+ // The resting halo must not draw a bordered, scaling frame.
+ assert.equal(await p.locator('.entry-card').first().evaluate(el=>{const s=getComputedStyle(el,'::before');return [s.borderTopWidth,s.transform].join('|');}),'0px|none');
  // Persists across reload, then switches back cleanly.
  await p.reload();await p.waitForFunction(()=>window.diaryReady);
  assert.equal(await p.evaluate(()=>document.documentElement.getAttribute('data-theme')),'ink');
