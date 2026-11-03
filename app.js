@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.12
+// diary-release: 2026.11.03.13
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -299,7 +299,15 @@ document.getElementById('load-more-entries').onclick=function(){
   if(window.DiaryMotion)DiaryMotion.timelineChanged(document.getElementById('timeline'),false);
 };
 
+function syncSearchClear() { document.getElementById('search-clear').hidden = !document.getElementById('search-input').value; }
+// One tap clears the whole search; the keyboard stays up so a new search can start right away.
+document.getElementById('search-clear').addEventListener('pointerdown', function (e) { e.preventDefault(); });
+document.getElementById('search-clear').onclick = function () {
+  var input = document.getElementById('search-input');
+  input.value = '';input.dispatchEvent(new Event('input'));input.focus();
+};
 document.getElementById('search-input').oninput = function (e) {
+  syncSearchClear();
   activeFilters.search = e.target.value.trim();
   clearTimeout(searchRenderTimer);
   document.getElementById('load-more-entries').disabled = true;
@@ -330,7 +338,7 @@ document.getElementById('filter-clear').onclick = function () {
   activeFilters = { from: '', to: '', tags: [], search: '', source: '' };
   document.getElementById('filter-date-from').value = '';
   document.getElementById('filter-date-to').value = '';
-  document.getElementById('search-input').value = '';
+  document.getElementById('search-input').value = '';syncSearchClear();
   renderTagChips();
   renderSourceChips();
   renderTimeline();
