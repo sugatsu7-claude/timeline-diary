@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.2
+// diary-release: 2026.11.03.3
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -26,6 +26,7 @@ var activeFilters = { from: '', to: '', tags: [], search: '', source: '' };
 function showToast(msg) {
   var t = document.getElementById('toast');
   t.textContent = msg;
+  if (window.DiaryFeedback) DiaryFeedback.toast(msg);
   t.classList.add('show');
   clearTimeout(showToast._timer);
   showToast._timer = setTimeout(function () { t.classList.remove('show'); }, 2000);
