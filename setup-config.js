@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.8
+// diary-release: 2026.11.03.9
 /* Public links only. Never put a Worker address, access code or Notion token here. */
 window.DiarySetupConfig=Object.freeze({
  repository:'https://github.com/sugatsu7-claude/timeline-diary',

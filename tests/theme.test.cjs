@@ -9,6 +9,9 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
  await p.locator('#theme-select').selectOption('ink');
  assert.equal(await p.evaluate(()=>document.documentElement.getAttribute('data-theme')),'ink');
  await p.waitForTimeout(300);assert.notEqual(await css('.fab','backgroundColor'),before);assert.equal(await css('.fab','backgroundColor'),'rgb(176, 88, 75)');
+ // Dropdown shows a chevron, and the add-author button keeps horizontal text.
+ assert.ok((await css('#theme-select','backgroundImage')).includes('svg'),'theme dropdown has a visible arrow');
+ assert.ok((await p.locator('#add-author').boundingBox()).height<50,'add-author label is not wrapped vertically');
  // Each theme has its own built-in background; the ink one is the willow painting.
  const bg=()=>p.locator('#bg-layer').evaluate(el=>el.style.backgroundImage);
  assert.ok((await bg()).includes('ink-bg.jpg'),'ink theme uses its own background');
