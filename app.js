@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.5
+// diary-release: 2026.11.03.6
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -23,6 +23,14 @@ function actionIcon(kind) {
 function sourceNames() { return window.AuthorSettings ? AuthorSettings.names() : Array.from(new Set(entries.map(function(entry){return sourceName(entry.source);}))); }
 var activeFilters = { from: '', to: '', tags: [], search: '', source: '' };
 
+// Chinese numerals for the ink theme's date column: 1-10, 十一…十九, 二十, 廿一…廿九, 三十, 三十一.
+function cnNumber(n) {
+  var digits = '零一二三四五六七八九';
+  if (n <= 10) return n === 10 ? '十' : digits[n];
+  if (n < 20) return '十' + digits[n - 10];
+  return digits[Math.floor(n / 10)] + '十' + (n % 10 ? digits[n % 10] : '');
+}
+function cnDay(n) { return n >= 21 && n <= 29 ? '廿' + cnNumber(n % 10) : cnNumber(n); }
 function showToast(msg) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -189,8 +197,8 @@ function appendTimelineBatch(batch) {
       dateCol.className = 'entry-date-col';
       if (idx === 0 && group.children.length === 0) {
         dateCol.innerHTML =
-          '<div class="entry-date-day">' + d.getDate() + '</div>' +
-          '<div class="entry-date-month">' + (d.getMonth() + 1) + '月</div>' +
+          '<div class="entry-date-day" data-cn="' + cnDay(d.getDate()) + '">' + d.getDate() + '</div>' +
+          '<div class="entry-date-month" data-cn="' + cnNumber(d.getMonth() + 1) + '月">' + (d.getMonth() + 1) + '月</div>' +
           '<div class="entry-date-weekday">' + weekdays[d.getDay()] + '</div>';
       } else {
         dateCol.style.background = 'transparent';
@@ -457,10 +465,12 @@ applyCardOpacity(appSettings.cardOpacity);
 function applyBackground(url) {
   var layer = document.getElementById('bg-layer');
   layer.style.backgroundImage = 'url(' + JSON.stringify(url || DEFAULT_BACKGROUND_URL) + ')';
+  if (url) layer.setAttribute('data-custom', ''); else layer.removeAttribute('data-custom');
 }
 function applyScrim(val) {
   var pct = (val === undefined || val === null || val === '') ? 72 : Math.max(0, Math.min(100, parseInt(val, 10)));
   document.getElementById('bg-scrim').style.background = 'rgba(244,241,234,' + (pct / 100) + ')';
+  document.documentElement.style.setProperty('--scrim-alpha', String(pct / 100));
 }
 function applyCardOpacity(val) {
   var pct = (val === undefined || val === null || val === '') ? 62 : Math.max(0, Math.min(100, parseInt(val, 10)));
