@@ -7,6 +7,7 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
  const p=await h.page(context,{penang_timeline_diary:seed,penang_timeline_authors:{defaultName:'小夏',names:['小夏']}});
  await p.locator('#open-settings').click();await p.locator('#data-toggle').click();
  assert.match(await p.locator('#backup-summary').textContent(),/将备份 3 篇日记 · 全部日期/);
+ assert.match(await p.locator('.backup-warning').textContent(),/删掉桌面图标.*一起删除/,'warns that removing the home-screen icon deletes the diaries');
  assert.equal(await p.locator('#backup-custom-range').isHidden(),true,'date inputs stay tucked away until 自定义');
  await p.locator('.range-chip[data-range="30"]').click();
  assert.match(await p.locator('#backup-summary').textContent(),/将备份 2 篇日记/);assert.equal(await p.locator('#backup-from').inputValue(),ago(29));
