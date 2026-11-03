@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.03.5">
+<meta name="diary-version" content="2026.11.03.6">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -622,8 +622,12 @@
      so the default look is untouched. ---- */
   html[data-theme="ink"] { --ink:#23272A;--ink-soft:#5E6469;--ink-faint:#8C9196;--paper:#F3F3F0;--cinnabar:#A63A2B;--slate:#4A5D63; }
   html[data-theme="ink"] body { background:var(--paper);color:var(--ink);font-family:"Songti SC","STSong","Noto Serif CJK SC","Source Han Serif SC","SimSun",serif; }
-  html[data-theme="ink"] #bg-layer { filter:grayscale(1) contrast(.92); }
-  html[data-theme="ink"] #bg-scrim { background:radial-gradient(ellipse 75% 36% at 88% -4%,rgba(35,39,42,.16),transparent 70%),radial-gradient(ellipse 65% 30% at -4% 104%,rgba(35,39,42,.1),transparent 70%),rgba(243,243,240,.9)!important; }
+  html[data-theme="ink"] #bg-layer:not([data-custom]) { filter:grayscale(1) contrast(.92); }
+  html[data-theme="ink"] #bg-scrim { background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 130' fill='none' stroke='%2323272A' stroke-opacity='.2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 104C-2 88 14 66 36 72 34 52 62 40 80 54 88 34 124 34 134 56 154 44 182 56 176 78 198 74 214 92 200 104Z'/%3E%3Cpath d='M44 92C38 82 50 74 58 80 60 88 52 92 48 88M96 76C92 64 108 58 114 68 118 76 108 82 102 76M150 90C146 80 160 74 166 82 168 90 158 94 154 90M200 104H250M232 104C228 96 238 92 244 98'/%3E%3C/svg%3E") left -34px bottom 96px/230px auto no-repeat,radial-gradient(ellipse 75% 36% at 88% -4%,rgba(35,39,42,.16),transparent 70%),radial-gradient(ellipse 65% 30% at -4% 104%,rgba(35,39,42,.1),transparent 70%),rgba(243,243,240,var(--scrim-alpha,.72))!important; }
+  /* A slow-drifting cloud motif at the top right; one small composited layer. */
+  html[data-theme="ink"] body::after { content:"";position:fixed;right:-46px;top:calc(env(safe-area-inset-top) + 92px);width:210px;height:105px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 130' fill='none' stroke='%2323272A' stroke-opacity='.2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 104C-2 88 14 66 36 72 34 52 62 40 80 54 88 34 124 34 134 56 154 44 182 56 176 78 198 74 214 92 200 104Z'/%3E%3Cpath d='M44 92C38 82 50 74 58 80 60 88 52 92 48 88M96 76C92 64 108 58 114 68 118 76 108 82 102 76M150 90C146 80 160 74 166 82 168 90 158 94 154 90M200 104H250M232 104C228 96 238 92 244 98'/%3E%3C/svg%3E") center/contain no-repeat;transform:scaleX(-1);pointer-events:none;z-index:-1;opacity:.9; }
+  @media (prefers-reduced-motion:no-preference) { html[data-theme="ink"] body::after { animation:cloud-drift 36s ease-in-out infinite alternate; } }
+  @keyframes cloud-drift { from { transform:scaleX(-1) translate3d(0,0,0); } to { transform:scaleX(-1) translate3d(-26px,6px,0); } }
   html[data-theme="ink"] .header h1 { font-weight:600;letter-spacing:.16em;color:var(--ink);text-shadow:none; }
   html[data-theme="ink"] .header p,html[data-theme="ink"] .entry-count { color:var(--ink-soft);text-shadow:none;letter-spacing:.06em; }
   html[data-theme="ink"] .search-box,html[data-theme="ink"] .filter-btn,html[data-theme="ink"] .toolbar.is-compact .search-box,html[data-theme="ink"] .toolbar.is-compact .filter-btn { background:rgba(250,250,247,.92);border:1px solid rgba(35,39,42,.18);border-radius:6px;color:var(--ink-soft); }
@@ -633,7 +637,10 @@
   html[data-theme="ink"] .entry-card::after { box-shadow:0 10px 30px rgba(35,39,42,.24); }
   html[data-theme="ink"] .entry-card::before { border-color:rgba(166,58,43,.5);border-radius:8px; }
   html[data-theme="ink"] .entry-date-col { background:transparent;border-radius:0;border-right:1px solid rgba(35,39,42,.2); }
-  html[data-theme="ink"] .entry-date-day { color:var(--cinnabar);font-weight:700; }
+  html[data-theme="ink"] .entry-date-day { font-size:0;line-height:0;margin:0 0 6px; }
+  html[data-theme="ink"] .entry-date-day::before { content:attr(data-cn);display:block;box-sizing:border-box;width:25px;margin-left:auto;text-align:center;word-break:break-all;font-size:17px;font-weight:700;line-height:1.22;letter-spacing:0;color:var(--cinnabar);border:1px solid var(--cinnabar);border-radius:2px;padding:4px 0 3px;background:rgba(166,58,43,.05); }
+  html[data-theme="ink"] .entry-date-month { font-size:0;line-height:0;margin-top:0; }
+  html[data-theme="ink"] .entry-date-month::before { content:attr(data-cn);font-size:11px;line-height:1.4; }
   html[data-theme="ink"] .entry-date-month,html[data-theme="ink"] .entry-date-weekday { color:var(--ink-faint);letter-spacing:.08em; }
   html[data-theme="ink"] .entry-text-inline { font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC",serif;font-size:15px;line-height:1.95;letter-spacing:.04em;color:var(--ink); }
   html[data-theme="ink"] .fab { background:var(--cinnabar);border-radius:10px;box-shadow:0 4px 14px rgba(166,58,43,.38); }
@@ -650,6 +657,12 @@
   html[data-theme="ink"] .sheet label,html[data-theme="ink"] .sheet h2 { color:var(--ink-soft);letter-spacing:.08em; }
   html[data-theme="ink"] .sheet h2 { color:var(--ink);font-weight:600; }
   html[data-theme="ink"] .setup-intro,html[data-theme="ink"] .update-banner { border-radius:6px; }
+  /* 盖印: a cinnabar seal presses onto the capsule you just saved. */
+  html[data-theme="ink"] .entry-row.saved-highlight { position:relative; }
+  @media (prefers-reduced-motion:no-preference) {
+    html[data-theme="ink"] .entry-row.saved-highlight::after { content:"记";position:absolute;right:14px;bottom:10px;width:46px;height:46px;display:grid;place-items:center;border:2px solid var(--cinnabar);border-radius:4px;color:var(--cinnabar);font:700 25px/1 "Kaiti SC","STKaiti","KaiTi","Songti SC",serif;background:rgba(166,58,43,.06);pointer-events:none;opacity:0;z-index:2;animation:seal-stamp 2100ms ease-out both; }
+  }
+  @keyframes seal-stamp { 0% { opacity:0;transform:rotate(-14deg) scale(2.1); } 12% { opacity:.95;transform:rotate(-8deg) scale(.9); } 18% { opacity:.95;transform:rotate(-8deg) scale(1.05); } 26% { opacity:.92;transform:rotate(-8deg) scale(1); } 78% { opacity:.8;transform:rotate(-8deg) scale(1); } 100% { opacity:0;transform:rotate(-8deg) scale(1); } }
   @keyframes saved-highlight-ink { 0%,25% { box-shadow:0 0 0 2px rgba(166,58,43,.85),0 6px 26px rgba(166,58,43,.24); } 100% { box-shadow:0 0 0 2px transparent,0 2px 14px rgba(35,39,42,.07); } }
   html[data-theme="ink"] .saved-highlight .entry-card { animation-name:saved-highlight-ink; }
   html[data-theme="ink"] .reading-motion.reading-native .saved-highlight:not(.reading-long)>.entry-card { animation-name:reading-breathe,saved-highlight-ink; }

@@ -9,6 +9,12 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
  await p.locator('#theme-select').selectOption('ink');
  assert.equal(await p.evaluate(()=>document.documentElement.getAttribute('data-theme')),'ink');
  await p.waitForTimeout(300);assert.notEqual(await css('.fab','backgroundColor'),before);assert.equal(await css('.fab','backgroundColor'),'rgb(166, 58, 43)');
+ // Chinese date numerals, and a custom background stays visible (scrim follows the opacity setting).
+ assert.deepEqual(await p.evaluate(()=>[1,10,11,20,21,23,29,30,31].map(cnDay)),['一','十','十一','二十','廿一','廿三','廿九','三十','三十一']);
+ assert.equal(await p.locator('.entry-date-day').first().getAttribute('data-cn'),'一');assert.equal(await p.locator('.entry-date-month').first().getAttribute('data-cn'),'十一月');
+ await p.evaluate(()=>{applyBackground('data:image/gif;base64,R0lGODlhAQABAAAAACw=');applyScrim(30);});
+ assert.equal(await p.evaluate(()=>getComputedStyle(document.getElementById('bg-scrim')).backgroundColor.length>0&&getComputedStyle(document.documentElement).getPropertyValue('--scrim-alpha').trim()),'0.3');
+ assert.equal(await p.evaluate(()=>document.getElementById('bg-layer').hasAttribute('data-custom')),true);
  // Persists across reload, then switches back cleanly.
  await p.reload();await p.waitForFunction(()=>window.diaryReady);
  assert.equal(await p.evaluate(()=>document.documentElement.getAttribute('data-theme')),'ink');
