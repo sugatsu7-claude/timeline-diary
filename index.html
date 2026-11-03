@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.03.8">
+<meta name="diary-version" content="2026.11.03.9">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -217,7 +217,8 @@
     vertical-align: middle;
   }
   .entry-content .entry-tag.src-yan { background: rgba(250,238,218,0.85); color: #854F0B; }
-  .entry-text-inline { display:block;white-space:normal; }
+  .entry-text-inline { display:block;white-space:normal;line-height:1.7; }
+  .entry-line ~ .entry-line { margin-top:.46em; }
   .entry-line { display:block;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word; }
   .entry-meta {
     font-size: 10px;
@@ -418,6 +419,8 @@
   .settings-panel input { width: 100%; font-size: 16px; padding: 8px 10px; border-radius: 8px; border: 0.5px solid #E1E0D9; background: #FCFCFB; }
   .settings-save { margin-top: 12px; width: 100%; padding: 10px; border-radius: 10px; border: none; background: #1B3A6B; color: #FFFFFF; font-size: 13px; }
   .cloud-row { display: flex; gap: 8px; margin-top: 8px; }
+  .cloud-row>input { flex:1;min-width:0; }
+  .cloud-row>button { flex:none;white-space:nowrap;writing-mode:horizontal-tb; }
   .backup-btn { flex: 1; padding: 12px; border-radius: 12px; border: 0.5px solid #E1E0D9; background: #FFFFFF; font-size: 13px; color: #52514E; display: flex; align-items: center; justify-content: center; gap: 6px; }
   .settings-hint { font-size: 11px; color: #B4B2A9; margin-top: 10px; line-height: 1.5; }
 
@@ -617,7 +620,7 @@
     button:enabled:active,.tag-chip:active,.fab:active,.toolbar.is-compact { transform:none; }
   }
 
-  .settings-panel select { width:100%;font-size:16px;padding:8px 10px;border-radius:8px;border:0.5px solid #E1E0D9;background:#FCFCFB;color:inherit;font-family:inherit; }
+  .settings-panel select { width:100%;font-size:16px;padding:8px 38px 8px 10px;border-radius:8px;border:0.5px solid #E1E0D9;background-color:#FCFCFB;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23767570' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px 8px;color:inherit;font-family:inherit;-webkit-appearance:none;appearance:none; }
 
   /* ---- 水墨国风: ink on paper, cinnabar seal accents. Everything is scoped to the attribute,
      so the default look is untouched. ---- */
@@ -643,7 +646,6 @@
   html[data-theme="ink"] .entry-date-month::before { content:attr(data-cn);font-size:11px;line-height:1.4; }
   html[data-theme="ink"] .entry-date-month,html[data-theme="ink"] .entry-date-weekday { color:var(--ink-faint);letter-spacing:.08em; }
   html[data-theme="ink"] .entry-text-inline { font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC",serif;font-size:14.5px;font-weight:400;line-height:1.7;letter-spacing:.05em;color:#556067; }
-  html[data-theme="ink"] .entry-line ~ .entry-line { margin-top:.46em; }
   html[data-theme="ink"] .fab { background:var(--cinnabar);border-radius:10px;box-shadow:0 4px 16px rgba(176,88,75,.28); }
   html[data-theme="ink"] .top-fab { border-radius:8px;background:rgba(250,250,247,.92);border-color:rgba(74,93,99,.2);color:var(--ink-soft); }
   html[data-theme="ink"] .sheet { background:#F1F4F3;border-radius:10px 10px 0 0;box-shadow:0 60px 0 0 #F1F4F3; }
@@ -654,7 +656,8 @@
   html[data-theme="ink"] .toast { background:var(--ink);border-radius:6px;border-left:3px solid var(--cinnabar); }
   html[data-theme="ink"] #reading-progress { background:var(--cinnabar); }
   html[data-theme="ink"] a { color:var(--slate); }
-  html[data-theme="ink"] .sheet input[type="date"],html[data-theme="ink"] .sheet input[type="text"],html[data-theme="ink"] .sheet textarea,html[data-theme="ink"] .sheet select,html[data-theme="ink"] .settings-panel input,html[data-theme="ink"] .settings-panel select { border-radius:4px;border:1px solid rgba(74,93,99,.22);background:#F7FAF9;font-family:inherit;color:var(--ink);-webkit-appearance:none;appearance:none; }
+  html[data-theme="ink"] .sheet input[type="date"],html[data-theme="ink"] .sheet input[type="text"],html[data-theme="ink"] .sheet textarea,html[data-theme="ink"] .sheet select,html[data-theme="ink"] .settings-panel input,html[data-theme="ink"] .settings-panel select { border-radius:4px;border:1px solid rgba(74,93,99,.22);background-color:#F7FAF9;font-family:inherit;color:var(--ink);-webkit-appearance:none;appearance:none; }
+  html[data-theme="ink"] .sheet select,html[data-theme="ink"] .settings-panel select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23767570' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px 8px;padding-right:38px; }
   html[data-theme="ink"] .sheet label,html[data-theme="ink"] .sheet h2 { color:var(--ink-soft);letter-spacing:.08em; }
   html[data-theme="ink"] .sheet h2 { color:var(--ink);font-weight:600; }
   html[data-theme="ink"] .setup-intro,html[data-theme="ink"] .update-banner { border-radius:6px; }
@@ -769,7 +772,7 @@
 <h3 class="settings-subheading">主题</h3>
   <label for="theme-select">界面主题</label>
   <select id="theme-select"><option value="default">原样式</option><option value="ink">水墨国风</option></select>
-  <p class="settings-hint">切换后立即生效，仅保存在当前设备。国风主题使用手机自带的宋体与楷体，保持离线可用。</p>
+  <p class="settings-hint">点开下拉框可选「原样式」或「水墨国风」，切换后立即生效，仅保存在当前设备。国风主题使用手机自带的宋体与楷体，保持离线可用。</p>
 <h3 class="settings-subheading">背景与卡片</h3>
   <label for="local-background">从本机相册选择背景</label>
   <input type="file" id="local-background" accept="image/*">

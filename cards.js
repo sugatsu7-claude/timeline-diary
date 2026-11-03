@@ -1,9 +1,9 @@
-// diary-release: 2026.11.03.8
+// diary-release: 2026.11.03.9
 /* Text-only diary cards. Rendering and PNG export stay entirely on this device. */
 (function(){
  'use strict';
  const SIZE=360,SCALE=3,FONT='-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif';
- const BODY=14,LINE=23,LEFT=32,WIDTH=296,LINES=8;
+ const BODY=14,LINE=22,PARA=9,LEFT=32,WIDTH=290,LINES=8,MAXH=LINE*(LINES-1);// LINE: wrapped lines sit close; PARA: extra space after an Enter break
  const themes={cream:{name:'奶油拼贴',paper:'#f8f1e3',tag:'#eee0c4',ink:'#594c39'},letter:{name:'花间来信',paper:'#f6f4e9',tag:'#e2e6d2',ink:'#4e5746'},night:{name:'晚安手账',paper:'#f9ede7',tag:'#e7dce9',ink:'#615264'}};
  const dialog=document.getElementById('card-dialog'),canvas=document.getElementById('card-canvas'),status=document.getElementById('card-status');
  let entry,pages=[],index=0,theme='cream',sequence=0,file=null,trigger;
@@ -40,19 +40,32 @@
  const segments=text=>typeof Intl.Segmenter==='function'?Array.from(new Intl.Segmenter('zh',{granularity:'grapheme'}).segment(text),s=>s.segment):Array.from(text);
  function lines(text,ctx,width){
   const result=[];
-  for(const paragraph of text.replace(/\r\n?/g,'\n').split('\n')){
-   if(!paragraph){result.push('');continue;}
-   let line='';
+  text.replace(/\r\n?/g,'\n').split('\n').forEach((paragraph,number)=>{
+   // The first line of every paragraph after the first gets extra space above it.
+   const push=(value,first)=>result.push({text:value,gap:first&&number>0});
+   if(!paragraph){push('',true);return;}
+   let line='',first=true;
    for(const char of segments(paragraph)){
     if(line&&ctx.measureText(line+char).width>width){
      // Keep a closing punctuation mark with its preceding character, within the paper margin.
-     if(/^[，。！？；：、）》」』】…,.!?;:)]$/.test(char)&&ctx.measureText(line+char).width<=width+BODY){result.push(line+char);line='';}
-     else{result.push(line);line=char;}
+     if(/^[，。！？；：、）》」』】…,.!?;:)]$/.test(char)&&ctx.measureText(line+char).width<=width+BODY){push(line+char,first);first=false;line='';}
+     else{push(line,first);first=false;line=char;}
     }else line+=char;
    }
-   if(line)result.push(line);
+   if(line)push(line,first);
+  });
+  return result.length?result:[{text:'',gap:false}];
+ }
+ // Fill each square card by height, not by line count, so paragraph spacing still fits.
+ function paginate(all){
+  const result=[];let page=[],height=0;
+  for(const line of all){
+   const extra=page.length?(line.gap?PARA:0)+LINE:0;
+   if(page.length&&height+extra>MAXH){result.push(page);page=[];height=0;}
+   const add=page.length?(line.gap?PARA:0)+LINE:0;height+=add;page.push({text:line.text,offset:height});
   }
-  return result.length?result:[''];
+  if(page.length)result.push(page);
+  return result;
  }
  function ellipsis(text,ctx,width){if(ctx.measureText(text).width<=width)return text;const chars=segments(text);while(chars.length&&ctx.measureText(chars.join('')+'…').width>width)chars.pop();return chars.join('')+'…';}
  function dateLabel(date){const d=new Date(date+'T00:00:00');return Number.isNaN(d.getTime())?date:`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 · 周${'日一二三四五六'[d.getDay()]}`;}
@@ -65,13 +78,13 @@
    const bg=await background(key),sheet=document.createElement('canvas');sheet.width=sheet.height=SIZE*SCALE;
    const ctx=sheet.getContext('2d');ctx.scale(SCALE,SCALE);ctx.drawImage(bg,0,0,SIZE,SIZE);ctx.textBaseline='alphabetic';ctx.fillStyle=themes[key].ink;ctx.font=`12px ${FONT}`;ctx.fillText(dateLabel(source.date),LEFT,58);
    const tags=(source.tags||[]).join(' · ');if(tags){ctx.font=`11px ${FONT}`;const label=ellipsis(tags,ctx,WIDTH-18),w=Math.min(WIDTH,ctx.measureText(label).width+18);ctx.fillStyle=themes[key].tag;rounded(ctx,LEFT,72,w,20,10);ctx.fillStyle=themes[key].ink;ctx.fillText(label,LEFT+9,86);}
-   ctx.font=`400 ${BODY}px ${FONT}`;ctx.fillStyle='#514c44';part.forEach((line,i)=>ctx.fillText(line,LEFT,117+i*LINE));
+   ctx.font=`400 ${BODY}px ${FONT}`;ctx.fillStyle='#514c44';const top=tags?126:106;part.forEach(line=>ctx.fillText(line.text,LEFT,top+line.offset));
    ctx.font=`12px ${FONT}`;ctx.fillStyle=themes[key].ink;ctx.textAlign='right';ctx.fillText(ellipsis(source.source||'未署名',ctx,WIDTH-40),SIZE-LEFT,324);
    if(pages.length>1){ctx.font=`10px ${FONT}`;ctx.textAlign='center';ctx.fillStyle='#928a7f';ctx.fillText(`${pageIndex+1} / ${pages.length}`,SIZE/2,344);}
    const blob=await new Promise((resolve,reject)=>sheet.toBlob(b=>b?resolve(b):reject(new Error('图片生成失败，请重试')),'image/png'));
    if(token!==sequence||!dialog.open)return;
    canvas.width=canvas.height=SIZE*SCALE;canvas.getContext('2d').drawImage(sheet,0,0);canvas.setAttribute('aria-label',`${themes[key].name}，${dateLabel(source.date)}，第${pageIndex+1}张，共${pages.length}张`);
-   document.getElementById('card-readable').textContent=part.join('\n');
+   document.getElementById('card-readable').textContent=part.map(line=>line.text).join('\n');
    file=new File([blob],`diary-${source.date}-${key}-${pageIndex+1}.png`,{type:'image/png'});
    document.getElementById('card-count').textContent=`${pageIndex+1} / ${pages.length}`;
    document.getElementById('card-prev').disabled=pageIndex===0;document.getElementById('card-next').disabled=pageIndex===pages.length-1;
@@ -88,7 +101,7 @@
   document.getElementById('card-save').disabled=document.getElementById('card-share').disabled=true;document.getElementById('card-pagination').hidden=true;
   canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
   dialog.showModal();status.textContent='正在排版…';
-  try{await document.fonts.ready;const ctx=document.createElement('canvas').getContext('2d');ctx.font=`400 ${BODY}px ${FONT}`;const all=lines(entry.text,ctx,WIDTH);pages=[];for(let i=0;i<all.length;i+=LINES)pages.push(all.slice(i,i+LINES));await render();}catch(error){status.textContent='卡片未生成：'+error.message;}
+  try{await document.fonts.ready;const ctx=document.createElement('canvas').getContext('2d');ctx.font=`400 ${BODY}px ${FONT}`;pages=paginate(lines(entry.text,ctx,WIDTH));await render();}catch(error){status.textContent='卡片未生成：'+error.message;}
  }
  for(const button of document.querySelectorAll('[data-card-style]'))button.onclick=()=>{theme=button.dataset.cardStyle;document.querySelectorAll('[data-card-style]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));index=Math.min(index,pages.length-1);render();};
  document.getElementById('card-prev').onclick=()=>{if(index>0){index--;render();}};

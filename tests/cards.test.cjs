@@ -28,6 +28,11 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),h=require('./br
  await p.locator('[aria-label="生成日记卡片"]').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);
  let collected='',pages=0;while(true){collected+=(await p.locator('#card-readable').textContent()).replaceAll('\n','');pages++;if(await p.locator('#card-next').isDisabled())break;await p.locator('#card-next').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);}
  assert.ok(pages>1);assert.equal(collected,long.replaceAll('\n',''));assert.match(await count.textContent(),new RegExp(' / '+pages+'$'));await p.locator('#card-prev').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);await p.locator('#card-close').click();
+ // Enter breaks get extra space, so a page holds fewer short paragraphs than tightly wrapped lines.
+ const openCard=async text=>{await p.evaluate(async text=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,text},e);await refreshDiaryData()},text);await p.locator('[aria-label="生成日记卡片"]').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);const lines=(await p.locator('#card-readable').textContent()).split('\n').length;await p.locator('#card-close').click();return lines;};
+ const separate=await openCard(Array.from({length:12},(_,i)=>'第'+i+'段').join('\n'));
+ const wrapped=await openCard('很长的一整段文字，没有回车，自动换行。'.repeat(30));
+ assert.equal(wrapped,8,'tightly wrapped lines still fill eight lines');assert.ok(separate>=4&&separate<=6,'paragraph breaks use more height per line, got '+separate);
  // No-text entries remain usable for attachments, but cannot make an empty card.
  await p.evaluate(async()=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,text:''},e);await refreshDiaryData()});assert.equal(await p.locator('[aria-label="生成日记卡片"]').isDisabled(),true);assert.equal(await p.locator('[aria-label="查看日记图片"]').isEnabled(),true);
  await p.setViewportSize({width:320,height:760});await p.evaluate(async()=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,source:'一个比较长的记录人名字',tags:['长标签也应留在名字这一栏','第二个标签'],text:'Small viewport'},e);await refreshDiaryData()});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
