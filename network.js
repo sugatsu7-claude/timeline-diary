@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.12
+// diary-release: 2026.11.03.13
 (function(){'use strict';
  async function request(url,options={},timeout=30000,type='json'){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
