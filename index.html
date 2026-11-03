@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.03.1">
+<meta name="diary-version" content="2026.11.03.2">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -545,14 +545,14 @@
      keeps a slow halo. Everything animates transform/opacity only, so it stays on the compositor. */
   .entry-card { position:relative; }
   .entry-card::before,.entry-card::after { content:"";position:absolute;pointer-events:none;border-radius:inherit;opacity:0; }
-  .entry-card::after { inset:0;box-shadow:0 10px 34px rgba(139,154,126,.34); }
-  .entry-card::before { inset:-3px;border-radius:17px;border:1px solid rgba(139,154,126,.42); }
+  .entry-card::after { inset:0;box-shadow:0 12px 40px rgba(139,154,126,.5),0 0 0 1px rgba(139,154,126,.28); }
+  .entry-card::before { inset:-4px;border-radius:18px;border:1.5px solid rgba(139,154,126,.55); }
   .reading-motion.reading-fallback .entry-card { transform:translate3d(0,var(--reading-shift,0px),0) scale(var(--reading-scale,1));opacity:var(--reading-opacity,1);transform-origin:center; }
-  .reading-motion.reading-fallback .entry-card::after { opacity:calc((var(--reading-scale,1) - .93) * 14.3); }
+  .reading-motion.reading-fallback .entry-card::after { opacity:calc((var(--reading-scale,1) - .89) * 9.1); }
   .reading-motion.reading-fallback .entry-date-col { transform:translate3d(0,calc(var(--reading-shift,0px) * 1.5),0);opacity:var(--reading-opacity,1); }
   .reading-motion .reading-active:not(.reading-long)>.entry-card,.reading-motion .reading-active:not(.reading-long)>.entry-date-col { will-change:transform,opacity; }
   html:not(.is-scrolling).reading-motion .reading-focus>.entry-card::before { animation:reading-halo 4.8s ease-in-out infinite; }
-  @keyframes reading-halo { 0%,100% { opacity:.12;transform:scale(1); } 50% { opacity:.8;transform:scale(1.012); } }
+  @keyframes reading-halo { 0%,100% { opacity:.15;transform:scale(1); } 50% { opacity:1;transform:scale(1.02); } }
   @supports (animation-timeline:view()) {
     .reading-motion.reading-native .entry-row { view-timeline-name:--diary-reading;view-timeline-axis:block;view-timeline-inset:calc(env(safe-area-inset-top) + 68px) 16px; }
     .reading-motion.reading-native .entry-row:not(.reading-long)>.entry-card {
@@ -567,16 +567,16 @@
     .reading-motion.reading-native .entry-row:not(.reading-long)>.entry-card::after { animation-name:reading-glow; }
     .reading-motion.reading-native .entry-row:not(.reading-long)>.entry-date-col { animation-name:reading-date; }
     @keyframes reading-breathe {
-      0% { transform:translate3d(0,22px,0) scale(.925);opacity:.5; }
-      34%,66% { transform:translate3d(0,0,0) scale(1);opacity:1; }
-      100% { transform:translate3d(0,-14px,0) scale(.95);opacity:.68; }
+      0% { transform:translate3d(0,34px,0) scale(.89);opacity:.32; }
+      38%,62% { transform:translate3d(0,0,0) scale(1);opacity:1; }
+      100% { transform:translate3d(0,-22px,0) scale(.92);opacity:.5; }
     }
     @keyframes reading-date {
-      0% { transform:translate3d(0,32px,0);opacity:.3; }
-      34%,66% { transform:translate3d(0,0,0);opacity:1; }
-      100% { transform:translate3d(0,-20px,0);opacity:.5; }
+      0% { transform:translate3d(0,50px,0);opacity:.15; }
+      38%,62% { transform:translate3d(0,0,0);opacity:1; }
+      100% { transform:translate3d(0,-32px,0);opacity:.3; }
     }
-    @keyframes reading-glow { 0%,28% { opacity:0; } 50% { opacity:1; } 72%,100% { opacity:0; } }
+    @keyframes reading-glow { 0%,22% { opacity:0; } 50% { opacity:1; } 78%,100% { opacity:0; } }
     .reading-motion.reading-native .saved-highlight:not(.reading-long)>.entry-card { animation-name:reading-breathe,saved-highlight;animation-duration:auto,2100ms;animation-timing-function:cubic-bezier(.42,0,.58,1),ease-out;animation-fill-mode:both,none;animation-timeline:--diary-reading,auto;animation-range:cover 0% cover 100%,normal; }
   }
   button.touch-pressed,.tag-chip.touch-pressed,.fab.touch-pressed { transform:translateY(2px) scale(.94); }
