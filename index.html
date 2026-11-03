@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.03.15">
+<meta name="diary-version" content="2026.11.03.17">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -643,6 +643,9 @@
   .settings-toggle { flex-wrap:wrap; }
   .settings-toggle[data-hint]::before { content:attr(data-hint);order:3;flex:1 0 100%;margin-top:3px;font-size:12px;color:var(--text-hint); }
   .settings-toggle::after { order:1; }
+  .backup-warning { margin:0 0 12px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.6;color:#8A4A3E;background:rgba(180,87,75,.08);border:1px solid rgba(180,87,75,.25); }
+  html[data-theme="ink"] .backup-warning { border-radius:6px; }
+  html[data-theme="night"] .backup-warning { color:#E8B0A6;background:rgba(229,142,130,.1);border-color:rgba(229,142,130,.3); }
   .backup-step { padding:14px 0;border-top:1px solid #ECE9E0; }
   .backup-step:first-child { border-top:0;padding-top:2px; }
   .backup-title { display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:14px;font-weight:500;color:var(--text); }
@@ -974,6 +977,7 @@
 </div>
 <div class="settings-toggle" id="data-toggle" data-hint="备份、导入、本机空间">数据与备份</div>
 <div class="settings-panel" id="data-panel">
+  <p class="backup-warning" role="note"><b>iPhone 提醒：</b>删掉桌面图标，会连同里面的日记一起删除。删除或重新添加图标前，请先在下面生成备份，或确认已同步到 Notion。</p>
   <section class="backup-step" aria-labelledby="backup-step1">
     <h4 class="backup-title" id="backup-step1"><span class="step-no">1</span>备份哪一段时间 <em>可选</em></h4>
     <div class="range-chips" role="group" aria-label="备份范围">

@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.15
+// diary-release: 2026.11.03.17
 (function(){
  'use strict';
  const status=document.getElementById('backup-status');
@@ -84,7 +84,7 @@
   for(const a of assets)await MediaAssets.store('put',a.key,a.blob);
   if(version>=3&&parsed.backgroundKey){const bg=assets.find(a=>a.key===parsed.backgroundKey);if(bg)await MediaAssets.store('put','background',bg.blob);}
   const added=await DiaryStore.importData({entries,trash,configs,drafts:version>=3?parsed.drafts||[]:[]});
-  await refreshDiaryData();appSettings=loadSettings();document.getElementById('sync-url').value=appSettings.syncUrl||'';document.getElementById('bg-url').value=appSettings.bgUrl||'';document.getElementById('bg-scrim-input').value=appSettings.scrim??72;document.getElementById('card-opacity-input').value=appSettings.cardOpacity??62;PRESET_TAGS=DiaryStore.config(TAGS_KEY,DEFAULT_TAGS.slice());AuthorSettings.reload();renderManageTagChips();applyBackground(appSettings.bgUrl);status.textContent='已导入'+added+'篇新日记。已有同ID日记未覆盖；下次同步将完整核对，备份中的删除/未完成云端操作不会自动执行。'+(missing.length?'有'+missing.length+'个云端引用需联网查看。':'');
+  await refreshDiaryData();appSettings=loadSettings();document.getElementById('sync-url').value=appSettings.syncUrl||'';restoreAppearancePreview();PRESET_TAGS=DiaryStore.config(TAGS_KEY,DEFAULT_TAGS.slice());AuthorSettings.reload();renderManageTagChips();applyBackground(appSettings.bgUrl);status.textContent='已导入'+added+'篇新日记。已有同ID日记未覆盖；下次同步将完整核对，备份中的删除/未完成云端操作不会自动执行。'+(missing.length?'有'+missing.length+'个云端引用需联网查看。':'');
  }
  async function storageInfo(){const items=await MediaAssets.assetInfo(),bytes=items.reduce((n,a)=>n+a.bytes,0),estimate=await navigator.storage?.estimate?.();document.getElementById('storage-status').textContent='本机图片 '+mb(bytes)+'，'+items.filter(a=>a.bytes).length+'个文件'+(estimate?.usage?'；站点总用量约'+mb(estimate.usage):'')+'。';}
  async function cleanup(){
