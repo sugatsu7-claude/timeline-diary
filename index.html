@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.03.4">
+<meta name="diary-version" content="2026.11.03.5">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -615,6 +615,46 @@
     .reading-motion .entry-row>.entry-card,.reading-motion .entry-row>.entry-date-col,.reading-motion .entry-card::before,.reading-motion .entry-card::after,button.touch-pressed,.tag-chip.touch-pressed,.fab.touch-pressed { animation:none!important;transform:none!important;opacity:1!important;will-change:auto; }
     button:enabled:active,.tag-chip:active,.fab:active,.toolbar.is-compact { transform:none; }
   }
+
+  .settings-panel select { width:100%;font-size:16px;padding:8px 10px;border-radius:8px;border:0.5px solid #E1E0D9;background:#FCFCFB;color:inherit;font-family:inherit; }
+
+  /* ---- 水墨国风: ink on paper, cinnabar seal accents. Everything is scoped to the attribute,
+     so the default look is untouched. ---- */
+  html[data-theme="ink"] { --ink:#23272A;--ink-soft:#5E6469;--ink-faint:#8C9196;--paper:#F3F3F0;--cinnabar:#A63A2B;--slate:#4A5D63; }
+  html[data-theme="ink"] body { background:var(--paper);color:var(--ink);font-family:"Songti SC","STSong","Noto Serif CJK SC","Source Han Serif SC","SimSun",serif; }
+  html[data-theme="ink"] #bg-layer { filter:grayscale(1) contrast(.92); }
+  html[data-theme="ink"] #bg-scrim { background:radial-gradient(ellipse 75% 36% at 88% -4%,rgba(35,39,42,.16),transparent 70%),radial-gradient(ellipse 65% 30% at -4% 104%,rgba(35,39,42,.1),transparent 70%),rgba(243,243,240,.9)!important; }
+  html[data-theme="ink"] .header h1 { font-weight:600;letter-spacing:.16em;color:var(--ink);text-shadow:none; }
+  html[data-theme="ink"] .header p,html[data-theme="ink"] .entry-count { color:var(--ink-soft);text-shadow:none;letter-spacing:.06em; }
+  html[data-theme="ink"] .search-box,html[data-theme="ink"] .filter-btn,html[data-theme="ink"] .toolbar.is-compact .search-box,html[data-theme="ink"] .toolbar.is-compact .filter-btn { background:rgba(250,250,247,.92);border:1px solid rgba(35,39,42,.18);border-radius:6px;color:var(--ink-soft); }
+  html[data-theme="ink"] .tag-chip { border-radius:4px;border:1px solid rgba(35,39,42,.2);background:rgba(250,250,247,.88);color:var(--ink-soft); }
+  html[data-theme="ink"] .tag-chip.selected { background:rgba(166,58,43,.1);border-color:var(--cinnabar);color:var(--cinnabar); }
+  html[data-theme="ink"] .entry-card { background:rgba(250,250,247,var(--card-opacity,.62));border:1px solid rgba(35,39,42,.18);border-top:2px solid rgba(35,39,42,.62);border-radius:4px;box-shadow:0 2px 14px rgba(35,39,42,.07); }
+  html[data-theme="ink"] .entry-card::after { box-shadow:0 10px 30px rgba(35,39,42,.24); }
+  html[data-theme="ink"] .entry-card::before { border-color:rgba(166,58,43,.5);border-radius:8px; }
+  html[data-theme="ink"] .entry-date-col { background:transparent;border-radius:0;border-right:1px solid rgba(35,39,42,.2); }
+  html[data-theme="ink"] .entry-date-day { color:var(--cinnabar);font-weight:700; }
+  html[data-theme="ink"] .entry-date-month,html[data-theme="ink"] .entry-date-weekday { color:var(--ink-faint);letter-spacing:.08em; }
+  html[data-theme="ink"] .entry-text-inline { font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC",serif;font-size:15px;line-height:1.95;letter-spacing:.04em;color:var(--ink); }
+  html[data-theme="ink"] .fab { background:var(--cinnabar);border-radius:10px;box-shadow:0 4px 14px rgba(166,58,43,.38); }
+  html[data-theme="ink"] .top-fab { border-radius:8px;background:rgba(250,250,247,.92);border-color:rgba(35,39,42,.2);color:var(--ink-soft); }
+  html[data-theme="ink"] .sheet { background:#F5F5F2;border-radius:10px 10px 0 0;box-shadow:0 60px 0 0 #F5F5F2; }
+  html[data-theme="ink"] .settings-drawer { background:var(--paper); }
+  html[data-theme="ink"] .sheet-actions button { border-radius:6px; }
+  html[data-theme="ink"] .btn-save { background:var(--cinnabar); }
+  html[data-theme="ink"] .btn-cancel { border-color:rgba(35,39,42,.25)!important;color:var(--ink-soft); }
+  html[data-theme="ink"] .toast { background:var(--ink);border-radius:6px;border-left:3px solid var(--cinnabar); }
+  html[data-theme="ink"] #reading-progress { background:var(--cinnabar); }
+  html[data-theme="ink"] a { color:var(--slate); }
+  html[data-theme="ink"] .sheet input[type="date"],html[data-theme="ink"] .sheet input[type="text"],html[data-theme="ink"] .sheet textarea,html[data-theme="ink"] .sheet select,html[data-theme="ink"] .settings-panel input,html[data-theme="ink"] .settings-panel select { border-radius:4px;border:1px solid rgba(35,39,42,.22);background:#FBFBF9;font-family:inherit;color:var(--ink);-webkit-appearance:none;appearance:none; }
+  html[data-theme="ink"] .sheet label,html[data-theme="ink"] .sheet h2 { color:var(--ink-soft);letter-spacing:.08em; }
+  html[data-theme="ink"] .sheet h2 { color:var(--ink);font-weight:600; }
+  html[data-theme="ink"] .setup-intro,html[data-theme="ink"] .update-banner { border-radius:6px; }
+  @keyframes saved-highlight-ink { 0%,25% { box-shadow:0 0 0 2px rgba(166,58,43,.85),0 6px 26px rgba(166,58,43,.24); } 100% { box-shadow:0 0 0 2px transparent,0 2px 14px rgba(35,39,42,.07); } }
+  html[data-theme="ink"] .saved-highlight .entry-card { animation-name:saved-highlight-ink; }
+  html[data-theme="ink"] .reading-motion.reading-native .saved-highlight:not(.reading-long)>.entry-card { animation-name:reading-breathe,saved-highlight-ink; }
+  @keyframes edit-source-ink { 0% { box-shadow:0 0 0 0 rgba(166,58,43,.6),0 2px 14px rgba(35,39,42,.07); } 30% { box-shadow:0 0 0 5px rgba(166,58,43,.25),0 8px 26px rgba(35,39,42,.2); } 100% { box-shadow:0 0 0 12px rgba(166,58,43,0),0 2px 14px rgba(35,39,42,.07); } }
+  @media (prefers-reduced-motion:no-preference) { html[data-theme="ink"] .entry-row.edit-source>.entry-card { animation-name:edit-source-ink; } }
 </style>
 </head>
 <body>
@@ -712,6 +752,10 @@
   <div id="author-list"></div>
   <div class="cloud-row"><input id="new-author" maxlength="100" placeholder="添加其他记录人"><button class="filter-btn" id="add-author">添加</button></div>
   <p class="settings-hint">移除后不再作为新记录的选项，旧日记仍可查看和筛选。Notion 中新增的署名会在同步后识别。</p>
+<h3 class="settings-subheading">主题</h3>
+  <label for="theme-select">界面主题</label>
+  <select id="theme-select"><option value="default">原样式</option><option value="ink">水墨国风</option></select>
+  <p class="settings-hint">切换后立即生效，仅保存在当前设备。国风主题使用手机自带的宋体与楷体，保持离线可用。</p>
 <h3 class="settings-subheading">背景与卡片</h3>
   <label for="local-background">从本机相册选择背景</label>
   <input type="file" id="local-background" accept="image/*">

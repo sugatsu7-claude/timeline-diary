@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.4
+// diary-release: 2026.11.03.5
 /* Optional haptics and soft sounds. Off by default; nothing runs until the user turns it on. */
 (function () {
   'use strict';
@@ -16,18 +16,20 @@
     var C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
     try{ctx=new C();}catch(e){ctx=null;}return ctx;
   }
-  function note(freq,start,length,volume){
+  function note(freq,start,length,volume,type){
     var c=audio();if(!c)return;
     var osc=c.createOscillator(),gain=c.createGain(),t=c.currentTime+start;
-    osc.type='sine';osc.frequency.setValueAtTime(freq,t);
+    osc.type=type||'sine';osc.frequency.setValueAtTime(freq,t);
     gain.gain.setValueAtTime(0.0001,t);gain.gain.exponentialRampToValueAtTime(volume,t+0.008);gain.gain.exponentialRampToValueAtTime(0.0001,t+length);
     osc.connect(gain);gain.connect(c.destination);osc.start(t);osc.stop(t+length+0.02);
   }
   function play(kind){
     if(!state.sound||reduced())return;var c=audio();if(!c)return;if(c.state==='suspended')c.resume();
-    if(kind==='tick')note(1250,0,0.035,0.05);
-    else if(kind==='success'){note(660,0,0.14,0.07);note(880,0.09,0.2,0.07);}
-    else if(kind==='warn')note(300,0,0.16,0.08);
+    var ink=document.documentElement.getAttribute('data-theme')==='ink';
+    // Ink theme: a soft wooden knock and plucked-string pentatonic notes instead of bright beeps.
+    if(kind==='tick')ink?note(420,0,0.07,0.07,'triangle'):note(1250,0,0.035,0.05);
+    else if(kind==='success')ink?(note(587,0,0.34,0.06),note(880,0.12,0.5,0.05)):(note(660,0,0.14,0.07),note(880,0.09,0.2,0.07));
+    else if(kind==='warn')ink?note(196,0,0.3,0.07):note(300,0,0.16,0.08);
   }
   var api={
     tick:function(){var now=Date.now();if(now-lastTick<45)return;lastTick=now;buzz(8);play('tick');},
