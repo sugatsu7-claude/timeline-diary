@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.03.10">
+<meta name="diary-version" content="2026.11.03.11">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -625,6 +625,31 @@
   .slider-value { font-weight:500;color:#52514E; }
   .slider-ends { display:flex;justify-content:space-between;font-size:11px;color:#B4B2A9;margin-top:-2px; }
   html[data-theme="ink"] .settings-panel input[type="range"] { accent-color:#5B7480; }
+  /* Tag management: chips you tap, then act on with large buttons. */
+  .tag-summary { font-size:12px;color:#898781;margin:2px 0 10px;min-height:1em; }
+  .tag-cloud { display:flex;flex-wrap:wrap;gap:8px; }
+  .tag-empty { margin:6px 0;font-size:13px;color:#B4B2A9; }
+  .manage-tag-chip { display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:8px 14px;border-radius:20px;border:1px solid #E1E0D9;background:#FCFCFB;color:#52514E;font-size:14px;transition:background-color 160ms ease,border-color 160ms ease,transform 160ms ease; }
+  .manage-tag-chip small { font-size:11px;color:#9C9A92;background:rgba(155,164,149,.18);border-radius:9px;padding:1px 7px;line-height:1.5; }
+  .manage-tag-chip.is-selected { border-color:#697460;background:rgba(155,164,149,.2);color:#3F4A36;transform:translateY(-1px);box-shadow:0 4px 14px rgba(105,116,96,.18); }
+  .manage-tag-chip.is-selected small { background:rgba(105,116,96,.18);color:#4B573F; }
+  .manage-tag-chip:focus-visible,.tag-action:focus-visible { outline:2px solid #9BA495;outline-offset:2px; }
+  @keyframes tag-pop { 0% { opacity:0;transform:scale(.8); } 60% { opacity:1;transform:scale(1.06); } 100% { transform:scale(1); } }
+  @media (prefers-reduced-motion:no-preference) { .manage-tag-chip.is-new { animation:tag-pop 320ms ease-out; } .tag-actions:not([hidden]) { animation:tag-actions-in 200ms ease-out; } }
+  @keyframes tag-actions-in { from { opacity:0;transform:translateY(-6px); } to { opacity:1;transform:none; } }
+  .tag-actions { display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 4px;padding:10px 12px;border-radius:14px;background:rgba(155,164,149,.12);border:1px solid rgba(155,164,149,.35); }
+  .tag-actions[hidden] { display:none; }
+  .tag-selected { flex:1 1 100%;font-size:13px;color:#52514E;font-weight:500; }
+  .tag-action { display:inline-flex;align-items:center;justify-content:center;gap:4px;flex:1;min-height:44px;padding:8px 10px;border-radius:12px;border:1px solid #E1E0D9;background:#FFFFFF;color:#52514E;font-size:14px;white-space:nowrap; }
+  .tag-action svg { width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }
+  .tag-action:disabled { opacity:.38; }
+  .tag-action.is-danger { color:#B4574B;border-color:rgba(180,87,75,.35); }
+  html[data-theme="ink"] .manage-tag-chip { border-radius:4px;border-color:rgba(74,93,99,.22);background:rgba(247,250,249,.9);color:var(--ink-soft); }
+  html[data-theme="ink"] .manage-tag-chip small { background:rgba(91,116,128,.12);color:var(--ink-faint); }
+  html[data-theme="ink"] .manage-tag-chip.is-selected { border-color:rgba(91,116,128,.7);background:rgba(91,116,128,.12);color:var(--slate);box-shadow:0 6px 20px rgba(91,116,128,.2); }
+  html[data-theme="ink"] .tag-actions { border-radius:6px;background:rgba(91,116,128,.08);border-color:rgba(91,116,128,.28); }
+  html[data-theme="ink"] .tag-action { border-radius:4px;border-color:rgba(74,93,99,.24);background:#F7FAF9;color:var(--ink-soft); }
+  html[data-theme="ink"] .tag-action.is-danger { color:var(--cinnabar);border-color:rgba(176,88,75,.4); }
   .settings-panel select { width:100%;font-size:16px;padding:8px 38px 8px 10px;border-radius:8px;border:0.5px solid #E1E0D9;background-color:#FCFCFB;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23767570' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px 8px;color:inherit;font-family:inherit;-webkit-appearance:none;appearance:none; }
 
   /* ---- 水墨国风: ink on paper, cinnabar seal accents. Everything is scoped to the attribute,
@@ -802,14 +827,20 @@
 </div>
 <div class="settings-toggle" id="tags-toggle">管理标签</div>
 <div class="settings-panel" id="tags-panel">
-  <label>当前标签</label>
-  <div class="tag-chips" id="manage-tag-chips"></div>
-  <label>新增标签</label>
-  <div style="display:flex;gap:8px;">
-    <input type="text" id="new-tag-input" placeholder="输入新标签名称" style="flex:1;">
-    <button class="settings-save" id="add-tag-btn" style="width:auto;padding:8px 16px;margin-top:0;">添加</button>
+  <p class="tag-summary" id="tag-summary" role="status"></p>
+  <div class="tag-cloud" id="manage-tag-chips"></div>
+  <div class="tag-actions" id="tag-actions" hidden>
+    <span class="tag-selected" id="tag-selected-name"></span>
+    <button type="button" class="tag-action" id="tag-move-earlier"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>前移</button>
+    <button type="button" class="tag-action" id="tag-move-later">后移<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+    <button type="button" class="tag-action is-danger" id="tag-delete"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg>删除</button>
   </div>
-  <p class="settings-hint">点标签上的 × 可删除。删除标签不会影响已经打过这个标签的旧记录。</p>
+  <label for="new-tag-input">新增标签</label>
+  <div class="cloud-row">
+    <input type="text" id="new-tag-input" placeholder="输入新标签名称" maxlength="30" enterkeyhint="done">
+    <button class="settings-save" id="add-tag-btn" type="button" style="width:auto;padding:8px 18px;margin-top:0;">添加</button>
+  </div>
+  <p class="settings-hint">标签旁的小数字是用过它的日记数。删除标签不会影响已经打过这个标签的旧记录。</p>
 </div>
 
 <div class="settings-toggle" id="settings-toggle">Notion 同步</div>

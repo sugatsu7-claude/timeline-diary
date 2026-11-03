@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.10
+// diary-release: 2026.11.03.11
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -505,70 +505,55 @@ document.getElementById('tags-toggle').onclick = function () {
   toggleSettingsGroup('tags');
 };
 
+var selectedManageTag = null, lastAddedTag = null;
+function tagUsage(tag) { return entries.filter(function (e) { return (e.tags || []).indexOf(tag) > -1; }).length; }
+// Tags are chips; tapping one selects it and reveals large move / delete buttons below.
 function renderManageTagChips() {
-  var wrap = document.getElementById('manage-tag-chips');
-  wrap.innerHTML = '';
+  var wrap = document.getElementById('manage-tag-chips'), bar = document.getElementById('tag-actions');
+  wrap.replaceChildren();
+  if (selectedManageTag && PRESET_TAGS.indexOf(selectedManageTag) < 0) selectedManageTag = null;
+  document.getElementById('tag-summary').textContent = PRESET_TAGS.length ? '共 ' + PRESET_TAGS.length + ' 个标签 · 点一下标签，可调整顺序或删除' : '';
   if (PRESET_TAGS.length === 0) {
-    wrap.innerHTML = '<span style="font-size:12px;color:#C7C6BE;">还没有标签，先加一个吧</span>';
-    return;
+    var empty = document.createElement('p');empty.className = 'tag-empty';empty.textContent = '还没有标签，先在下面添加一个吧';wrap.appendChild(empty);
+    bar.hidden = true;return;
   }
-  wrap.style.display = 'flex';
-  wrap.style.flexDirection = 'column';
-  wrap.style.gap = '6px';
-  PRESET_TAGS.forEach(function (tag, idx) {
-    var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:6px;background:#FCFCFB;border:0.5px solid #E1E0D9;border-radius:10px;padding:6px 8px;';
-    var label = document.createElement('span');
-    label.textContent = tag;
-    label.style.cssText = 'flex:1;font-size:13px;color:#52514E;';
-    row.appendChild(label);
-
-    var upBtn = document.createElement('button');
-    upBtn.type = 'button';
-    upBtn.textContent = '↑';
-    upBtn.disabled = idx === 0;
-    upBtn.style.cssText = 'background:transparent;border:none;font-size:14px;color:' + (idx === 0 ? '#E1E0D9' : '#767570') + ';padding:2px 6px;';
-    upBtn.onclick = async function () {
-      if (idx === 0) return;
-      var tmp = PRESET_TAGS[idx - 1];
-      PRESET_TAGS[idx - 1] = PRESET_TAGS[idx];
-      PRESET_TAGS[idx] = tmp;
-      if(!await savePresetTags())return;
-      renderManageTagChips();
-    };
-    row.appendChild(upBtn);
-
-    var downBtn = document.createElement('button');
-    downBtn.type = 'button';
-    downBtn.textContent = '↓';
-    downBtn.disabled = idx === PRESET_TAGS.length - 1;
-    downBtn.style.cssText = 'background:transparent;border:none;font-size:14px;color:' + (idx === PRESET_TAGS.length - 1 ? '#E1E0D9' : '#767570') + ';padding:2px 6px;';
-    downBtn.onclick = async function () {
-      if (idx === PRESET_TAGS.length - 1) return;
-      var tmp = PRESET_TAGS[idx + 1];
-      PRESET_TAGS[idx + 1] = PRESET_TAGS[idx];
-      PRESET_TAGS[idx] = tmp;
-      if(!await savePresetTags())return;
-      renderManageTagChips();
-    };
-    row.appendChild(downBtn);
-
-    var removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.innerHTML = '✕';
-    removeBtn.style.cssText = 'background:transparent;border:none;font-size:13px;color:#C7C6BE;padding:2px 6px;';
-    removeBtn.onclick = async function () {
-      if (!confirm('删除标签"' + tag + '"？已记录的内容不会受影响。')) return;
-      PRESET_TAGS = PRESET_TAGS.filter(function (t) { return t !== tag; });
-      if(!await savePresetTags())return;
-      renderManageTagChips();
-    };
-    row.appendChild(removeBtn);
-
-    wrap.appendChild(row);
+  PRESET_TAGS.forEach(function (tag) {
+    var chip = document.createElement('button');
+    chip.type = 'button';chip.className = 'manage-tag-chip' + (tag === selectedManageTag ? ' is-selected' : '') + (tag === lastAddedTag ? ' is-new' : '');
+    chip.setAttribute('aria-pressed', String(tag === selectedManageTag));
+    var name = document.createElement('span');name.textContent = tag;chip.appendChild(name);
+    var count = tagUsage(tag), badge = document.createElement('small');badge.textContent = count ? String(count) : '';
+    if (count) { badge.setAttribute('aria-label', count + ' 篇日记使用'); chip.appendChild(badge); }
+    chip.onclick = function () { selectedManageTag = selectedManageTag === tag ? null : tag; lastAddedTag = null; renderManageTagChips(); };
+    wrap.appendChild(chip);
   });
+  lastAddedTag = null;
+  bar.hidden = !selectedManageTag;
+  if (selectedManageTag) {
+    var index = PRESET_TAGS.indexOf(selectedManageTag);
+    document.getElementById('tag-selected-name').textContent = '「' + selectedManageTag + '」';
+    document.getElementById('tag-move-earlier').disabled = index === 0;
+    document.getElementById('tag-move-later').disabled = index === PRESET_TAGS.length - 1;
+  }
 }
-
+async function moveManageTag(step) {
+  var index = PRESET_TAGS.indexOf(selectedManageTag), target = index + step;
+  if (index < 0 || target < 0 || target >= PRESET_TAGS.length) return;
+  var swap = PRESET_TAGS[target];PRESET_TAGS[target] = PRESET_TAGS[index];PRESET_TAGS[index] = swap;
+  if (!await savePresetTags()) return;
+  renderManageTagChips();
+}
+document.getElementById('tag-move-earlier').onclick = function () { moveManageTag(-1); };
+document.getElementById('tag-move-later').onclick = function () { moveManageTag(1); };
+document.getElementById('tag-delete').onclick = async function () {
+  var tag = selectedManageTag;if (!tag) return;
+  var used = tagUsage(tag);
+  if (!confirm('删除标签"' + tag + '"？' + (used ? '已有 ' + used + ' 篇日记用过它，' : '') + '已记录的内容不会受影响。')) return;
+  PRESET_TAGS = PRESET_TAGS.filter(function (t) { return t !== tag; });
+  selectedManageTag = null;
+  if (!await savePresetTags()) return;
+  renderManageTagChips();
+};
 document.getElementById('add-tag-btn').onclick = async function () {
   var input = document.getElementById('new-tag-input');
   var val = input.value.trim();
@@ -577,9 +562,13 @@ document.getElementById('add-tag-btn').onclick = async function () {
   PRESET_TAGS.push(val);
   if(!await savePresetTags())return;
   input.value = '';
+  selectedManageTag = null;lastAddedTag = val;
   renderManageTagChips();
   showToast('标签已添加');
 };
+document.getElementById('new-tag-input').addEventListener('keydown', function (event) {
+  if (event.key === 'Enter' && !event.isComposing) { event.preventDefault();document.getElementById('add-tag-btn').click(); }
+});
 
 renderManageTagChips();
 

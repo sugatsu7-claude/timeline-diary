@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.10
+// diary-release: 2026.11.03.11
 /* Interface themes. The choice is stored on this device and applied as html[data-theme]. */
 (function () {
   'use strict';
