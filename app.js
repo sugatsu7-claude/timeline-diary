@@ -1,4 +1,4 @@
-// diary-release: 2026.11.03.9
+// diary-release: 2026.11.03.10
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -465,6 +465,23 @@ var appSettings=loadSettings();
 document.getElementById('sync-url').value = appSettings.syncUrl || '';
 document.getElementById('bg-scrim-input').value = appSettings.scrim === undefined ? 72 : appSettings.scrim;
 document.getElementById('card-opacity-input').value = appSettings.cardOpacity === undefined ? 62 : appSettings.cardOpacity;
+// Sliders preview instantly; only「保存外观」keeps the values, and closing settings restores the saved ones.
+function bindSlider(id, valueId, apply) {
+  var input = document.getElementById(id), output = document.getElementById(valueId);
+  function show() { output.textContent = input.value; }
+  input.addEventListener('input', function () { show(); apply(input.value); });
+  show();
+}
+bindSlider('bg-scrim-input', 'bg-scrim-value', function (v) { applyScrim(v); });
+bindSlider('card-opacity-input', 'card-opacity-value', function (v) { applyCardOpacity(v); });
+function restoreAppearancePreview() {
+  var scrim = document.getElementById('bg-scrim-input'), card = document.getElementById('card-opacity-input');
+  scrim.value = appSettings.scrim === undefined || appSettings.scrim === '' ? 72 : appSettings.scrim;
+  card.value = appSettings.cardOpacity === undefined || appSettings.cardOpacity === '' ? 62 : appSettings.cardOpacity;
+  document.getElementById('bg-scrim-value').textContent = scrim.value;
+  document.getElementById('card-opacity-value').textContent = card.value;
+  applyScrim(scrim.value);applyCardOpacity(card.value);
+}
 if (!appSettings.localBackground) applyBackground(appSettings.bgUrl);
 applyScrim(appSettings.scrim);
 applyCardOpacity(appSettings.cardOpacity);
@@ -647,7 +664,8 @@ function toggleSettings(open) {
   document.getElementById('open-settings').setAttribute('aria-expanded', String(open));
   document.body.style.overflowY = open ? 'hidden' : '';
   if (open) document.getElementById('close-settings').focus();
-  else if (settingsReturnFocus) settingsReturnFocus.focus();
+  else restoreAppearancePreview();
+  if (!open && settingsReturnFocus) settingsReturnFocus.focus();
 }
 document.getElementById('open-settings').onclick = function () { toggleSettings(true); };
 document.getElementById('close-settings').onclick = function () { toggleSettings(false); };
