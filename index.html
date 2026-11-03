@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.03.9">
+<meta name="diary-version" content="2026.11.03.10">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -620,6 +620,11 @@
     button:enabled:active,.tag-chip:active,.fab:active,.toolbar.is-compact { transform:none; }
   }
 
+  .settings-panel input[type="range"] { padding:0;height:32px;border:0;background:transparent;accent-color:#697460;margin:2px 0 0; }
+  .settings-panel input[type="date"] { min-height:42px; }
+  .slider-value { font-weight:500;color:#52514E; }
+  .slider-ends { display:flex;justify-content:space-between;font-size:11px;color:#B4B2A9;margin-top:-2px; }
+  html[data-theme="ink"] .settings-panel input[type="range"] { accent-color:#5B7480; }
   .settings-panel select { width:100%;font-size:16px;padding:8px 38px 8px 10px;border-radius:8px;border:0.5px solid #E1E0D9;background-color:#FCFCFB;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23767570' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px 8px;color:inherit;font-family:inherit;-webkit-appearance:none;appearance:none; }
 
   /* ---- 水墨国风: ink on paper, cinnabar seal accents. Everything is scoped to the attribute,
@@ -656,8 +661,8 @@
   html[data-theme="ink"] .toast { background:var(--ink);border-radius:6px;border-left:3px solid var(--cinnabar); }
   html[data-theme="ink"] #reading-progress { background:var(--cinnabar); }
   html[data-theme="ink"] a { color:var(--slate); }
-  html[data-theme="ink"] .sheet input[type="date"],html[data-theme="ink"] .sheet input[type="text"],html[data-theme="ink"] .sheet textarea,html[data-theme="ink"] .sheet select,html[data-theme="ink"] .settings-panel input,html[data-theme="ink"] .settings-panel select { border-radius:4px;border:1px solid rgba(74,93,99,.22);background-color:#F7FAF9;font-family:inherit;color:var(--ink);-webkit-appearance:none;appearance:none; }
-  html[data-theme="ink"] .sheet select,html[data-theme="ink"] .settings-panel select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23767570' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px 8px;padding-right:38px; }
+  html[data-theme="ink"] .sheet input[type="date"],html[data-theme="ink"] .sheet input[type="text"],html[data-theme="ink"] .sheet textarea,html[data-theme="ink"] .sheet select,html[data-theme="ink"] .settings-panel input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),html[data-theme="ink"] .settings-panel select { border-radius:4px;border:1px solid rgba(74,93,99,.22);background-color:#F7FAF9;font-family:inherit;color:var(--ink); }
+  html[data-theme="ink"] .sheet select,html[data-theme="ink"] .settings-panel select { -webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23767570' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px 8px;padding-right:38px; }
   html[data-theme="ink"] .sheet label,html[data-theme="ink"] .sheet h2 { color:var(--ink-soft);letter-spacing:.08em; }
   html[data-theme="ink"] .sheet h2 { color:var(--ink);font-weight:600; }
   html[data-theme="ink"] .setup-intro,html[data-theme="ink"] .update-banner { border-radius:6px; }
@@ -778,10 +783,13 @@
   <input type="file" id="local-background" accept="image/*">
   <p class="settings-hint" id="background-status" role="status">本机背景不会上传或同步。</p>
   <button class="backup-btn" id="reset-background" type="button" style="width:100%;">恢复默认背景</button>
-  <label>背景蒙层浓度（数字越大，背景图越淡、字越清楚）</label>
-  <input type="text" id="bg-scrim-input" placeholder="72" inputmode="numeric">
-  <label>卡片透明度（数字越大，卡片越实、字越清楚；数字越小，越能看见背景）</label>
-  <input type="text" id="card-opacity-input" placeholder="62" inputmode="numeric">
+  <label for="bg-scrim-input">背景蒙层浓度：<b class="slider-value"><span id="bg-scrim-value">72</span>%</b></label>
+  <input type="range" min="0" max="100" step="1" id="bg-scrim-input" aria-describedby="appearance-hint">
+  <div class="slider-ends"><span>看清背景</span><span>字更清楚</span></div>
+  <label for="card-opacity-input">卡片透明度：<b class="slider-value"><span id="card-opacity-value">62</span>%</b></label>
+  <input type="range" min="0" max="100" step="1" id="card-opacity-input" aria-describedby="appearance-hint">
+  <div class="slider-ends"><span>透出背景</span><span>卡片更实</span></div>
+  <p class="settings-hint" id="appearance-hint">拖动即时预览，点「保存外观」后才会保留。</p>
   <button class="settings-save" id="appearance-save-btn">保存外观</button>
 </div>
 <div class="settings-toggle" id="feedback-toggle">触感与声音</div>
