@@ -46,6 +46,10 @@
 
 **打不开或没有「添加到主屏幕」？** iPhone 需要用 Safari；用微信等 App 内置浏览器打开时没有这个选项，请先用系统浏览器打开。
 
+**同步会经过作者吗？用谁的额度？** 不会经过作者。点「同步」时，你的手机直接连你自己部署的 Cloudflare Worker，再写进你自己的 Notion，用的是你自己的 Cloudflare 免费额度和 Notion。作者看不到你的日记，作者的 Worker 也不会被用到。作者只提供网页文件（GitHub Pages）。Worker 的 `ALLOWED_ORIGIN` 默认就是 `https://sugatsu7-claude.github.io`，用这个网页 + 自己的 Worker 不用改；把网页搬到别处托管时，再改成自己的网址。
+
+**作者更新后，我会收到吗？** 直接用上面的链接：会，打开 App 时会提示有新版本，点一下即可更新。Fork 了仓库自己托管：不会自动更新，需要在自己的 Fork 页面点「Sync fork」。自己部署的 Worker 也不会自动更新；Worker 很少需要改，需要时会在这里注明。
+
 **想同步到 Notion / 想自己部署一份？** 看下面折叠的说明。
 
 > 🐾 我还做了小纸片人桌宠和英语单词挑战（手机网页版），欢迎来 [yanaic.com](https://yanaic.com) 逛逛～
