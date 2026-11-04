@@ -1,9 +1,9 @@
 /* Offline app shell only. No diary data, API responses, secrets or remote backgrounds are cached. */
-const RELEASE = '2026.11.03.17';
+const RELEASE = '2026.11.04.1';
 const ROOT = new URL('./', self.location.href);
 const PREFIX = 'timeline-diary-shell:' + ROOT.href + ':';
 const CACHE = PREFIX + RELEASE;
-const FILES = ['index.html','motion.js','theme.js','storage.js','network.js','boot.js','app.js','feedback.js','authors.js','media.js','map-picker.js','leaflet.css','Leaflet-LICENSE.txt','cards.js','sync.js','archive.js','backup.js','setup-config.js','setup.js','updates.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','assets/IMG_0586.jpg','assets/ink-bg.jpg'];
+const FILES = ['index.html','motion.js','theme.js','storage.js','network.js','boot.js','app.js','feedback.js','ambience.js','authors.js','media.js','map-picker.js','leaflet.css','Leaflet-LICENSE.txt','cards.js','sync.js','archive.js','backup.js','setup-config.js','setup.js','updates.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','assets/IMG_0586.jpg','assets/ink-bg.jpg'];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     async function checkRelease() {

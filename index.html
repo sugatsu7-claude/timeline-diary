@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.03.17">
+<meta name="diary-version" content="2026.11.04.1">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -643,6 +643,18 @@
   .settings-toggle { flex-wrap:wrap; }
   .settings-toggle[data-hint]::before { content:attr(data-hint);order:3;flex:1 0 100%;margin-top:3px;font-size:12px;color:var(--text-hint); }
   .settings-toggle::after { order:1; }
+  /* 烟雨声景 visuals: a small ink bird crossing the top, and ripples where the background is tapped. */
+  .ambience-bird { position:fixed;left:0;z-index:35;pointer-events:none;opacity:.75;animation:ambience-fly 8.5s linear forwards; }
+  .ambience-bird.rtl { animation-name:ambience-fly-rtl; }
+  .ambience-bird svg path { animation:ambience-flap .34s ease-in-out infinite alternate;transform-origin:32px 16px; }
+  @keyframes ambience-fly { from { transform:translate3d(-60px,0,0); } 50% { transform:translate3d(50vw,-22px,0); } to { transform:translate3d(calc(100vw + 60px),-6px,0); } }
+  @keyframes ambience-fly-rtl { from { transform:translate3d(calc(100vw + 60px),0,0) scaleX(-1); } 50% { transform:translate3d(50vw,-18px,0) scaleX(-1); } to { transform:translate3d(-60px,-4px,0) scaleX(-1); } }
+  @keyframes ambience-flap { from { transform:scaleY(1); } to { transform:scaleY(.45); } }
+  .ambience-ripple { position:fixed;z-index:34;width:0;height:0;pointer-events:none; }
+  .ambience-ripple i { position:absolute;left:-60px;top:-21px;width:120px;height:42px;border:2px solid rgba(91,116,128,.5);border-radius:50%;transform:scale(.1);opacity:0;animation:ambience-ripple 1.3s ease-out forwards; }
+  .ambience-ripple i + i { animation-delay:.28s;border-color:rgba(91,116,128,.35); }
+  @keyframes ambience-ripple { 0% { transform:scale(.1);opacity:.9; } 100% { transform:scale(1.6);opacity:0; } }
+  @media (prefers-reduced-motion:reduce) { .ambience-bird,.ambience-ripple { display:none; } }
   .backup-warning { margin:0 0 12px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.6;color:#8A4A3E;background:rgba(180,87,75,.08);border:1px solid rgba(180,87,75,.25); }
   html[data-theme="ink"] .backup-warning { border-radius:6px; }
   html[data-theme="night"] .backup-warning { color:#E8B0A6;background:rgba(229,142,130,.1);border-color:rgba(229,142,130,.3); }
@@ -928,6 +940,8 @@
 <div class="settings-panel" id="feedback-panel">
   <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="feedback-haptics" style="width:auto;">触感反馈（点按、保存、滑动换卡；仅支持震动的设备）</label>
   <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="feedback-sound" style="width:auto;">轻柔提示音（点按、保存、提醒）</label>
+  <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="ambience-toggle" style="width:auto;">烟雨声景：雨声、偶尔鸟鸣，点背景有水声（仅水墨国风）</label>
+  <p class="settings-hint" id="ambience-note" role="status"></p>
   <button class="settings-save" id="feedback-test">试一下</button>
   <p class="settings-hint" id="feedback-note"></p>
   <p class="settings-hint">默认关闭，仅保存在当前设备。系统开启「减少动态效果」时自动停用。iPhone 静音拨片打开时没有声音。</p>
