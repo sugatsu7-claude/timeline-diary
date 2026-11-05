@@ -1,10 +1,13 @@
-// diary-release: 2026.11.05.1
+// diary-release: 2026.11.05.3
 /* Text-only diary cards. Rendering and PNG export stay entirely on this device. */
 (function(){
  'use strict';
  const SIZE=360,SCALE=3,FONT='-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif';
  const BODY=14,LINE=22,PARA=9,LEFT=32,WIDTH=290,LINES=8,MAXH=LINE*(LINES-1);// LINE: wrapped lines sit close; PARA: extra space after an Enter break
- const themes={cream:{name:'奶油拼贴',paper:'#f8f1e3',tag:'#eee0c4',ink:'#594c39'},letter:{name:'花间来信',paper:'#f6f4e9',tag:'#e2e6d2',ink:'#4e5746'},night:{name:'晚安手账',paper:'#f9ede7',tag:'#e7dce9',ink:'#615264'}};
+ const themes={cream:{name:'奶油拼贴',paper:'#f8f1e3',tag:'#eee0c4',ink:'#594c39'},letter:{name:'花间来信',paper:'#f6f4e9',tag:'#e2e6d2',ink:'#4e5746'},night:{name:'晚安手账',paper:'#f9ede7',tag:'#e7dce9',ink:'#615264'},ink:{name:'墨韵小笺',paper:'#f3efe4',tag:'#a8463a',ink:'#4a565c',body:'#3d474c',font:'"Kaiti SC", "STKaiti", "KaiTi", "Songti SC", "STSong", "Noto Serif CJK SC", serif'}};
+ const fontOf=key=>themes[key].font||FONT;
+ // Chinese numerals for the ink card: 二〇二六年十一月五日, page 一 / 三.
+ const cnDigit=d=>'〇一二三四五六七八九'[d],cnNum=n=>n<=10?(n===10?'十':'〇一二三四五六七八九'[n]):n<20?'十'+cnDigit(n-10):cnDigit(Math.floor(n/10))+'十'+(n%10?cnDigit(n%10):'');
  const dialog=document.getElementById('card-dialog'),canvas=document.getElementById('card-canvas'),status=document.getElementById('card-status');
  let entry,pages=[],index=0,theme='cream',sequence=0,file=null,trigger;
  const backgrounds=new Map();
@@ -25,6 +28,16 @@
    for(const [x,y]of [[23,15],[8,34],[335,313],[321,332],[344,345]])decor+=flower(x,y,.65,'#e8c78b');
    decor+='<path d="M305 13h29v29h-29Z" fill="none" stroke="#b4bc9d" stroke-width="1" stroke-dasharray="2 2" opacity=".6"/><path d="M291 24q9-4 18 0m-22 5q10-4 21 0m-21 5q10-4 21 0" fill="none" stroke="#a9b18d" stroke-width=".7" opacity=".6"/>';
    decor+=branch(321,36,.29,8);
+  }else if(key==='ink'){
+   // Rice paper: a double hairline frame, a cinnabar plum branch, distant mountains washed in at the foot.
+   decor+='<defs><linearGradient id="mist" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#6f8088" stop-opacity=".34"/><stop offset="1" stop-color="#6f8088" stop-opacity="0"/></linearGradient><linearGradient id="far" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#9aa8ad" stop-opacity=".3"/><stop offset="1" stop-color="#9aa8ad" stop-opacity="0"/></linearGradient><filter id="soft"><feGaussianBlur stdDeviation="1.2"/></filter><clipPath id="frame"><rect x="17" y="17" width="326" height="326"/></clipPath></defs>';
+   decor+='<rect width="360" height="360" filter="url(#grain)" opacity=".05"/>';
+   decor+='<g fill="none" stroke="#5b6a70"><rect x="12" y="12" width="336" height="336" stroke-width=".9" opacity=".5"/><rect x="16.5" y="16.5" width="327" height="327" stroke-width=".4" opacity=".4"/></g>';
+   decor+='<g clip-path="url(#frame)"><g filter="url(#soft)"><path d="M150 360L188 322Q200 313 212 318L236 300Q250 290 262 300L290 280Q304 271 316 284L348 312V360Z" fill="url(#far)"/><path d="M196 360L232 330Q244 321 256 329L276 316Q288 309 300 318L322 304Q334 298 344 310V360Z" fill="url(#mist)"/></g></g>';
+   decor+='<g opacity=".55" fill="none" stroke="#4f5d63" stroke-linecap="round"><path d="M46 316q10 5 24 0" stroke-width="1.3"/><path d="M52 316q6-6 12 0" stroke-width=".8"/><path d="M60 316l7-9" stroke-width=".7"/><path d="M34 324h20M62 323h26M44 330h14" stroke-width=".45" opacity=".7"/></g>';
+   decor+='<g fill="none" stroke="#4a4642" stroke-linecap="round" opacity=".78"><path d="M348 30Q312 40 290 62Q276 76 258 82" stroke-width="2.2"/><path d="M302 52Q300 36 312 26M282 68Q290 82 284 96M268 78Q258 70 246 72" stroke-width="1.2"/></g>';
+   for(const [x,y,r]of [[311,25,4.2],[287,96,3.6],[262,80,4],[246,71,3],[298,47,3.4],[326,36,2.6]])decor+=`<g transform="translate(${x} ${y})" fill="#c0564a" opacity=".82">${[0,72,144,216,288].map(a=>`<circle cx="${(r*.62*Math.cos(a*Math.PI/180)).toFixed(2)}" cy="${(r*.62*Math.sin(a*Math.PI/180)).toFixed(2)}" r="${(r*.5).toFixed(2)}"/>`).join('')}<circle r="${(r*.28).toFixed(2)}" fill="#e9c27a"/></g>`;
+   for(const [x,y]of [[276,58],[318,44],[252,88]])decor+=`<circle cx="${x}" cy="${y}" r="1.6" fill="#c0564a" opacity=".7"/>`;
   }else{
    // Open corners leave room for the moon, cup, and multi-page folio.
    decor+='<g fill="none" stroke="#b4a2b9" stroke-linecap="round" stroke-linejoin="round"><path d="M272 17H29Q17 17 17 29V287M77 343H153M207 343H331Q343 343 343 331V74" stroke-width=".8" opacity=".72"/><path d="M42 22H30Q22 22 22 30V62M320 338H329Q338 338 338 329V304" stroke-width=".45" opacity=".48"/></g>';
@@ -69,6 +82,7 @@
  }
  function ellipsis(text,ctx,width){if(ctx.measureText(text).width<=width)return text;const chars=segments(text);while(chars.length&&ctx.measureText(chars.join('')+'…').width>width)chars.pop();return chars.join('')+'…';}
  function dateLabel(date){const d=new Date(date+'T00:00:00');return Number.isNaN(d.getTime())?date:`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 · 周${'日一二三四五六'[d.getDay()]}`;}
+ function cnDate(date){const d=new Date(date+'T00:00:00');return Number.isNaN(d.getTime())?date:`${String(d.getFullYear()).split('').map(cnDigit).join('')}年${cnNum(d.getMonth()+1)}月${cnNum(d.getDate())}日 · 星期${'日一二三四五六'[d.getDay()]}`;}
  function rounded(ctx,x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();}
  async function render(){
   if(!entry||!pages.length||!dialog.open)return;
@@ -76,11 +90,15 @@
   const key=theme,pageIndex=index,source=entry,part=pages[pageIndex];status.textContent='正在排版…';
   try{
    const bg=await background(key),sheet=document.createElement('canvas');sheet.width=sheet.height=SIZE*SCALE;
-   const ctx=sheet.getContext('2d');ctx.scale(SCALE,SCALE);ctx.drawImage(bg,0,0,SIZE,SIZE);ctx.textBaseline='alphabetic';ctx.fillStyle=themes[key].ink;ctx.font=`12px ${FONT}`;ctx.fillText(dateLabel(source.date),LEFT,58);
-   const tags=(source.tags||[]).join(' · ');if(tags){ctx.font=`11px ${FONT}`;const label=ellipsis(tags,ctx,WIDTH-18),w=Math.min(WIDTH,ctx.measureText(label).width+18);ctx.fillStyle=themes[key].tag;rounded(ctx,LEFT,72,w,20,10);ctx.fillStyle=themes[key].ink;ctx.fillText(label,LEFT+9,86);}
-   ctx.font=`400 ${BODY}px ${FONT}`;ctx.fillStyle='#514c44';const top=tags?126:106;part.forEach(line=>ctx.fillText(line.text,LEFT,top+line.offset));
-   ctx.font=`12px ${FONT}`;ctx.fillStyle=themes[key].ink;ctx.textAlign='right';ctx.fillText(ellipsis(source.source||'未署名',ctx,WIDTH-40),SIZE-LEFT,324);
-   if(pages.length>1){ctx.font=`10px ${FONT}`;ctx.textAlign='center';ctx.fillStyle='#928a7f';ctx.fillText(`${pageIndex+1} / ${pages.length}`,SIZE/2,344);}
+   const ctx=sheet.getContext('2d');ctx.scale(SCALE,SCALE);ctx.drawImage(bg,0,0,SIZE,SIZE);ctx.textBaseline='alphabetic';ctx.fillStyle=themes[key].ink;ctx.font=`12px ${fontOf(key)}`;const ink=key==='ink';ctx.fillText(ink?cnDate(source.date):dateLabel(source.date),LEFT,58);
+   const tags=(source.tags||[]).join(' · ');if(tags&&ink){ctx.font=`12px ${fontOf(key)}`;ctx.fillStyle=themes[key].tag;ctx.fillText('「'+ellipsis(tags,ctx,WIDTH-30)+'」',LEFT-6,88);}else if(tags){ctx.font=`11px ${FONT}`;const label=ellipsis(tags,ctx,WIDTH-18),w=Math.min(WIDTH,ctx.measureText(label).width+18);ctx.fillStyle=themes[key].tag;rounded(ctx,LEFT,72,w,20,10);ctx.fillStyle=themes[key].ink;ctx.fillText(label,LEFT+9,86);}
+   ctx.font=`400 ${BODY}px ${fontOf(key)}`;ctx.fillStyle=themes[key].body||'#514c44';const top=tags?126:106;part.forEach(line=>ctx.fillText(line.text,LEFT,top+line.offset));
+   ctx.font=`12px ${fontOf(key)}`;ctx.fillStyle=themes[key].ink;ctx.textAlign='right';
+   if(ink){// Signature, then a small cinnabar seal reading 记.
+    const name=ellipsis(source.source||'未署名',ctx,WIDTH-80)+'  记',sx=SIZE-LEFT-24;ctx.fillText(name,sx-6,318);
+    ctx.fillStyle='#b5443a';ctx.globalAlpha=.9;rounded(ctx,sx,302,20,20,2.5);ctx.globalAlpha=1;ctx.fillStyle='#f6ece0';ctx.textAlign='center';ctx.font=`600 13px ${fontOf(key)}`;ctx.fillText('记',sx+10,317);ctx.strokeStyle='rgba(246,236,224,.55)';ctx.lineWidth=.6;ctx.strokeRect(sx+2.5,304.5,15,15);
+   }else ctx.fillText(ellipsis(source.source||'未署名',ctx,WIDTH-40),SIZE-LEFT,324);
+   if(pages.length>1){ctx.font=`10px ${fontOf(key)}`;ctx.textAlign='center';ctx.fillStyle='#928a7f';ctx.fillText(ink?`${cnNum(pageIndex+1)} / ${cnNum(pages.length)}`:`${pageIndex+1} / ${pages.length}`,SIZE/2,ink?338:344);}
    const blob=await new Promise((resolve,reject)=>sheet.toBlob(b=>b?resolve(b):reject(new Error('图片生成失败，请重试')),'image/png'));
    if(token!==sequence||!dialog.open)return;
    canvas.width=canvas.height=SIZE*SCALE;canvas.getContext('2d').drawImage(sheet,0,0);canvas.setAttribute('aria-label',`${themes[key].name}，${dateLabel(source.date)}，第${pageIndex+1}张，共${pages.length}张`);
@@ -95,15 +113,17 @@
    status.textContent=pages.length>1?`文字已分为${pages.length}张方形卡片；可切换并逐张保存。`:'仅包含文字、日期、标签和署名，在本机生成。';
   }catch(error){if(token===sequence)status.textContent=error.message;}
  }
+ // Fonts differ per style (the ink card uses Kaiti), so pages are laid out again for each style.
+ function layout(){const ctx=document.createElement('canvas').getContext('2d');ctx.font=`400 ${BODY}px ${fontOf(theme)}`;pages=paginate(lines(entry.text,ctx,WIDTH));}
  async function open(value,button){
   if(!value.text?.trim()){showToast('这篇日记没有文字，暂时无法生成卡片');return;}
   sequence++;entry=structuredClone(value);index=0;trigger=button;file=null;pages=[];
   document.getElementById('card-save').disabled=document.getElementById('card-share').disabled=true;document.getElementById('card-pagination').hidden=true;
   canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
   dialog.showModal();status.textContent='正在排版…';
-  try{await document.fonts.ready;const ctx=document.createElement('canvas').getContext('2d');ctx.font=`400 ${BODY}px ${FONT}`;pages=paginate(lines(entry.text,ctx,WIDTH));await render();}catch(error){status.textContent='卡片未生成：'+error.message;}
+  try{await document.fonts.ready;const ctx=document.createElement('canvas').getContext('2d');layout();await render();}catch(error){status.textContent='卡片未生成：'+error.message;}
  }
- for(const button of document.querySelectorAll('[data-card-style]'))button.onclick=()=>{theme=button.dataset.cardStyle;document.querySelectorAll('[data-card-style]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));index=Math.min(index,pages.length-1);render();};
+ for(const button of document.querySelectorAll('[data-card-style]'))button.onclick=()=>{theme=button.dataset.cardStyle;document.querySelectorAll('[data-card-style]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));if(entry){layout();index=Math.min(index,pages.length-1);}render();};
  document.getElementById('card-prev').onclick=()=>{if(index>0){index--;render();}};
  document.getElementById('card-next').onclick=()=>{if(index<pages.length-1){index++;render();}};
  document.getElementById('card-close').onclick=()=>dialog.close();

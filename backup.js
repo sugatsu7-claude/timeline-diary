@@ -1,4 +1,4 @@
-// diary-release: 2026.11.05.1
+// diary-release: 2026.11.05.3
 (function(){
  'use strict';
  const status=document.getElementById('backup-status');
