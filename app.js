@@ -1,4 +1,4 @@
-// diary-release: 2026.11.05.5
+// diary-release: 2026.11.05.6
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -377,6 +377,12 @@ function renderSheetTagChips() {
 function mapSearchUrl(query){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);}
 var locationRequest=0;
 function resetLocationRequest(){locationRequest++;document.getElementById('location-current').disabled=false;document.getElementById('location-current').textContent='使用当前位置';document.getElementById('location-status').textContent='可选择地图位置，或使用手机当前位置。';}
+// Removes the place in one tap (name and map link together); it is dropped from the diary on Save.
+document.getElementById('location-clear').onclick=function(){
+ if(window.DiaryMapPicker?.isOpen())DiaryMapPicker.close();
+ resetLocationRequest();document.getElementById('entry-location-name').value='';document.getElementById('entry-location-url').value='';document.getElementById('sheet-map-link').open=false;
+ refreshSheetMore();document.getElementById('location-status').textContent='已清除地点，保存后生效。';document.querySelector('[data-sheet-more="location"]').focus({preventScroll:true});
+};
 document.getElementById('location-current').onclick=function(){
  var status=document.getElementById('location-status');if(!navigator.geolocation){status.textContent='当前浏览器不支持定位，可填写地点名称搜索。';return;}
  var token=++locationRequest,button=this;button.disabled=true;button.textContent='定位中…';status.textContent='正在请求当前位置，请允许手机定位权限。';
@@ -453,6 +459,7 @@ function refreshSheetMore(expandFilled) {
     document.querySelector('[data-sheet-more="' + key + '"] .more-count').textContent = n && key !== 'location' ? String(n) : (n ? '✓' : '');
   });
   var url = document.getElementById('entry-location-url');
+  document.getElementById('location-clear').hidden = !sheetMoreCount('location');
   if (expandFilled !== undefined) document.getElementById('sheet-map-link').open = !!url.value.trim();
   if (expandFilled !== undefined) refreshDateLabel();
 }
