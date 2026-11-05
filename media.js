@@ -1,4 +1,4 @@
-// diary-release: 2026.11.05.3
+// diary-release: 2026.11.05.4
 /* Local blobs live in IndexedDB; metadata alone lives with diary entries. */
 (function () {
   'use strict';
@@ -48,7 +48,7 @@
   function draftEvent() { document.getElementById('sheet').dispatchEvent(new Event('change')); }
   function photoActions(){
     var count=sheetPhotos.length,button=document.getElementById('sheet-add-photo');
-    document.getElementById('sheet-photo-count').textContent=count+' / 8';document.getElementById('sheet-photo-editor').classList.toggle('is-empty',!count);document.getElementById('sheet-photos').hidden=!count;
+    document.getElementById('sheet-photo-count').textContent=count+' / 8';document.getElementById('sheet-photo-editor').classList.toggle('is-empty',!count);document.getElementById('sheet-photos').hidden=!count;if(window.refreshSheetMore)refreshSheetMore();
     button.disabled=mediaBusy||count>=8;document.getElementById('entry-photos').disabled=button.disabled;button.replaceChildren();
     var plus=document.createElement('span'),label=document.createElement('span');plus.className='photo-add-icon';plus.textContent='＋';label.textContent=count>=8?'已满':count?'添加':'添加照片';button.append(plus,label);button.setAttribute('aria-label',count>=8?'已添加8张照片':'添加照片');
     document.querySelectorAll('.sheet-photo-thumb').forEach(function(view){view.disabled=mediaBusy;});document.getElementById('photo-remove').disabled=mediaBusy;

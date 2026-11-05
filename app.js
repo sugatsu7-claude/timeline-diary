@@ -1,4 +1,4 @@
-// diary-release: 2026.11.05.3
+// diary-release: 2026.11.05.4
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -425,6 +425,7 @@ function openSheet(editEntry) {
   var authorOptions = window.AuthorSettings ? AuthorSettings.options(editEntry && editEntry.source) : sourceNames();
   authorOptions.forEach(function (name) { var option = document.createElement('option'); option.value = name; option.textContent = name; sourceSelect.appendChild(option); });
   sourceSelect.value = editEntry ? sourceName(editEntry.source) : (window.AuthorSettings ? AuthorSettings.defaultName() : sourceNames()[0] || '');
+  refreshSheetMore(true);
   sheetInitialSnapshot = sheetSnapshot();
   var sheetEl=document.getElementById('sheet');
   // The sheet scrolls itself; always start at the top so the date is visible.
@@ -434,6 +435,40 @@ function openSheet(editEntry) {
   sheetEl.scrollTop=0;requestAnimationFrame(function(){sheetEl.scrollTop=0;});
   if(editEntry&&editEntry.id){var source=document.querySelector('[data-entry-id="'+String(editEntry.id).replace(/["\\]/g,'')+'"]');if(source){source.classList.remove('edit-source');void source.offsetWidth;source.classList.add('edit-source');setTimeout(function(){source.classList.remove('edit-source');},700);}}
 }
+// Photos, links and place stay folded until asked for; anything already filled opens by itself.
+var SHEET_MORE = ['photos', 'links', 'location'];
+function sheetMoreCount(key) {
+  if (key === 'photos') return sheetPhotos.length;
+  if (key === 'links') return document.getElementById('entry-links').value.split('\n').filter(function (s) { return s.trim(); }).length;
+  return document.getElementById('entry-location-name').value.trim() || document.getElementById('entry-location-url').value.trim() ? 1 : 0;
+}
+function setSheetMore(key, open) {
+  document.getElementById('sheet-section-' + key).hidden = !open;
+  document.querySelector('[data-sheet-more="' + key + '"]').setAttribute('aria-expanded', String(open));
+}
+function refreshSheetMore(expandFilled) {
+  SHEET_MORE.forEach(function (key) {
+    var n = sheetMoreCount(key);
+    if (expandFilled !== undefined) setSheetMore(key, expandFilled && n > 0);
+    document.querySelector('[data-sheet-more="' + key + '"] .more-count').textContent = n && key !== 'location' ? String(n) : (n ? '✓' : '');
+  });
+  var url = document.getElementById('entry-location-url');
+  if (expandFilled !== undefined) document.getElementById('sheet-map-link').open = !!url.value.trim();
+}
+window.refreshSheetMore = refreshSheetMore;
+document.querySelectorAll('[data-sheet-more]').forEach(function (button) {
+  button.onclick = function () {
+    var key = button.dataset.sheetMore, section = document.getElementById('sheet-section-' + key), open = section.hidden;
+    setSheetMore(key, open);
+    if (!open) return;
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    section.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+    if (key === 'photos' && !sheetPhotos.length) document.getElementById('entry-photos').click();
+    else if (key === 'links') document.getElementById('entry-links').focus({ preventScroll: true });
+    else if (key === 'location' && !document.getElementById('entry-location-name').value) document.getElementById('entry-location-name').focus({ preventScroll: true });
+  };
+});
+['entry-links', 'entry-location-name', 'entry-location-url'].forEach(function (id) { document.getElementById(id).addEventListener('input', function () { refreshSheetMore(); }); });
 function closeSheet() {
   if(window.DiaryMapPicker?.isOpen())DiaryMapPicker.close();
   resetLocationRequest();

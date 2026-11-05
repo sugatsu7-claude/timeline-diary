@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.05.3">
+<meta name="diary-version" content="2026.11.05.4">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -373,6 +373,23 @@
   }
   .source-toggle button.selected { background: var(--primary); color: #FFFFFF; border-color: var(--primary); }
   .sheet-actions { display: flex; gap: 8px; margin-top: 18px; }
+  /* Compact editor: one quiet row for date/byline, writing first, extras behind a small toolbar. */
+  .sheet-meta { display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px; }
+  .sheet .sheet-meta input[type="date"],.sheet .sheet-meta select { width:auto;flex:0 1 auto;font-size:16px;padding:5px 30px 5px 12px;border-radius:999px;border:0.5px solid var(--line);background-color:var(--surface);background-image:var(--chevron);background-repeat:no-repeat;background-position:right 11px center;background-size:10px 7px;color:inherit;font-family:inherit;-webkit-appearance:none;appearance:none;min-height:34px;max-width:100%; }
+  .sheet .sheet-meta input[type="date"]::-webkit-calendar-picker-indicator { opacity:0;margin-left:-14px; }
+  .sheet textarea#entry-text { min-height:150px;line-height:1.6; }
+  .sheet-tags-label { font-size:12px;color:var(--text-hint);margin:12px 0 6px; }
+  .sheet-more { display:flex;gap:8px;margin:16px 0 4px;flex-wrap:wrap; }
+  .sheet-more button { display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:6px 13px;border-radius:999px;border:0.5px dashed var(--line);background:transparent;color:var(--text-hint);font:inherit;font-size:13px;cursor:pointer; }
+  .sheet-more svg { width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round; }
+  .sheet-more button[aria-expanded="true"] { border-style:solid;border-color:var(--primary);color:var(--primary);background:rgba(var(--primary-rgb),.08); }
+  .sheet-more .more-count:not(:empty) { min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--primary);color:#fff;font-size:10px;line-height:16px;text-align:center; }
+  .sheet-section { margin-top:4px; }
+  .sheet-section[hidden] { display:none; }
+  .sheet-map-link { margin-top:8px; }
+  .sheet-map-link summary { font-size:12px;color:var(--text-hint);cursor:pointer;padding:4px 0; }
+  .sheet-map-link input { margin-top:6px; }
+  .sheet .sheet-actions { position:sticky;bottom:calc(-20px - env(safe-area-inset-bottom));margin:18px -20px calc(-20px - env(safe-area-inset-bottom));padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:var(--page);z-index:2;box-shadow:0 -10px 14px -12px rgba(44,44,42,.25); }
   .sheet-actions button {
     flex: 1;
     padding: 12px;
@@ -743,6 +760,10 @@
   html[data-theme="ink"] .settings-drawer { background:var(--paper); }
   html[data-theme="ink"] .filter-panel { background:#F1F4F3; }
   html[data-theme="ink"] .sheet-actions button { border-radius:6px; }
+  html[data-theme="ink"] .sheet .sheet-actions { background:#F1F4F3; }
+  html[data-theme="ink"] .sheet-more button { border-radius:4px;letter-spacing:.06em; }
+  html[data-theme="ink"] .sheet-more .more-count:not(:empty) { background:var(--cinnabar); }
+  html[data-theme="ink"] .sheet-tags-label { color:var(--ink-soft);letter-spacing:.08em; }
   html[data-theme="ink"] .btn-cancel { border-color:rgba(74,93,99,.25)!important;color:var(--ink-soft); }
   html[data-theme="ink"] .toast { background:var(--ink);border-radius:6px;border-left:3px solid var(--cinnabar); }
   html[data-theme="ink"] #reading-progress { background:var(--cinnabar); }
@@ -874,14 +895,20 @@
 <div class="sheet-backdrop" id="sheet-backdrop"></div>
 <div class="sheet" id="sheet">
   <h2 id="sheet-title">新增记录</h2>
-  <label>日期</label>
-  <input type="date" id="entry-date">
-  <label>谁记的</label>
-  <select id="entry-source" style="width:100%;padding:10px;font-size:16px;border-radius:8px;"></select>
-  <label>标签（可多选）</label>
-  <div class="tag-chips" id="sheet-tag-chips"></div>
-  <label>内容</label>
-  <textarea id="entry-text" placeholder="今天发生了什么…"></textarea>
+  <!-- Write first; the date and byline sit in one quiet row, extras open only when asked for. -->
+  <div class="sheet-meta">
+    <input type="date" id="entry-date" aria-label="日期">
+    <select id="entry-source" aria-label="谁记的"></select>
+  </div>
+  <textarea id="entry-text" aria-label="内容" placeholder="今天发生了什么…"></textarea>
+  <div class="sheet-tags-label" id="sheet-tags-label">标签</div>
+  <div class="tag-chips" id="sheet-tag-chips" role="group" aria-labelledby="sheet-tags-label"></div>
+  <div class="sheet-more" role="group" aria-label="添加照片、链接或地点">
+    <button type="button" data-sheet-more="photos" aria-expanded="false" aria-controls="sheet-section-photos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/></svg>照片<span class="more-count" aria-hidden="true"></span></button>
+    <button type="button" data-sheet-more="links" aria-expanded="false" aria-controls="sheet-section-links"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>链接<span class="more-count" aria-hidden="true"></span></button>
+    <button type="button" data-sheet-more="location" aria-expanded="false" aria-controls="sheet-section-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>地点<span class="more-count" aria-hidden="true"></span></button>
+  </div>
+  <div class="sheet-section" id="sheet-section-photos" hidden>
   <div class="photo-editor-heading"><label for="entry-photos">照片</label><span id="sheet-photo-count" aria-live="polite">0 / 8</span></div>
   <input type="file" id="entry-photos" accept="image/*" multiple hidden>
   <div id="sheet-photo-editor" class="sheet-photo-editor is-empty">
@@ -890,14 +917,20 @@
   </div>
   <p class="settings-hint">最多8张，添加后自动压缩。点照片放大，可在预览里移除。</p>
   <p id="photo-status" class="settings-hint" role="status"></p>
+  </div>
+  <div class="sheet-section" id="sheet-section-links" hidden>
   <label for="entry-links">链接（每行一个，最多8个）</label>
   <textarea id="entry-links" rows="2" style="min-height:70px;" placeholder="https://..."></textarea>
-  <label for="entry-location-name">地点（可选）</label>
-  <input type="text" id="entry-location-name" maxlength="200" placeholder="例如 The Waterfront Shoppes">
+  </div>
+  <div class="sheet-section" id="sheet-section-location" hidden>
+  <label for="entry-location-name">地点</label>
+  <input type="text" id="entry-location-name" maxlength="200" placeholder="例如 西湖 · 断桥">
   <div class="cloud-row"><button type="button" class="filter-btn" id="location-search">搜索／地图选点</button><button type="button" class="filter-btn" id="location-current">使用当前位置</button></div>
   <p id="location-status" class="settings-hint" role="status">可打开地图搜索，或使用手机当前位置。</p>
-  <label for="entry-location-url">地图链接（可选，也可在上方选点）</label>
-  <input type="text" id="entry-location-url" maxlength="2000" inputmode="url" placeholder="可粘贴地图分享链接，也可以不填">
+  <details class="sheet-map-link" id="sheet-map-link"><summary>粘贴地图链接</summary>
+  <input type="text" id="entry-location-url" maxlength="2000" inputmode="url" aria-label="地图链接" placeholder="可粘贴地图分享链接，也可以不填">
+  </details>
+  </div>
   <div class="sheet-actions">
     <button class="btn-cancel" id="sheet-cancel">取消</button>
     <button class="btn-save" id="sheet-save">保存</button>
