@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.04.1">
+<meta name="diary-version" content="2026.11.05.1">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -644,6 +644,8 @@
   .settings-toggle[data-hint]::before { content:attr(data-hint);order:3;flex:1 0 100%;margin-top:3px;font-size:12px;color:var(--text-hint); }
   .settings-toggle::after { order:1; }
   /* 烟雨声景 visuals: a small ink bird crossing the top, and ripples where the background is tapped. */
+  .ambience-options { margin:4px 0 6px;padding:2px 12px 10px;border-left:2px solid rgba(91,116,128,.25); }
+  .ambience-options[hidden] { display:none; }
   .ambience-bird { position:fixed;left:0;z-index:35;pointer-events:none;opacity:.75;animation:ambience-fly 8.5s linear forwards; }
   .ambience-bird.rtl { animation-name:ambience-fly-rtl; }
   .ambience-bird svg path { animation:ambience-flap .34s ease-in-out infinite alternate;transform-origin:32px 16px; }
@@ -940,8 +942,18 @@
 <div class="settings-panel" id="feedback-panel">
   <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="feedback-haptics" style="width:auto;">触感反馈（点按、保存、滑动换卡；仅支持震动的设备）</label>
   <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="feedback-sound" style="width:auto;">轻柔提示音（点按、保存、提醒）</label>
-  <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="ambience-toggle" style="width:auto;">烟雨声景：雨声、偶尔鸟鸣，点背景有水声（仅水墨国风）</label>
+  <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="ambience-toggle" style="width:auto;">烟雨声景：古风配乐、偶尔鸟鸣，点背景有水滴声（仅水墨国风）</label>
   <p class="settings-hint" id="ambience-note" role="status"></p>
+  <div id="ambience-options" class="ambience-options" hidden>
+    <label for="ambience-music">背景音乐</label>
+    <select id="ambience-music"><option value="guqin">古琴（自动弹奏，每次都不一样）</option><option value="mine">我的音乐（从手机里选）</option><option value="off">不放音乐</option></select>
+    <div id="ambience-mine" hidden>
+      <div class="file-pick" style="margin-top:8px;"><input type="file" id="ambience-file" accept="audio/*"><label for="ambience-file" class="backup-btn file-btn" role="button">选择一首本机音乐</label></div>
+      <p class="settings-hint" id="ambience-file-status"></p>
+    </div>
+    <label for="ambience-volume">音乐音量：<b class="slider-value"><span id="ambience-volume-value">60</span>%</b></label>
+    <input type="range" min="0" max="100" step="1" id="ambience-volume">
+  </div>
   <button class="settings-save" id="feedback-test">试一下</button>
   <p class="settings-hint" id="feedback-note"></p>
   <p class="settings-hint">默认关闭，仅保存在当前设备。系统开启「减少动态效果」时自动停用。iPhone 静音拨片打开时没有声音。</p>
