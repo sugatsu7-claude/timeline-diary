@@ -1,4 +1,4 @@
-// diary-release: 2026.11.05.6
+// diary-release: 2026.11.05.7
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -20,9 +20,53 @@ DiaryStore.onChange(async function(external){await refreshDiaryData(external);if
 function actionIcon(kind) {
   var ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
   svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.5');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');svg.setAttribute('aria-hidden','true');svg.classList.add('attachment-icon');
-  var shapes={photo:['M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z','m4 17 5-5 4 4 3-3 5 5','M8.5 8h.01'],link:['M10 13a5 5 0 0 0 7 .5l3-3a5 5 0 0 0-7-7l-2 2','M14 11a5 5 0 0 0-7-.5l-3 3a5 5 0 0 0 7 7l2-2'],edit:['m14 5 5 5','M4 20l1-6L16 3a2.8 2.8 0 0 1 4 4L9 18l-5 2Z'],delete:['m6 6 12 12','M18 6 6 18'],card:['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z','M7 9h10M7 13h10M7 17h6']};
+  var shapes={photo:['M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z','m4 17 5-5 4 4 3-3 5 5','M8.5 8h.01'],link:['M10 13a5 5 0 0 0 7 .5l3-3a5 5 0 0 0-7-7l-2 2','M14 11a5 5 0 0 0-7-.5l-3 3a5 5 0 0 0 7 7l2-2'],edit:['m14 5 5 5','M4 20l1-6L16 3a2.8 2.8 0 0 1 4 4L9 18l-5 2Z'],delete:['m6 6 12 12','M18 6 6 18'],more:['M5 12h.01','M12 12h.01','M19 12h.01'],card:['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z','M7 9h10M7 13h10M7 17h6']};
+  if(kind==='more')svg.setAttribute('stroke-width','3');
   (shapes[kind]||[]).forEach(function(d){var path=document.createElementNS(ns,'path');path.setAttribute('d',d);svg.appendChild(path);});return svg;
 }
+// The shared ⋯ menu for a diary capsule: 生成日记卡片 and 删除日记 (deleting goes to the 7-day trash with 撤销).
+var EntryMenu = (function () {
+  var menu, entry, trigger;
+  function build() {
+    menu = document.getElementById('entry-menu');
+    menu.querySelector('[data-menu="card"]').prepend(actionIcon('card'));
+    menu.querySelector('[data-menu="delete"]').prepend(actionIcon('delete'));
+    menu.querySelector('[data-menu="card"]').onclick = function () { var e = entry, t = trigger; close(false); if (window.DiaryCards) DiaryCards.open(e, t); };
+    menu.querySelector('[data-menu="delete"]').onclick = async function () {
+      var e = entry; close(true);
+      try { await DiaryStore.remove(e.id, e); await refreshDiaryData(); } catch (error) { showToast(error.message); return; }
+      showToast('已删除，7 天内可在回收站找回', { label: '撤销', duration: 6000, onClick: async function () {
+        try { await DiaryStore.restore(e.id); await refreshDiaryData(); showToast('已恢复'); } catch (error) { showToast('恢复未完成：' + error.message); }
+      } });
+    };
+    menu.addEventListener('keydown', function (event) {
+      var items = Array.from(menu.querySelectorAll('button:not(:disabled)')), i = items.indexOf(document.activeElement);
+      if (event.key === 'Escape') { event.preventDefault(); close(true); }
+      else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); items[(i + (event.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus(); }
+      else if (event.key === 'Tab') close(false);
+    });
+    document.addEventListener('pointerdown', function (event) { if (!menu.hidden && !menu.contains(event.target) && event.target.closest('.entry-more') !== trigger) close(false); }, true);
+    window.addEventListener('scroll', function () { if (!menu.hidden) close(false); }, { passive: true });
+    window.addEventListener('resize', function () { if (!menu.hidden) close(false); });
+  }
+  function open(value, button) {
+    if (!menu) build();
+    entry = value; trigger = button;
+    var card = menu.querySelector('[data-menu="card"]'), del = menu.querySelector('[data-menu="delete"]');
+    card.disabled = !value.text || !value.text.trim(); card.title = card.disabled ? '没有文字，暂时无法生成卡片' : '';
+    del.disabled = !!value.readOnly;
+    menu.hidden = false; button.setAttribute('aria-expanded', 'true');
+    var r = button.getBoundingClientRect(), w = menu.offsetWidth, h = menu.offsetHeight;
+    var top = r.bottom + 4 + h > innerHeight - 8 ? r.top - h - 4 : r.bottom + 4;
+    menu.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px'; menu.style.top = Math.max(8, top) + 'px';
+    var first = menu.querySelector('button:not(:disabled)'); if (first) first.focus({ preventScroll: true });
+  }
+  function close(refocus) {
+    if (!menu || menu.hidden) return;
+    menu.hidden = true; if (trigger) { trigger.setAttribute('aria-expanded', 'false'); if (refocus && trigger.isConnected) trigger.focus({ preventScroll: true }); }
+  }
+  return { toggle: function (value, button) { if (menu && !menu.hidden && trigger === button) close(true); else open(value, button); }, close: close };
+})();
 function sourceNames() { return window.AuthorSettings ? AuthorSettings.names() : Array.from(new Set(entries.map(function(entry){return sourceName(entry.source);}))); }
 var activeFilters = { from: '', to: '', tags: [], search: '', source: '' };
 
@@ -249,21 +293,16 @@ function appendTimelineBatch(batch) {
         notionLink.className='entry-notion-link';heading.appendChild(notionLink);
       }
       if (window.MediaAssets) MediaAssets.decorate(actions, entry);
-      var cardBtn=document.createElement('button');cardBtn.className='entry-delete';cardBtn.appendChild(actionIcon('card'));cardBtn.setAttribute('aria-label','生成日记卡片');cardBtn.title=entry.text?.trim()?'生成文字卡片':'没有文字，暂时无法生成卡片';cardBtn.disabled=!entry.text?.trim();cardBtn.onclick=function(){if(window.DiaryCards)DiaryCards.open(entry,cardBtn);};actions.appendChild(cardBtn);
       actions.appendChild(editBtn);
-      var del = document.createElement('button');
-      del.className = 'entry-delete';
-      del.appendChild(actionIcon('delete'));
-      del.disabled = !!entry.readOnly;
-      del.setAttribute('aria-label', '删除日记');
-      del.onclick = async function () {
-        // No confirm dialog: deleting only moves the diary to the 7-day trash, and the toast offers 撤销.
-        try{await DiaryStore.remove(entry.id,entry);await refreshDiaryData();}catch(error){showToast(error.message);return;}
-        showToast('已删除，7 天内可在回收站找回',{label:'撤销',duration:6000,onClick:async function(){
-          try{await DiaryStore.restore(entry.id);await refreshDiaryData();showToast('已恢复');}catch(error){showToast('恢复未完成：'+error.message);}
-        }});
-      };
-      actions.appendChild(del);
+      // 生成卡片 and 删除 share one ⋯ menu, so the heading keeps room for several tags.
+      var more = document.createElement('button');
+      more.className = 'entry-delete entry-more';
+      more.appendChild(actionIcon('more'));
+      more.setAttribute('aria-label', '更多操作');
+      more.setAttribute('aria-haspopup', 'menu');
+      more.setAttribute('aria-expanded', 'false');
+      more.onclick = function () { EntryMenu.toggle(entry, more); };
+      actions.appendChild(more);
       top.appendChild(actions);
       card.appendChild(top);
 
