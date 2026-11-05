@@ -26,6 +26,13 @@
     var music = c.createGain(); music.gain.value = 0; music.connect(out); music.connect(rev);
     var fx = c.createGain(); fx.gain.value = 1; fx.connect(out);
     var fxWet = c.createGain(); fxWet.gain.value = 0.55; fx.connect(fxWet); fxWet.connect(rev);
+    // Water drops ring on: a long cave-like reverb plus a soft echo that repeats a few times and fades.
+    var cave = c.createConvolver(), clen = Math.floor(c.sampleRate * 3.6), cir = c.createBuffer(2, clen, c.sampleRate);
+    for (ch = 0; ch < 2; ch++) { var cd = cir.getChannelData(ch), cl = 0; for (i = 0; i < clen; i++) { cl = cl * 0.7 + (Math.random() * 2 - 1) * 0.3; cd[i] = cl * Math.pow(1 - i / clen, 1.8); } }
+    cave.buffer = cir; var caveWet = c.createGain(); caveWet.gain.value = 0.9; cave.connect(caveWet); caveWet.connect(out);
+    var water = c.createGain(); water.gain.value = 1; water.connect(out); water.connect(cave);
+    var echo = c.createDelay(1.5); echo.delayTime.value = 0.31; var fb = c.createGain(); fb.gain.value = 0.42; var dark = c.createBiquadFilter(); dark.type = 'lowpass'; dark.frequency.value = 2400;
+    var echoIn = c.createGain(); echoIn.gain.value = 0.5; water.connect(echoIn); echoIn.connect(echo); echo.connect(dark); dark.connect(fb); fb.connect(echo); dark.connect(out); dark.connect(cave);
     var strings = {};
     function stringBuffer(freq) { // Karplus-Strong: a plucked string decaying naturally
       var key = Math.round(freq * 10); if (strings[key]) return strings[key];
@@ -56,17 +63,19 @@
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
       o.connect(g); g.connect(dest || fx); o.start(t); o.stop(t + len + 0.02);
     }
-    function click(t, vol) { // the tiny impact when the drop meets the water
+    function click(t, vol, dest) { // the tiny impact when the drop meets the water
       var n = Math.floor(c.sampleRate * 0.006), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
       for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
       var s = c.createBufferSource(), hp = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; hp.type = 'highpass'; hp.frequency.value = 2500; g.gain.value = vol;
-      s.connect(hp); hp.connect(g); g.connect(fx); s.start(t);
+      s.connect(hp); hp.connect(g); g.connect(dest || fx); s.start(t);
     }
     // Water drop: the air bubble it traps rings with a pitch that rises quickly ("bloop"), then a smaller echo drop.
     function drop(t) {
-      var f = 520 + Math.random() * 260;
-      click(t, 0.05); tone(f, f * (2.4 + Math.random() * 0.8), t + 0.004, 0.16, 0.2);
-      var f2 = f * (1.5 + Math.random() * 0.4); tone(f2, f2 * 2.2, t + 0.11 + Math.random() * 0.05, 0.1, 0.06);
+      var f = 520 + Math.random() * 240, top = f * (2.4 + Math.random() * 0.6);
+      click(t, 0.05, water); tone(f, top, t + 0.004, 0.18, 0.2, water);
+      tone(top * 0.995, top * 0.99, t + 0.05, 1.1, 0.018, water);            // a faint ringing that lingers
+      var f2 = f * (1.5 + Math.random() * 0.4); tone(f2, f2 * 2.2, t + 0.12 + Math.random() * 0.05, 0.12, 0.06, water);
+      var f3 = f * (1.9 + Math.random() * 0.4); tone(f3, f3 * 2.1, t + 0.42 + Math.random() * 0.12, 0.1, 0.025, water); // a last tiny drip
     }
     function thump(t) { tone(118, 50, t, 0.45, 0.32); click(t, 0.08); tone(320, 150, t, 0.12, 0.06, fx, 'triangle'); }
     function bird(t) {
@@ -80,22 +89,31 @@
     }
     return { ctx: c, music: music, fx: fx, pluck: pluck, harmonic: harmonic, drop: drop, thump: thump, bird: bird };
   }
-  // Guqin-like improvisation on D 宫 pentatonic: short phrases, rests, now and then a double stop, a slide or a harmonic.
-  var SCALE = [146.83, 164.81, 185.0, 220.0, 246.94, 293.66, 329.63, 369.99, 440.0, 493.88];
-  var pos = 5;
+  // Guqin-like improvisation in D 宫调 (bright major pentatonic): short motifs that lean upward and come to
+  // rest on 宫 (D) or 徵 (A), in the middle-high register, with light rhythms, grace notes and harmonics.
+  var S = { A3: 220.0, B3: 246.94, D4: 293.66, E4: 329.63, Fs4: 369.99, A4: 440.0, B4: 493.88, D5: 587.33, E5: 659.25, Fs5: 739.99 };
+  var MOTIFS = [
+    [['D4', .45], ['E4', .3], ['Fs4', .3], ['A4', .9]],
+    [['A4', .4], ['B4', .3], ['D5', .7], ['B4', .35], ['A4', 1]],
+    [['Fs4', .35], ['A4', .35], ['B4', .35], ['D5', 1.1]],
+    [['D5', .4], ['B4', .3], ['A4', .4], ['Fs4', .3], ['A4', 1]],
+    [['E4', .3], ['Fs4', .3], ['A4', .6], ['D5', .5], ['E5', .3], ['D5', 1.1]],
+    [['A4', .5], ['Fs4', .3], ['E4', .3], ['D4', 1]],
+    [['B4', .3], ['D5', .3], ['E5', .55], ['D5', .35], ['B4', .3], ['D5', 1.2]],
+    [['D4', .35], ['A4', .6], ['Fs4', .35], ['A4', .35], ['D5', 1.1]]];
   function phrase(v, t) {
-    var notes = 2 + Math.floor(Math.random() * 3), at = t;
-    for (var i = 0; i < notes; i++) {
-      pos = Math.max(0, Math.min(SCALE.length - 1, pos + [-2, -1, -1, 1, 1, 2][Math.floor(Math.random() * 6)]));
-      var f = SCALE[pos], r = Math.random();
-      if (r < 0.12) v.harmonic(f * 2, at, 0.05);
+    var m = MOTIFS[Math.floor(Math.random() * MOTIFS.length)], at = t, last = m.length - 1;
+    m.forEach(function (n, i) {
+      var f = S[n[0]], r = Math.random();
+      if (i === last && r < 0.3) v.harmonic(f * 2, at, 0.06);                  // end on a bell-like harmonic now and then
       else {
-        v.pluck(f, at, 0.32 + Math.random() * 0.08, r > 0.85 ? (Math.random() < 0.5 ? 1.1225 : 0.8909) : 0);
-        if (r > 0.7 && r <= 0.85) v.pluck(SCALE[Math.max(0, pos - 3)], at + 0.02, 0.22, 0); // double stop
+        if (r < 0.15 && i > 0) v.pluck(f * 1.1225, at - 0.07, 0.16, 0);          // a quick upward grace note (倚音)
+        v.pluck(f, at, (i === last ? 0.34 : 0.27) + Math.random() * 0.06, i === last && r > 0.85 ? 1.0595 : 0);
+        if (i === last && r > 0.55 && r <= 0.85) v.pluck(f / 1.5, at + 0.015, 0.16, 0); // a fifth below, a soft double stop
       }
-      at += 0.5 + Math.random() * 0.75;
-    }
-    return at - t + 1.6 + Math.random() * 2.6; // length of the phrase plus a breathing rest
+      at += n[1] * (0.9 + Math.random() * 0.2);
+    });
+    return at - t + 1.2 + Math.random() * 1.8; // a short breath before the next motif
   }
   function scheduleMusic(v, from, until) { var t = from; while (t < until) t += phrase(v, t); return t; }
 
@@ -213,5 +231,5 @@
   window.DiaryAmbience = { stats: stats, isRunning: function () { return running; }, playing: function () { return playing; }, chirp: chirp,
     // Renders a preview of the voices offline (used to audition the sounds without a phone).
     renderPreview: function (seconds) { var c = new OfflineAudioContext(2, 48000 * seconds, 48000), v = makeVoices(c); v.music.gain.value = 0.55;
-      [0.4, 1.4, 2.3].forEach(function (t) { v.drop(t); }); v.thump(3.4); v.bird(4.4); scheduleMusic(v, 5.5, seconds - 3); return c.startRendering(); } };
+      [0.4, 3.2, 6.0].forEach(function (t) { v.drop(t); }); v.thump(8.8); v.bird(10.0); scheduleMusic(v, 11.5, seconds - 3); return c.startRendering(); } };
 })();
