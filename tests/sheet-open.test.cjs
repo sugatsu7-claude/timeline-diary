@@ -16,5 +16,12 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
  await p.locator('#add-fab').click();await p.waitForTimeout(100);assert.equal(await top(),0,'new entry starts at the top');
  // Reduced motion keeps the sheet transition off.
  await p.emulateMedia({reducedMotion:'reduce'});assert.equal(await p.locator('#sheet').evaluate(el=>getComputedStyle(el).transitionDuration),'0s');
- console.log('PASS: sheet always opens at the top for new/edit, date visible, reduced motion has no transition.');await browser.close();
+ // A short visible area (as with a phone keyboard up): opening links/place scrolls the sheet so the field is in view above Save.
+ await p.evaluate(()=>{if(document.getElementById('sheet').classList.contains('open'))closeSheet();});await p.setViewportSize({width:390,height:520});await p.evaluate(()=>openSheet());await p.waitForTimeout(200);
+ assert.match(await p.locator('#entry-date-label').textContent(),/^\d+月\d+日 周[日一二三四五六]$/,'date reads in Chinese whatever the region format');
+ for(const [key,id] of [['links','entry-links'],['location','entry-location-name']]){await p.locator('[data-sheet-more="'+key+'"]').click();await p.waitForTimeout(250);
+  const v=await p.evaluate(id=>{const s=document.getElementById('sheet').getBoundingClientRect(),r=document.getElementById(id).getBoundingClientRect(),a=document.querySelector('.sheet-actions').getBoundingClientRect();return {ok:r.top>=s.top&&r.bottom<=a.top+1,focused:document.activeElement.id};},id);
+  assert.ok(v.ok,id+' is scrolled into the visible part of the sheet');assert.equal(v.focused,id);}
+ await p.evaluate(()=>closeSheet());
+ console.log('PASS: sheet always opens at the top for new/edit, date visible, reduced motion has no transition, Chinese date pill, opened extras scroll into view.');await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

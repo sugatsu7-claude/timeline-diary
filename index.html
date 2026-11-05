@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.05.4">
+<meta name="diary-version" content="2026.11.05.5">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -377,6 +377,10 @@
   .sheet-meta { display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px; }
   .sheet .sheet-meta input[type="date"],.sheet .sheet-meta select { width:auto;flex:0 1 auto;font-size:16px;padding:5px 30px 5px 12px;border-radius:999px;border:0.5px solid var(--line);background-color:var(--surface);background-image:var(--chevron);background-repeat:no-repeat;background-position:right 11px center;background-size:10px 7px;color:inherit;font-family:inherit;-webkit-appearance:none;appearance:none;min-height:34px;max-width:100%; }
   .sheet .sheet-meta input[type="date"]::-webkit-calendar-picker-indicator { opacity:0;margin-left:-14px; }
+  .sheet .date-pill { position:relative;display:inline-flex;align-items:center;margin:0;min-height:34px;padding:5px 30px 5px 12px;border-radius:999px;border:0.5px solid var(--line);background:var(--surface) var(--chevron) no-repeat right 11px center/10px 7px;font-size:15px;color:var(--text);cursor:pointer; }
+  .sheet .sheet-meta .date-pill input[type="date"] { position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;padding:0;border:0;opacity:0;background:none;cursor:pointer; }
+  html[data-theme="ink"] .sheet .date-pill { border-radius:4px;border:1px solid rgba(74,93,99,.22);background-color:#F7FAF9;color:var(--ink); }
+  html[data-theme="night"] .sheet .date-pill { color:var(--text); }
   .sheet textarea#entry-text { min-height:150px;line-height:1.6; }
   .sheet-tags-label { font-size:12px;color:var(--text-hint);margin:12px 0 6px; }
   .sheet-more { display:flex;gap:8px;margin:16px 0 4px;flex-wrap:wrap; }
@@ -897,7 +901,7 @@
   <h2 id="sheet-title">新增记录</h2>
   <!-- Write first; the date and byline sit in one quiet row, extras open only when asked for. -->
   <div class="sheet-meta">
-    <input type="date" id="entry-date" aria-label="日期">
+    <label class="date-pill"><span id="entry-date-label" aria-hidden="true"></span><input type="date" id="entry-date" aria-label="日期"></label>
     <select id="entry-source" aria-label="谁记的"></select>
   </div>
   <textarea id="entry-text" aria-label="内容" placeholder="今天发生了什么…"></textarea>
@@ -920,15 +924,15 @@
   </div>
   <div class="sheet-section" id="sheet-section-links" hidden>
   <label for="entry-links">链接（每行一个，最多8个）</label>
-  <textarea id="entry-links" rows="2" style="min-height:70px;" placeholder="https://..."></textarea>
+  <textarea id="entry-links" rows="2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="min-height:70px;" placeholder="https://..."></textarea>
   </div>
   <div class="sheet-section" id="sheet-section-location" hidden>
   <label for="entry-location-name">地点</label>
-  <input type="text" id="entry-location-name" maxlength="200" placeholder="例如 西湖 · 断桥">
+  <input type="text" id="entry-location-name" maxlength="200" autocomplete="off" autocorrect="off" placeholder="例如 西湖 · 断桥">
   <div class="cloud-row"><button type="button" class="filter-btn" id="location-search">搜索／地图选点</button><button type="button" class="filter-btn" id="location-current">使用当前位置</button></div>
   <p id="location-status" class="settings-hint" role="status">可打开地图搜索，或使用手机当前位置。</p>
   <details class="sheet-map-link" id="sheet-map-link"><summary>粘贴地图链接</summary>
-  <input type="text" id="entry-location-url" maxlength="2000" inputmode="url" aria-label="地图链接" placeholder="可粘贴地图分享链接，也可以不填">
+  <input type="text" id="entry-location-url" maxlength="2000" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="url" aria-label="地图链接" placeholder="可粘贴地图分享链接，也可以不填">
   </details>
   </div>
   <div class="sheet-actions">

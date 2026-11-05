@@ -1,4 +1,4 @@
-// diary-release: 2026.11.05.4
+// diary-release: 2026.11.05.5
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -454,15 +454,45 @@ function refreshSheetMore(expandFilled) {
   });
   var url = document.getElementById('entry-location-url');
   if (expandFilled !== undefined) document.getElementById('sheet-map-link').open = !!url.value.trim();
+  if (expandFilled !== undefined) refreshDateLabel();
 }
 window.refreshSheetMore = refreshSheetMore;
+// The date pill always reads in Chinese (11月5日 周四), whatever the phone's region format; the native picker sits on top, transparent.
+function refreshDateLabel() {
+  var value = document.getElementById('entry-date').value, d = new Date(value + 'T00:00:00');
+  document.getElementById('entry-date-label').textContent = Number.isNaN(d.getTime()) ? '选择日期' : (d.getFullYear() !== new Date().getFullYear() ? d.getFullYear() + '年' : '') + (d.getMonth() + 1) + '月' + d.getDate() + '日 周' + '日一二三四五六'[d.getDay()];
+}
+document.getElementById('entry-date').addEventListener('input', refreshDateLabel);
+document.getElementById('entry-date').addEventListener('change', refreshDateLabel);
+// Scrolls the sheet itself (never the page) so an element sits inside its visible part, above the pinned Save row.
+function revealInSheet(el) {
+  var sheet = document.getElementById('sheet'), s = sheet.getBoundingClientRect(), r = el.getBoundingClientRect();
+  var actions = sheet.querySelector('.sheet-actions'), top = s.top + 12, bottom = s.bottom - (actions ? actions.offsetHeight : 0) - 12;
+  if (r.bottom > bottom) sheet.scrollTop += Math.min(r.bottom - bottom, r.top - top);
+  else if (r.top < top) sheet.scrollTop -= top - r.top;
+}
+// iPhone keyboards cover the page instead of resizing it: lift the sheet above the keyboard and keep the focused field in view.
+(function () {
+  var vv = window.visualViewport, sheet = document.getElementById('sheet');
+  function focused() { var el = document.activeElement; return el && sheet.contains(el) && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && el.type !== 'date' ? el : null; }
+  function fit() {
+    if (!vv) return;
+    var keyboard = sheet.classList.contains('open') ? Math.max(0, window.innerHeight - vv.offsetTop - vv.height) : 0;
+    if (keyboard < 80) { sheet.style.bottom = ''; sheet.style.maxHeight = ''; sheet.classList.remove('keyboard-open'); }
+    else { sheet.style.bottom = Math.round(keyboard) + 'px'; sheet.style.maxHeight = Math.round(vv.height * 0.92) + 'px'; sheet.classList.add('keyboard-open'); }
+    var el = focused(); if (el) revealInSheet(el);
+  }
+  if (vv) { vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); }
+  sheet.addEventListener('focusin', function () { setTimeout(function () { var el = focused(); if (el) revealInSheet(el); }, 60); setTimeout(fit, 350); });
+  sheet.addEventListener('focusout', function () { setTimeout(fit, 120); });
+  window.fitSheetToKeyboard = fit;
+})();
 document.querySelectorAll('[data-sheet-more]').forEach(function (button) {
   button.onclick = function () {
     var key = button.dataset.sheetMore, section = document.getElementById('sheet-section-' + key), open = section.hidden;
     setSheetMore(key, open);
     if (!open) return;
-    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    section.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+    requestAnimationFrame(function () { revealInSheet(section); });
     if (key === 'photos' && !sheetPhotos.length) document.getElementById('entry-photos').click();
     else if (key === 'links') document.getElementById('entry-links').focus({ preventScroll: true });
     else if (key === 'location' && !document.getElementById('entry-location-name').value) document.getElementById('entry-location-name').focus({ preventScroll: true });
