@@ -1,4 +1,4 @@
-// diary-release: 2026.11.05.5
+// diary-release: 2026.11.05.6
 /* Native scrolling, bounded one-shot reveals, and quiet feedback. No network work. */
 (function () {
   'use strict';
