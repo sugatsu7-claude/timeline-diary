@@ -1,4 +1,4 @@
-// diary-release: 2026.11.05.3
+// diary-release: 2026.11.05.4
 (function () {
   'use strict';
   var version = document.querySelector('meta[name="diary-version"]').content;
@@ -34,7 +34,7 @@
     document.getElementById('entry-date').value=saved.date;document.getElementById('entry-text').value=saved.text;
     sheetPhotos=Array.isArray(saved.photos)?saved.photos:[];sheetSelectedTags=saved.tags;sheetExtraTags=saved.tags.slice();
     document.getElementById('entry-location-name').value=saved.location?.name||'';document.getElementById('entry-location-url').value=saved.location?.url||'';document.getElementById('entry-links').value=saved.linksText||'';MediaAssets.renderSheet();renderSheetTagChips();
-    var select=document.getElementById('entry-source');if(!Array.from(select.options).some(o=>o.value===saved.source)){var option=document.createElement('option');option.value=saved.source;option.textContent=saved.source;select.appendChild(option);}select.value=saved.source;showToast('已恢复未保存的草稿');
+    var select=document.getElementById('entry-source');if(!Array.from(select.options).some(o=>o.value===saved.source)){var option=document.createElement('option');option.value=saved.source;option.textContent=saved.source;select.appendChild(option);}select.value=saved.source;if(window.refreshSheetMore)refreshSheetMore(true);showToast('已恢复未保存的草稿');
   }
   window.DiaryDrafts={clear:async function(){clearTimeout(draftTimer);await DiaryStore.draft(draftKey,null);},restore:restoreDraft,persist:persistDraft};
   try{var own;try{own=JSON.parse(sessionStorage.getItem(DRAFT_KEY)||'null');}catch(_){}if(!own)own=DiaryStore.snapshot.drafts.find(d=>d.key===draftKey)?.value;if(own)restoreDraft(own);}catch(_){showToast('草稿恢复未完成，可在设置中查看');}

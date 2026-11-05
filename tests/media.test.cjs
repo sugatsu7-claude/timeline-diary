@@ -1,5 +1,5 @@
 const {chromium}=require('playwright');
-const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const h={more:require('./browser-utils.cjs').more},fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({headless:true,...(process.env.DIARY_CHROME?{executablePath:process.env.DIARY_CHROME}:{})});
  const page=await browser.newPage({viewport:{width:390,height:844},serviceWorkers:'block',reducedMotion:'reduce'});
@@ -36,8 +36,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  await page.locator('#add-fab').click();await page.locator('#first-author').fill('测试记录人');await page.locator('#confirm-first-author').click();await page.waitForFunction(()=>document.querySelector('#sheet').classList.contains('open'));await page.locator('#entry-text').fill('Photos and links');
  await page.locator('#entry-photos').setInputFiles([path.join(root,'icons/icon-192.png'),path.join(root,'icons/icon-512.png')]);
  await page.waitForFunction(()=>!mediaBusy&&sheetPhotos.length===2);
- await page.locator('#entry-links').fill('javascript:alert(1)');await saveEntry();assert.equal(await page.evaluate(()=>entries.length),0);
- await page.locator('#entry-links').fill('https://weibo.com/example\nhttps://example.com/');await saveEntry();
+ await h.more(page,'links');await page.locator('#entry-links').fill('javascript:alert(1)');await saveEntry();assert.equal(await page.evaluate(()=>entries.length),0);
+ await h.more(page,'links');await page.locator('#entry-links').fill('https://weibo.com/example\nhttps://example.com/');await saveEntry();
  await page.waitForFunction(()=>!document.querySelector('#sheet').classList.contains('open'));assert.equal(await page.evaluate(()=>entries[0].photos.length),2);assert.equal(calls.length,0);
  await page.screenshot({path:path.join(root,'test-results','diary-capsule-preview.png')});
  assert.equal(await page.locator('.entry-card img').count(),0,'capsule has no thumbnails');
