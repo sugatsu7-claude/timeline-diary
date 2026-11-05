@@ -1,4 +1,4 @@
-// diary-release: 2026.11.05.1
+// diary-release: 2026.11.05.2
 /* 烟雨声景 (ink theme only, off by default): gentle background music, occasional birdsong with an ink
    bird flying past, a water drop + ripple when empty background is tapped, and a seal thump when a
    diary is stamped. Music is either an endlessly varied guqin-like improvisation synthesised on the
@@ -229,7 +229,10 @@
   if (test) test.addEventListener('click', chirp);
   describe(); update();
   window.DiaryAmbience = { stats: stats, isRunning: function () { return running; }, playing: function () { return playing; }, chirp: chirp,
-    // Renders a preview of the voices offline (used to audition the sounds without a phone).
-    renderPreview: function (seconds) { var c = new OfflineAudioContext(2, 48000 * seconds, 48000), v = makeVoices(c); v.music.gain.value = 0.55;
-      [0.4, 3.2, 6.0].forEach(function (t) { v.drop(t); }); v.thump(8.8); v.bird(10.0); scheduleMusic(v, 11.5, seconds - 3); return c.startRendering(); } };
+    // Renders the voices offline from a cue list, e.g. to audition them without a phone or to score a video.
+    // cues: [[seconds, 'drop'|'thump'|'bird']]; music: [from, until, level] or null.
+    render: function (seconds, cues, music) { var c = new OfflineAudioContext(2, Math.ceil(48000 * seconds), 48000), v = makeVoices(c);
+      if (music) { v.music.gain.value = music[2] == null ? 0.55 : music[2]; scheduleMusic(v, music[0], music[1]); }
+      (cues || []).forEach(function (q) { if (v[q[1]]) v[q[1]](q[0]); }); return c.startRendering(); },
+    renderPreview: function (seconds) { return window.DiaryAmbience.render(seconds, [[0.4, 'drop'], [3.2, 'drop'], [6.0, 'drop'], [8.8, 'thump'], [10.0, 'bird']], [11.5, seconds - 3, 0.55]); } };
 })();
