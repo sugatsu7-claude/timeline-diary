@@ -1,4 +1,4 @@
-// diary-release: 2026.11.04.1
+// diary-release: 2026.11.05.1
 (function(){
  'use strict';
  const status=document.getElementById('backup-status');
@@ -89,7 +89,7 @@
  async function storageInfo(){const items=await MediaAssets.assetInfo(),bytes=items.reduce((n,a)=>n+a.bytes,0),estimate=await navigator.storage?.estimate?.();document.getElementById('storage-status').textContent='本机图片 '+mb(bytes)+'，'+items.filter(a=>a.bytes).length+'个文件'+(estimate?.usage?'；站点总用量约'+mb(estimate.usage):'')+'。';}
  async function cleanup(){
   try{await DiaryStore.exclusive('maintenance',async()=>{
-   const snapshot=await DiaryStore.dump(),roots=new Set(['background']);
+   const snapshot=await DiaryStore.dump(),roots=new Set(['background','ambience-music']);
    for(const {photo}of photoRefs(snapshot))roots.add(photo.cacheKey||photo.id);
    for(const op of await DiaryStore.operation())if(op.status==='pending')for(const photo of op.payload?.entry?.photos||[])roots.add(photo.cacheKey||photo.id);
    const items=await MediaAssets.assetInfo(),eligible=items.filter(a=>!roots.has(a.key)&&(a.upload&&Date.parse(a.expiresAt)<Date.now()||a.touchedAt<Date.now()-7*86400000));

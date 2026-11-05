@@ -14,7 +14,7 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
  const hint=await p.locator('.settings-hint').first().evaluate(el=>getComputedStyle(el).color);
  assert.ok(1.05/(lum(hint)+.05)>=4.5,'default hint colour has at least 4.5:1 contrast on white: '+hint);
  assert.ok((await p.locator('#local-background').evaluate(el=>getComputedStyle(el).opacity))==='0','native English file control is hidden');
- assert.equal((await p.locator('label.file-btn').textContent()).trim(),'选择一张本机图片');
+ assert.equal((await p.locator('label.file-btn[for="local-background"]').textContent()).trim(),'选择一张本机图片');
  await p.locator('#close-settings').click();
  // Filter panel is opaque.
  await p.locator('#filter-toggle').click();await p.waitForTimeout(250);
