@@ -1,5 +1,5 @@
 const {chromium}=require('playwright');
-const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const h={menu:require('./browser-utils.cjs').menu},http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
  const root=path.join(__dirname,'..'),original=JSON.parse(fs.readFileSync(path.join(__dirname,'..','version.json'))).version,next=original.replace(/\d+$/,s=>Number(s)+1),after=original.replace(/\d+$/,s=>Number(s)+2);let release=original,broken=false,requests=[];
  const server=http.createServer((req,res)=>{
@@ -33,7 +33,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
  const offlinePage=await context.newPage();await offlinePage.goto(url);await offlinePage.waitForFunction(()=>window.diaryReady);
  assert.equal(await offlinePage.evaluate(()=>entries[0].text),'Unsaved draft');
  await offlinePage.evaluate(()=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>image.naturalWidth?resolve():reject(Error('Empty cached background'));image.onerror=()=>reject(Error('Default background unavailable offline'));image.src=DEFAULT_BACKGROUND_URL}));
- await offlinePage.locator('[aria-label="生成日记卡片"]').click();await offlinePage.waitForFunction(()=>!document.getElementById('card-save').disabled);assert.equal(await offlinePage.locator('#card-canvas').getAttribute('width'),'1080');await offlinePage.locator('#card-close').click();
+ await (await h.menu(offlinePage,offlinePage,'生成日记卡片')).click();await offlinePage.waitForFunction(()=>!document.getElementById('card-save').disabled);assert.equal(await offlinePage.locator('#card-canvas').getAttribute('width'),'1080');await offlinePage.locator('#card-close').click();
  // No database requests are cached; this service worker stores exactly the static shell.
  const cacheUrls=await page.evaluate(async()=>{let result=[];for(const k of await caches.keys())for(const req of await(await caches.open(k)).keys())result.push(req.url);return result});
  assert.equal(cacheUrls.length,29);assert.ok(cacheUrls.every(u=>!u.includes('version.json')&&!u.includes('worker')));

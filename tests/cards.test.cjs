@@ -5,11 +5,11 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),h=require('./br
  const p=await h.page(context,{penang_timeline_diary:[{id:'card-one',date:'2026-10-26',source:'小夏',text:body,tags:['日常'],photos:[{id:'test-photo'}],links:['https://example.com/private-attachment'],createdAt:1}]});const errors=[];p.on('pageerror',e=>errors.push(e.message));
  let workerCalls=0;await p.route('https://worker.test/**',r=>{workerCalls++;return r.abort()});
  const row=p.locator('[data-entry-id="card-one"]');assert.equal(await row.locator('.entry-heading .entry-tag').textContent(),'日常');assert.equal(await row.locator('.entry-content .entry-tag').count(),0);assert.equal(await row.locator('.entry-content').textContent(),body);
- const buttons=await row.locator('.entry-actions button').all();assert.equal(buttons.length,5);let previous;
- for(const b of buttons){const box=await b.boundingBox();assert.equal(box.width,34);assert.equal(box.height,40,'touch targets are at least 40px tall');if(previous)assert.ok(box.x-(previous.x+previous.width)<=3||box.x-(previous.x+previous.width)<=10&&b===buttons.at(-1),'icons stay close, delete sits slightly apart');previous=box;}
+ const buttons=await row.locator('.entry-actions button').all();assert.equal(buttons.length,4,'photo, link, edit and the ⋯ menu');let previous;
+ for(const b of buttons){const box=await b.boundingBox();assert.equal(box.width,30);assert.equal(box.height,40,'touch targets are at least 40px tall');if(previous)assert.ok(box.x-(previous.x+previous.width)<=3||box.x-(previous.x+previous.width)<=10&&b===buttons.at(-1),'icons stay close, delete sits slightly apart');previous=box;}
  const sourceBox=await row.locator('.entry-author').boundingBox(),tagBox=await row.locator('.entry-heading .entry-tag').boundingBox();assert.ok(Math.abs(sourceBox.y-tagBox.y)<8,'name and tag share a row');
  await p.screenshot({path:h.root+'/test-results/diary-cards-home.png'});
- await row.locator('[aria-label="生成日记卡片"]').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);
+ await (await h.menu(p,row,'生成日记卡片')).click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);
  const count=p.locator('#card-count');assert.equal(await count.textContent(),'1 / 1');assert.equal(await p.locator('#card-canvas').getAttribute('width'),'1080');assert.equal(await p.locator('#card-canvas').getAttribute('height'),'1080');assert.ok(!(await p.locator('#card-readable').textContent()).includes('private-attachment'));
  const versions=[];for(const theme of ['cream','letter','night','ink']){
   await p.locator('[data-card-style="'+theme+'"]').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);
@@ -25,16 +25,16 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),h=require('./br
  // Long CJK, emoji, Latin text and blank lines are preserved across square pages.
  const long=('一段很长的日记，标点和换行都应该保留。👩‍👩‍👧‍👦🐈‍⬛\n\n'+'https://example.com/averylongwordwithoutspaces\n').repeat(13);
  await p.evaluate(async text=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,text},e);await refreshDiaryData()},long);
- await p.locator('[aria-label="生成日记卡片"]').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);
+ await (await h.menu(p,p,'生成日记卡片')).click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);
  let collected='',pages=0;while(true){collected+=(await p.locator('#card-readable').textContent()).replaceAll('\n','');pages++;if(await p.locator('#card-next').isDisabled())break;await p.locator('#card-next').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);}
  assert.ok(pages>1);assert.equal(collected,long.replaceAll('\n',''));assert.match(await count.textContent(),new RegExp(' / '+pages+'$'));await p.locator('#card-prev').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);await p.locator('#card-close').click();
  // Enter breaks get extra space, so a page holds fewer short paragraphs than tightly wrapped lines.
- const openCard=async text=>{await p.evaluate(async text=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,text},e);await refreshDiaryData()},text);await p.locator('[aria-label="生成日记卡片"]').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);const lines=(await p.locator('#card-readable').textContent()).split('\n').length;await p.locator('#card-close').click();return lines;};
+ const openCard=async text=>{await p.evaluate(async text=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,text},e);await refreshDiaryData()},text);await (await h.menu(p,p,'生成日记卡片')).click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);const lines=(await p.locator('#card-readable').textContent()).split('\n').length;await p.locator('#card-close').click();return lines;};
  const separate=await openCard(Array.from({length:12},(_,i)=>'第'+i+'段').join('\n'));
  const wrapped=await openCard('很长的一整段文字，没有回车，自动换行。'.repeat(30));
  assert.equal(wrapped,8,'tightly wrapped lines still fill eight lines');assert.ok(separate>=4&&separate<=6,'paragraph breaks use more height per line, got '+separate);
  // No-text entries remain usable for attachments, but cannot make an empty card.
- await p.evaluate(async()=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,text:''},e);await refreshDiaryData()});assert.equal(await p.locator('[aria-label="生成日记卡片"]').isDisabled(),true);assert.equal(await p.locator('[aria-label="查看日记图片"]').isEnabled(),true);
+ await p.evaluate(async()=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,text:''},e);await refreshDiaryData()});assert.equal(await (await h.menu(p,p,'生成日记卡片')).isDisabled(),true);await p.keyboard.press('Escape');assert.equal(await p.locator('[aria-label="查看日记图片"]').isEnabled(),true);
  await p.setViewportSize({width:320,height:760});await p.evaluate(async()=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,source:'一个比较长的记录人名字',tags:['长标签也应留在名字这一栏','第二个标签'],text:'Small viewport'},e);await refreshDiaryData()});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
- assert.equal(workerCalls,0);assert.deepEqual(errors,[]);console.log('PASS: compact five-icon actions, tags beside author, square 1080px PNGs, four styles (incl. ink), local file share, long-text/emoji pagination without loss, text-only/no-Worker export and narrow-screen layout.');await browser.close();
+ assert.equal(workerCalls,0);assert.deepEqual(errors,[]);console.log('PASS: compact four-icon actions with a ⋯ menu for card/delete, tags beside author, square 1080px PNGs, four styles (incl. ink), local file share, long-text/emoji pagination without loss, text-only/no-Worker export and narrow-screen layout.');await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

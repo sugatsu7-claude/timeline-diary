@@ -5,4 +5,6 @@ async function sync(p,full=false){await p.evaluate(full=>{const b=document.getEl
 async function saved(p){await p.waitForFunction(()=>!document.getElementById('sheet').classList.contains('open'));}
 // Opens a folded editor section (photos/links/location) if it is not open yet; location also opens the map-link field.
 async function more(p,key){const b=p.locator('[data-sheet-more="'+key+'"]');if(await b.getAttribute('aria-expanded')!=='true')await b.click();if(key==='location')await p.evaluate(()=>{document.getElementById('sheet-map-link').open=true;});}
-module.exports={launch,page,sync,saved,root,more};
+// Opens a capsule's ⋯ menu (first capsule within scope) and returns the menu item with this label.
+async function menu(p,scope,label){await scope.locator('[aria-label="更多操作"]').first().click();return p.locator('#entry-menu [aria-label="'+label+'"]');}
+module.exports={launch,page,sync,saved,root,more,menu};

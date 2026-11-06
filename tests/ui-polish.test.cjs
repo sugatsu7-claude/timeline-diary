@@ -4,7 +4,7 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
  const p=await h.page(context,{penang_timeline_diary:[{id:'u1',date:'2026-11-01',text:'要删除再撤销的日记',source:'小夏',tags:['日常'],createdAt:1}],penang_timeline_authors:{defaultName:'小夏',names:['小夏']}});
  let dialogs=0;p.on('dialog',()=>{dialogs++;});
  // Deleting a diary needs no confirm dialog and can be undone from the toast.
- await p.locator('[aria-label="删除日记"]').click();await p.waitForFunction(()=>entries.length===0);
+ await (await h.menu(p,p,'删除日记')).click();await p.waitForFunction(()=>entries.length===0);
  assert.equal(dialogs,0,'no system dialog when deleting');
  assert.equal(await p.locator('#toast .toast-action').textContent(),'撤销');
  await p.locator('#toast .toast-action').click();await p.waitForFunction(()=>entries.length===1);assert.equal(await p.evaluate(()=>trash.length),0,'undo takes it out of the trash');

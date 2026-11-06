@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.05.6">
+<meta name="diary-version" content="2026.11.05.7">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -465,7 +465,21 @@
   .attachment-row button:hover { background:rgba(244,241,234,.35); }
   .attachment-icon { width:15px;height:15px;flex:none;opacity:.8; }
   .entry-actions button.entry-delete { display:inline-flex;align-items:center;justify-content:center;flex:none;position:relative;isolation:isolate;width:34px;height:40px;min-height:40px;padding:0;gap:0;border:0;background:transparent;color:var(--text-2); }
-  .entry-actions > button.entry-delete:last-child { margin-left:8px; }
+  .entry-actions button.entry-delete { width:30px; }
+  .entry-menu { position:fixed;z-index:80;min-width:150px;padding:6px;border-radius:12px;background:var(--surface);border:0.5px solid var(--line);box-shadow:0 10px 30px rgba(44,44,42,.16); }
+  .entry-menu[hidden] { display:none; }
+  .entry-menu button { display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:8px 12px;border:0;border-radius:8px;background:transparent;color:var(--text);font:inherit;font-size:14px;text-align:left;cursor:pointer; }
+  .entry-menu button .attachment-icon { width:16px;height:16px;color:var(--text-hint); }
+  .entry-menu button:hover,.entry-menu button:focus-visible { background:rgba(var(--primary-rgb),.08);outline:none; }
+  .entry-menu button:disabled { opacity:.4;cursor:default; }
+  .entry-menu button[data-menu="delete"] { color:#A0574B; }
+  .entry-menu button[data-menu="delete"] .attachment-icon { color:currentColor; }
+  @media (prefers-reduced-motion:no-preference) { .entry-menu:not([hidden]) { animation:entry-menu-in 160ms cubic-bezier(.2,.8,.25,1); } @keyframes entry-menu-in { from { opacity:0;transform:translateY(-4px) scale(.98); } } }
+  html[data-theme="ink"] .entry-menu { border-radius:6px;border:1px solid rgba(74,93,99,.2);background:#F7FAF9;font-family:"Songti SC","STSong","Noto Serif CJK SC","Source Han Serif SC","SimSun",serif;letter-spacing:.06em; }
+  html[data-theme="ink"] .entry-menu button { color:var(--ink);border-radius:4px; }
+  html[data-theme="ink"] .entry-menu button[data-menu="delete"] { color:var(--cinnabar); }
+  html[data-theme="night"] .entry-menu { box-shadow:0 10px 30px rgba(0,0,0,.45); }
+  html[data-theme="night"] .entry-menu button[data-menu="delete"] { color:#E09A8C; }
   #map-picker { max-width:560px; }
   #map-picker-canvas { height:clamp(230px,38dvh,360px);width:100%;border-radius:16px;overflow:hidden;background:#e9e6df;margin:12px 0; }
   .map-picker-search { display:flex;gap:8px; }
@@ -1152,6 +1166,7 @@
   <p id="sync-progress" role="status">正在同步…</p>
   <button class="filter-btn" id="cancel-sync">停止同步</button>
 </dialog>
+<div class="entry-menu" id="entry-menu" role="menu" aria-label="更多操作" hidden><button type="button" role="menuitem" data-menu="card" aria-label="生成日记卡片">生成日记卡片</button><button type="button" role="menuitem" data-menu="delete" aria-label="删除日记">删除</button></div>
 <div class="toast" id="toast" role="status"></div>
 
 <script src="storage.js"></script>
