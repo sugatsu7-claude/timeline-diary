@@ -1,4 +1,4 @@
-// diary-release: 2026.11.06.1
+// diary-release: 2026.11.06.2
 /* Local blobs live in IndexedDB; metadata alone lives with diary entries. */
 (function () {
   'use strict';
