@@ -132,6 +132,20 @@ test('Worker authorization, isolation, conflict, safe content and deletion', asy
   f.seed();f.blocks.push({id:'photo-block',type:'image',image:{type:'file',file:{url:'https://prod-files-secure.s3.us-west-2.amazonaws.com/photo.jpg',expiry_time:'2030-01-01T00:00:00Z'},caption:rt('diary-image:photo-one')}});
   globalThis.fetch=async(url,options)=>String(url).startsWith('https://api.notion.com/')?f.fetch(url,options):new Response(new ReadableStream({start(){}}),{headers:{'Content-Type':'image/jpeg'}});
   assert.equal((await request('/download',{pageId:PID,photoId:'photo-one',revision:'https://prod-files-secure.s3.us-west-2.amazonaws.com/photo.jpg'})).status,504,'image stream is covered by the deadline');
+  // Redirects are followed by hand only to allowed image hosts; connection errors name the host instead of a generic failure.
+  globalThis.setTimeout=originalTimer;
+  const jpeg=()=>new Response(new Uint8Array([255,216,255,217]),{headers:{'Content-Type':'image/jpeg'}});
+  const imageFetch=handler=>{globalThis.fetch=async(url,options)=>String(url).startsWith('https://api.notion.com/')?f.fetch(url,options):handler(String(url),options);};
+  const ask=()=>request('/download',{pageId:PID,photoId:'photo-one',revision:'https://prod-files-secure.s3.us-west-2.amazonaws.com/photo.jpg'});
+  imageFetch((url,options)=>{assert.equal(options.redirect,'manual');return url.endsWith('/photo.jpg')?new Response(null,{status:302,headers:{Location:'https://file.notion.so/real.jpg'}}):jpeg();});
+  let res=await worker.fetch(new Request('https://worker.test/download',{method:'POST',headers:{Origin:env.ALLOWED_ORIGIN,Authorization:'Bearer test-secret','Content-Type':'application/json'},body:JSON.stringify({pageId:PID,photoId:'photo-one',revision:'https://prod-files-secure.s3.us-west-2.amazonaws.com/photo.jpg'})}),env);
+  assert.equal(res.status,200,'an allowed redirect is followed');assert.equal(res.headers.get('Content-Type'),'image/jpeg');assert.equal((await res.arrayBuffer()).byteLength,4);
+  imageFetch(()=>new Response(null,{status:302,headers:{Location:'https://evil.example/x.jpg'}}));
+  res=await ask();assert.equal(res.status,400);assert.match(res.data.error,/evil\.example/);
+  imageFetch(()=>{throw new TypeError('Network connection lost.');});
+  res=await ask();assert.equal(res.status,502);assert.match(res.data.error,/prod-files-secure\.s3\.us-west-2\.amazonaws\.com.*Network connection lost/);
+  imageFetch(()=>new Response(null,{status:302,headers:{Location:'https://file.notion.so/loop.jpg'}}));
+  res=await ask();assert.equal(res.status,502,'redirect loops stop');
   console.log('No live Notion data was accessed.');
  } finally { globalThis.fetch=originalFetch;globalThis.setTimeout=originalTimer; }
 });
