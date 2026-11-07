@@ -1,4 +1,4 @@
-// diary-release: 2026.11.07.5
+// diary-release: 2026.11.07.6
 (function () {
   'use strict';
   var version = document.querySelector('meta[name="diary-version"]').content;
@@ -97,7 +97,7 @@
     var unsavedSecret = false;var secretInputRemembered=await DiaryStore.secret();
     try { unsavedSecret = document.getElementById('sync-secret').value !== (sessionStorage.getItem('diary_sync_secret') || secretInputRemembered || ''); } catch (_) {}
     if (unsavedSecret || document.getElementById('remember-secret').checked!==!!secretInputRemembered || settingsFields.some(function (id, i) {
-      var fallback = i === 1 ? 72 : i === 2 ? 62 : '';
+      var fallback = i === 1 ? DEFAULT_SCRIM : i === 2 ? DEFAULT_CARD_OPACITY : '';
       var input = document.getElementById(id).value.trim();
       if (id === 'sync-url') input = input.replace(/\/$/, '');
       return input !== String(appSettings[storedFields[i]] === undefined ? fallback : appSettings[storedFields[i]]);

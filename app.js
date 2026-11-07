@@ -1,4 +1,4 @@
-// diary-release: 2026.11.07.5
+// diary-release: 2026.11.07.6
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -604,8 +604,10 @@ document.getElementById('sheet-save').onclick = async function () {
 function loadSettings(){return DiaryStore.config(SETTINGS_KEY,{});}
 var appSettings=loadSettings();
 document.getElementById('sync-url').value = appSettings.syncUrl || '';
-document.getElementById('bg-scrim-input').value = appSettings.scrim === undefined ? 72 : appSettings.scrim;
-document.getElementById('card-opacity-input').value = appSettings.cardOpacity === undefined ? 62 : appSettings.cardOpacity;
+// Defaults chosen by look on a real phone: a light veil over the background and nearly clear cards.
+var DEFAULT_SCRIM = 25, DEFAULT_CARD_OPACITY = 15;
+document.getElementById('bg-scrim-input').value = appSettings.scrim === undefined ? DEFAULT_SCRIM : appSettings.scrim;
+document.getElementById('card-opacity-input').value = appSettings.cardOpacity === undefined ? DEFAULT_CARD_OPACITY : appSettings.cardOpacity;
 // Sliders preview instantly; only「保存外观」keeps the values, and closing settings restores the saved ones.
 function bindSlider(id, valueId, apply) {
   var input = document.getElementById(id), output = document.getElementById(valueId);
@@ -617,8 +619,8 @@ bindSlider('bg-scrim-input', 'bg-scrim-value', function (v) { applyScrim(v); });
 bindSlider('card-opacity-input', 'card-opacity-value', function (v) { applyCardOpacity(v); });
 function restoreAppearancePreview() {
   var scrim = document.getElementById('bg-scrim-input'), card = document.getElementById('card-opacity-input');
-  scrim.value = appSettings.scrim === undefined || appSettings.scrim === '' ? 72 : appSettings.scrim;
-  card.value = appSettings.cardOpacity === undefined || appSettings.cardOpacity === '' ? 62 : appSettings.cardOpacity;
+  scrim.value = appSettings.scrim === undefined || appSettings.scrim === '' ? DEFAULT_SCRIM : appSettings.scrim;
+  card.value = appSettings.cardOpacity === undefined || appSettings.cardOpacity === '' ? DEFAULT_CARD_OPACITY : appSettings.cardOpacity;
   document.getElementById('bg-scrim-value').textContent = scrim.value;
   document.getElementById('card-opacity-value').textContent = card.value;
   applyScrim(scrim.value);applyCardOpacity(card.value);
@@ -633,12 +635,12 @@ function applyBackground(url) {
   if (url) layer.setAttribute('data-custom', ''); else layer.removeAttribute('data-custom');
 }
 function applyScrim(val) {
-  var pct = (val === undefined || val === null || val === '') ? 72 : Math.max(0, Math.min(100, parseInt(val, 10)));
+  var pct = (val === undefined || val === null || val === '') ? DEFAULT_SCRIM : Math.max(0, Math.min(100, parseInt(val, 10)));
   document.getElementById('bg-scrim').style.background = 'rgba(244,241,234,' + (pct / 100) + ')';
   document.documentElement.style.setProperty('--scrim-alpha', String(pct / 100));
 }
 function applyCardOpacity(val) {
-  var pct = (val === undefined || val === null || val === '') ? 62 : Math.max(0, Math.min(100, parseInt(val, 10)));
+  var pct = (val === undefined || val === null || val === '') ? DEFAULT_CARD_OPACITY : Math.max(0, Math.min(100, parseInt(val, 10)));
   document.documentElement.style.setProperty('--card-opacity', pct / 100);
 }
 
