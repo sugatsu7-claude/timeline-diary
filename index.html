@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.06.2">
+<meta name="diary-version" content="2026.11.07.1">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -803,6 +803,32 @@
   html[data-theme="ink"] .sheet select,html[data-theme="ink"] .settings-panel select { -webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23767570' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px 8px;padding-right:38px; }
   html[data-theme="ink"] .sheet label,html[data-theme="ink"] .sheet h2 { color:var(--ink-soft);letter-spacing:.08em; }
   html[data-theme="ink"] .sheet h2 { color:var(--ink);font-weight:600; }
+  /* Ink theme: the filter panel and the diary editor share the ⋯ menu's rice-paper slip — warm paper, a double hairline
+     frame, square corners, a small seal by the title and dashed ink rules. */
+  html[data-theme="ink"] .filter-panel,html[data-theme="ink"] .sheet { --slip:#F4F2EA;background:var(--slip);-webkit-backdrop-filter:none;backdrop-filter:none; }
+  html[data-theme="ink"] .filter-panel { border-radius:2px;border:1px solid rgba(59,67,72,.38);box-shadow:inset 0 0 0 4px var(--slip),inset 0 0 0 4.6px rgba(59,67,72,.2),0 12px 30px rgba(40,48,52,.16),0 2px 6px rgba(40,48,52,.08); }
+  html[data-theme="ink"] .sheet { border-radius:3px 3px 0 0;border-top:1px solid rgba(59,67,72,.38);box-shadow:inset 0 4px 0 0 var(--slip),inset 0 4.6px 0 0 rgba(59,67,72,.2),0 -8px 28px rgba(40,48,52,.12),0 60px 0 0 var(--slip); }
+  html[data-theme="ink"] .sheet .sheet-actions { background:var(--slip);box-shadow:0 -1px 0 rgba(59,67,72,.12); }
+  html[data-theme="ink"] .sheet h2,html[data-theme="ink"] .filter-panel-heading>span { display:flex;align-items:center;gap:10px;font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC",serif;font-size:17px;font-weight:600;letter-spacing:.24em;color:var(--ink); }
+  html[data-theme="ink"] .sheet h2,html[data-theme="ink"] .filter-panel-heading { padding-bottom:10px;border-bottom:1px dashed rgba(59,67,72,.22); }
+  html[data-theme="ink"] .filter-panel-heading { color:var(--ink); }
+  html[data-theme="ink"] .sheet .date-pill { letter-spacing:normal;font-family:inherit;font-size:15px; }
+  html[data-theme="ink"] .sheet h2::before,html[data-theme="ink"] .filter-panel-heading>span::before { content:"记";display:inline-flex;align-items:center;justify-content:center;flex:none;width:20px;height:20px;border-radius:2px;background:var(--cinnabar);color:#F6EFE6;font-size:12px;font-weight:600;letter-spacing:0;line-height:1;box-shadow:inset 0 0 0 1.5px var(--cinnabar),inset 0 0 0 2.2px rgba(246,239,230,.6); }
+  html[data-theme="ink"] .filter-panel-heading>span::before { content:"筛"; }
+  html[data-theme="ink"] #close-filters { font-family:"Kaiti SC","STKaiti","KaiTi",serif;letter-spacing:.14em;color:var(--ink-soft);padding:4px; }
+  html[data-theme="ink"] .filter-panel label,html[data-theme="ink"] .sheet label,html[data-theme="ink"] .sheet-tags-label { font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC",serif;font-size:13px;letter-spacing:.16em;color:var(--ink-soft); }
+  html[data-theme="ink"] .filter-panel input[type="date"],html[data-theme="ink"] .sheet input[type="text"],html[data-theme="ink"] .sheet textarea,html[data-theme="ink"] .sheet select,html[data-theme="ink"] .sheet .date-pill { border-radius:2px;border:1px solid rgba(59,67,72,.24);background-color:#FBFAF6;color:var(--ink); }
+  html[data-theme="ink"] .sheet textarea#entry-text { font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC",serif;font-size:17px;line-height:30px;padding-top:10px;letter-spacing:.04em;background-image:repeating-linear-gradient(transparent 0 29px,rgba(59,67,72,.08) 29px 30px);background-attachment:local;background-position:0 10px; }
+  html[data-theme="ink"] .filter-panel .tag-chip,html[data-theme="ink"] .sheet .tag-chip { border-radius:2px;border:1px solid rgba(59,67,72,.2);background:#FBFAF6;color:var(--ink-soft); }
+  html[data-theme="ink"] .filter-panel .tag-chip.selected,html[data-theme="ink"] .sheet .tag-chip.selected { background:rgba(176,88,75,.08);border-color:rgba(176,88,75,.55);color:var(--cinnabar); }
+  html[data-theme="ink"] .filter-clear { margin-top:14px;padding-top:12px;border-top:1px dashed rgba(59,67,72,.22);font-family:"Kaiti SC","STKaiti","KaiTi",serif;letter-spacing:.2em;color:var(--cinnabar); }
+  html[data-theme="ink"] .sheet-more button { border-radius:2px;border-color:rgba(59,67,72,.28);font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC",serif;font-size:14px;letter-spacing:.12em;color:var(--ink-soft); }
+  html[data-theme="ink"] .sheet-more button[aria-expanded="true"] { border-color:rgba(59,67,72,.6);color:var(--ink);background:rgba(91,116,128,.08); }
+  html[data-theme="ink"] .sheet .filter-btn,html[data-theme="ink"] .sheet-photo-add { border-radius:2px;background:#FBFAF6;border-color:rgba(59,67,72,.24);color:var(--ink-soft); }
+  html[data-theme="ink"] .sheet .location-clear { color:var(--cinnabar); }
+  html[data-theme="ink"] .sheet-actions button { border-radius:2px;font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC",serif;font-size:16px;letter-spacing:.4em;text-indent:.4em; }
+  html[data-theme="ink"] .sheet-actions .btn-cancel { background:#FBFAF6;border:1px solid rgba(59,67,72,.26);color:var(--ink-soft); }
+  html[data-theme="ink"] .sheet-actions .btn-save { background:#3B4348;color:#F4F2EA;box-shadow:inset 0 0 0 3px #3B4348,inset 0 0 0 3.6px rgba(244,242,234,.35); }
   html[data-theme="ink"] .setup-intro,html[data-theme="ink"] .update-banner { border-radius:6px; }
   /* 盖印: a cinnabar seal presses onto the capsule you just saved. */
   html[data-theme="ink"] .entry-row.saved-highlight { position:relative; }
