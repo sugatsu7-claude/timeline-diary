@@ -230,17 +230,29 @@ export default {
         const current=await read(await pageInDatabase(input.pageId)),photo=current.photos.find(p=>p.id===input.photoId);
         if(!photo)fail(404,'图片已被移除，请先同步');
         if(input.revision&&input.revision!==photo.revision)fail(409,'云端图片已改变，请先同步后再完整备份');
-        const u=new URL(photo.url),extra=(env.ALLOWED_IMAGE_HOSTS||'').split(',').map(s=>s.trim()).filter(Boolean);
+        if(!photo.url)fail(422,'这张图片在Notion里没有可下载的地址，请在Notion中另存原图');
+        const extra=(env.ALLOWED_IMAGE_HOSTS||'').split(',').map(s=>s.trim()).filter(Boolean);
         const domains=['amazonaws.com','notion.so','notion-static.com','notionusercontent.com','sinaimg.cn','weibocdn.com','twimg.com','imgur.com','githubusercontent.com','unsplash.com',...extra];
-        if(u.protocol!=='https:'||!domains.some(d=>u.hostname===d||u.hostname.endsWith('.'+d)))fail(400,'此外部图片来源暂不支持备份，请下载到本机后重新添加');
-        return timedFetch(u.href,{redirect:'error'},30000,async response=>{
-        if(!response.ok)fail(502,'图片下载失败，请稍后重试');
-        const mime=response.headers.get('Content-Type')?.split(';')[0]||'';
-        if(!['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif'].includes(mime))fail(400,'文件不是受支持的图片');
-        const reader=response.body.getReader(),parts=[];let size=0;
-        while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>20000000){await reader.cancel();fail(413,'单张原图超过20MB，请单独保存');}parts.push(value);}
-        return new Response(new Blob(parts,{type:mime}),{headers:{...headers,'Content-Type':mime,'Access-Control-Expose-Headers':'X-Diary-Revision','X-Diary-Revision':encodeURIComponent(photo.revision)}});
-        });
+        const allowed=u=>u.protocol==='https:'&&domains.some(d=>u.hostname===d||u.hostname.endsWith('.'+d));
+        let u=new URL(photo.url);
+        if(!allowed(u))fail(400,'此外部图片来源暂不支持备份，请下载到本机后重新添加');
+        // Follow at most three redirects by hand, each to an allowed https image host; network errors get a specific message.
+        for(let hops=0;;hops++){
+          const result=await timedFetch(u.href,{redirect:'manual'},30000,async response=>{
+            if([301,302,303,307,308].includes(response.status))return {next:response.headers.get('Location')};
+            if(!response.ok)fail(502,'图片下载失败（'+u.hostname+' 返回'+response.status+'），请稍后重试');
+            const mime=response.headers.get('Content-Type')?.split(';')[0]||'';
+            if(!['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif'].includes(mime))fail(400,'文件不是受支持的图片');
+            const reader=response.body.getReader(),parts=[];let size=0;
+            while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>20000000){await reader.cancel();fail(413,'单张原图超过20MB，请单独保存');}parts.push(value);}
+            return {response:new Response(new Blob(parts,{type:mime}),{headers:{...headers,'Content-Type':mime,'Access-Control-Expose-Headers':'X-Diary-Revision','X-Diary-Revision':encodeURIComponent(photo.revision)}})};
+          }).catch(error=>{if(error instanceof Failure)throw error;fail(502,'无法连接图片来源 '+u.hostname+'（'+String(error?.message||error?.name||'网络错误').slice(0,60)+'），请稍后重试');});
+          if(result.response)return result.response;
+          if(!result.next||hops>=3)fail(502,'图片地址跳转异常，请在Notion中另存原图');
+          const next=new URL(result.next,u);
+          if(!allowed(next))fail(400,'图片跳转到了不支持的来源（'+next.hostname+'）');
+          u=next;
+        }
       }
       if(path==='/download')return await photoDownload();
       async function ensureSchema(withLocation){
@@ -342,6 +354,6 @@ export default {
       const updated = await api('pages/' + page.id, 'PATCH', { properties: {...properties(entry),'同步操作':{rich_text:[]}} });
       if (desiredPhotos.length) { const complete = await read(updated); delete complete.blocks; return respond(complete); }
       return respond({ ...metadata(updated), text: entry.text, photos: desiredPhotos.map(p=>current.photos.find(old=>old.id===p.id) || {id:p.id}), links: desiredLinks, readOnly: false, url: updated.url });
-    } catch (error) { return respond({ error: error instanceof Failure ? error.message : '同步中断，请保留本机数据并稍后重试',...(error.details||{}) }, error.status || 500); }
+    } catch (error) { return respond({ error: error instanceof Failure ? error.message : '同步中断，请保留本机数据并稍后重试（'+String(error?.name||'Error').slice(0,40)+'）',...(error.details||{}) }, error.status || 500); }
   }
 };

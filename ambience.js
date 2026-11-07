@@ -1,4 +1,4 @@
-// diary-release: 2026.11.07.3
+// diary-release: 2026.11.07.4
 /* 烟雨声景 (ink theme only, off by default): gentle background music, occasional birdsong with an ink
    bird flying past, a water drop + ripple when empty background is tapped, and a seal thump when a
    diary is stamped. Music is either an endlessly varied guqin-like improvisation synthesised on the

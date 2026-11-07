@@ -1,4 +1,4 @@
-// diary-release: 2026.11.07.3
+// diary-release: 2026.11.07.4
 (function(){
  'use strict';
  const status=document.getElementById('backup-status');
@@ -8,7 +8,14 @@
  function photoRefs(snapshot){const refs=[];for(const entry of snapshot.entries.concat(snapshot.trash)){for(const photo of entry.photos||[])refs.push({entry,photo});}for(const draft of snapshot.drafts||[]){const value=draft.value.snapshot||draft.value;for(const photo of value.photos||[])refs.push({entry:value,photo});}return refs;}
  async function validBlob(photo){if(photo.revision&&photo.localRevision!==photo.revision)return null;const key=photo.cacheKey||photo.id,blob=await MediaAssets.store('get',key);if(!(blob instanceof Blob))return null;return blob;}
  async function stableBlob(blob){return new Blob([await blob.arrayBuffer()],{type:blob.type});}
- async function fetchPhoto(photo){const c=DiaryNet.credentials();if(!photo.pageId)throw new Error('图片没有云端页面引用，本机文件也缺失');return DiaryNet.request(c.url+'/download',{method:'POST',headers:{...c.headers,'Content-Type':'application/json'},body:JSON.stringify({pageId:photo.pageId,photoId:photo.id,revision:photo.revision})},120000,'blob');}
+ async function fetchPhoto(photo){const c=DiaryNet.credentials();if(!photo.pageId)throw new Error('图片没有云端页面引用，本机文件也缺失');
+  try{return await DiaryNet.request(c.url+'/download',{method:'POST',headers:{...c.headers,'Content-Type':'application/json'},body:JSON.stringify({pageId:photo.pageId,photoId:photo.id,revision:photo.revision})},120000,'blob');}
+  catch(error){
+   // If the Worker cannot fetch it, try the image link the app already shows (works when the host allows it, e.g. an unexpired Notion file link).
+   if(!error.status||error.status>=500){try{const u=new URL(photo.url||'');if(u.protocol==='https:'){const response=await fetch(u.href,{cache:'no-store',credentials:'omit'});const blob=response.ok&&await response.blob();if(blob&&/^image\//.test(blob.type)&&blob.size)return blob;}}catch(_){}}
+   throw error;
+  }
+ }
  // Groups what a full backup could not get into a few readable lines, with what to do about each.
  function missingSummary(missing){
   const groups=new Map();
@@ -19,6 +26,7 @@
    else if(/Worker地址和同步口令/.test(r))label='张图片只在云端：需要先在「同步」里输入连接码，才能从 Notion 下载';
    else if(/超时|timeout|Failed to fetch|NetworkError|Load failed/i.test(r))label='张图片下载失败：网络不稳定或超时，可稍后重试';
    else if(/没有云端页面引用/.test(r))label='张图片本机和云端都找不到了';
+   else if(/同步中断/.test(r))label='张图片下载时 Worker 出错：把 Worker 更新到最新版后再试，会显示具体原因';
    else label='张图片未能从 Notion 下载（'+r.slice(0,40)+'）';
    groups.set(label,(groups.get(label)||0)+1);
   }
