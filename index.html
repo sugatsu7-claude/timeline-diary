@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.07.1">
+<meta name="diary-version" content="2026.11.07.2">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -379,6 +379,16 @@
   .sheet .sheet-meta input[type="date"]::-webkit-calendar-picker-indicator { opacity:0;margin-left:-14px; }
   .sheet .date-pill { position:relative;display:inline-flex;align-items:center;margin:0;min-height:34px;padding:5px 30px 5px 12px;border-radius:999px;border:0.5px solid var(--line);background:var(--surface) var(--chevron) no-repeat right 11px center/10px 7px;font-size:15px;color:var(--text);cursor:pointer; }
   .sheet .sheet-meta .date-pill input[type="date"] { position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;padding:0;border:0;opacity:0;background:none;cursor:pointer; }
+  /* Filter dates read in Chinese too (2026年11月3日), with the native picker transparent on top. */
+  .filter-panel .date-row { align-items:center; }
+  .filter-panel .date-pill { position:relative;flex:1;min-width:0;display:flex;align-items:center;margin:0;min-height:38px;padding:7px 28px 7px 10px;border-radius:8px;border:0.5px solid var(--line);background:var(--surface-2) var(--chevron) no-repeat right 10px center/10px 7px;font-size:14px;color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden; }
+  .filter-panel .date-pill span { overflow:hidden;text-overflow:ellipsis; }
+  .filter-panel .date-pill.is-empty { color:var(--text-hint); }
+  .filter-panel .date-pill input[type="date"] { position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;padding:0;border:0;opacity:0;background:none;cursor:pointer; }
+  .filter-panel .date-sep { flex:none;font-size:12px;color:var(--text-hint); }
+  html[data-theme="ink"] .filter-panel .date-pill { border-radius:2px;border:1px solid rgba(59,67,72,.24);background-color:#FBFAF6;color:var(--ink);font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC",serif;font-size:15px;letter-spacing:.04em; }
+  html[data-theme="ink"] .filter-panel .date-pill.is-empty { color:var(--ink-faint); }
+  html[data-theme="ink"] .filter-panel .date-sep { font-family:"Kaiti SC","STKaiti","KaiTi",serif;color:var(--ink-soft); }
   html[data-theme="ink"] .sheet .date-pill { border-radius:4px;border:1px solid rgba(74,93,99,.22);background-color:#F7FAF9;color:var(--ink); }
   html[data-theme="night"] .sheet .date-pill { color:var(--text); }
   .sheet textarea#entry-text { min-height:150px;line-height:1.6; }
@@ -930,8 +940,9 @@
   <div class="filter-panel-heading"><span>筛选日记</span><button type="button" id="close-filters">收起</button></div>
   <label>日期范围</label>
   <div class="date-row">
-    <input type="date" id="filter-date-from">
-    <input type="date" id="filter-date-to">
+    <label class="date-pill filter-date"><span id="filter-date-from-label" aria-hidden="true">开始日期</span><input type="date" id="filter-date-from" aria-label="开始日期"></label>
+    <span class="date-sep" aria-hidden="true">至</span>
+    <label class="date-pill filter-date"><span id="filter-date-to-label" aria-hidden="true">结束日期</span><input type="date" id="filter-date-to" aria-label="结束日期"></label>
   </div>
   <label>标签</label>
   <div class="tag-chips" id="tag-chips"></div>
