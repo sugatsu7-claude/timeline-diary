@@ -1,4 +1,4 @@
-// diary-release: 2026.11.07.2
+// diary-release: 2026.11.07.3
 (function(){
  'use strict';
  const status=document.getElementById('backup-status');
@@ -9,6 +9,21 @@
  async function validBlob(photo){if(photo.revision&&photo.localRevision!==photo.revision)return null;const key=photo.cacheKey||photo.id,blob=await MediaAssets.store('get',key);if(!(blob instanceof Blob))return null;return blob;}
  async function stableBlob(blob){return new Blob([await blob.arrayBuffer()],{type:blob.type});}
  async function fetchPhoto(photo){const c=DiaryNet.credentials();if(!photo.pageId)throw new Error('图片没有云端页面引用，本机文件也缺失');return DiaryNet.request(c.url+'/download',{method:'POST',headers:{...c.headers,'Content-Type':'application/json'},body:JSON.stringify({pageId:photo.pageId,photoId:photo.id,revision:photo.revision})},120000,'blob');}
+ // Groups what a full backup could not get into a few readable lines, with what to do about each.
+ function missingSummary(missing){
+  const groups=new Map();
+  for(const item of missing){
+   const r=item.reason||'';let label;
+   if(item.asset==='background')label='本机背景图读取失败';
+   else if(!item.photoId)label='篇 Notion 日记含复杂格式，App 里只有预览（原文仍在 Notion）';
+   else if(/Worker地址和同步口令/.test(r))label='张图片只在云端：需要先在「同步」里输入连接码，才能从 Notion 下载';
+   else if(/超时|timeout|Failed to fetch|NetworkError|Load failed/i.test(r))label='张图片下载失败：网络不稳定或超时，可稍后重试';
+   else if(/没有云端页面引用/.test(r))label='张图片本机和云端都找不到了';
+   else label='张图片未能从 Notion 下载（'+r.slice(0,40)+'）';
+   groups.set(label,(groups.get(label)||0)+1);
+  }
+  return '有'+missing.length+'项没能放进完整备份：\n'+Array.from(groups,([label,n])=>'· '+(label.startsWith('本机')?label:n+' '+label)).join('\n')+'\n\n仍要导出标记为“不完整”的备份吗？其余内容都会正常保存。';
+ }
  async function exportBackup(full){
   let stage='读取本机日记';
   try{await DiaryStore.exclusive('maintenance',async()=>{
@@ -43,7 +58,7 @@
     }catch(error){backup.manifest.complete=false;backup.manifest.missing.push({asset:'background',reason:'本机背景图无法读取：'+error.message});}
     stage='读取同步备份信息';
     backup.archivedSync=await DiaryStore.allSync();backup.archivedOperations=await DiaryStore.operation();
-    if(full&&!backup.manifest.complete&&!confirm('有'+backup.manifest.missing.length+'项未取得完整内容。是否导出明确标记为“不完整”的备份？')){status.textContent='完整备份未完成，未下载文件。请先同步或查看缺失提示。';return;}
+    if(full&&!backup.manifest.complete&&!confirm(missingSummary(backup.manifest.missing))){status.textContent='完整备份未完成，未下载文件。请先同步或查看缺失提示。';return;}
     // Store cache references as metadata only; never replay a stale document snapshot into the live database.
     for(const entry of backup.entries){const photos=entry.photos||[];if(photos.length)await DiaryStore.patchPhotos(entry.id,photos.filter(p=>cached.has(p.cacheKey)).map(p=>({id:p.id,cacheKey:p.cacheKey,localRevision:p.localRevision}))).catch(()=>{});}
     stage='生成备份压缩包';
