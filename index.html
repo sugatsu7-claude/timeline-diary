@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.07.4">
+<meta name="diary-version" content="2026.11.07.5">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -380,6 +380,8 @@
   .sheet .date-pill { position:relative;display:inline-flex;align-items:center;margin:0;min-height:34px;padding:5px 30px 5px 12px;border-radius:999px;border:0.5px solid var(--line);background:var(--surface) var(--chevron) no-repeat right 11px center/10px 7px;font-size:15px;color:var(--text);cursor:pointer; }
   .sheet .sheet-meta .date-pill input[type="date"] { position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;padding:0;border:0;opacity:0;background:none;cursor:pointer; }
   /* Filter dates read in Chinese too (2026年11月3日), with the native picker transparent on top. */
+  #backup-share[hidden] { display:none; }
+  #backup-share { margin-top:6px;border-color:rgba(var(--primary-rgb),.5);color:var(--primary); }
   .filter-panel .date-row { align-items:center; }
   .filter-panel .date-pill { position:relative;flex:1;min-width:0;display:flex;align-items:center;margin:0;min-height:38px;padding:7px 28px 7px 10px;border-radius:8px;border:0.5px solid var(--line);background:var(--surface-2) var(--chevron) no-repeat right 10px center/10px 7px;font-size:14px;color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden; }
   .filter-panel .date-pill span { overflow:hidden;text-overflow:ellipsis; }
@@ -1121,6 +1123,7 @@
     <div class="backup-option"><div class="backup-option-text"><strong>快速备份</strong><span>文字，加上本机已有的图片。不联网，几秒完成。</span></div><button class="backup-btn" id="export-json-btn" type="button">生成备份</button></div>
     <div class="backup-option"><div class="backup-option-text"><strong>完整备份</strong><span>会联网把云端（Notion）的图片也下载进来，最完整，但更慢。</span></div><button class="backup-btn" id="full-backup-btn" type="button">完整备份</button></div>
     <p id="backup-status" class="settings-hint" role="status"></p>
+    <button id="backup-share" class="backup-btn backup-wide" type="button" hidden>存储 / 分享备份文件…</button>
   </section>
   <section class="backup-step" aria-labelledby="backup-step3">
     <h4 class="backup-title" id="backup-step3">换手机或出问题时：恢复</h4>
@@ -1129,6 +1132,8 @@
   </section>
   <section class="backup-step" aria-labelledby="backup-step4">
     <h4 class="backup-title" id="backup-step4">本机整理</h4>
+    <button id="cache-cloud-photos" class="backup-btn backup-wide" type="button">把云端照片存到本机</button>
+    <p id="cache-cloud-status" class="settings-hint" role="status">照片存到本机后，打开更快，离线和未输入连接码时也能看。打开过的照片会自动存一份。</p>
     <button id="recover-drafts" class="backup-btn backup-wide" type="button">查看暂存草稿</button>
     <p id="storage-status" class="settings-hint" role="status"></p>
     <div class="cloud-row"><button id="storage-refresh" class="backup-btn" type="button">查看本机空间</button><button id="storage-cleanup" class="backup-btn" type="button">清理无引用图片</button></div>

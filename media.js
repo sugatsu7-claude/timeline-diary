@@ -1,4 +1,4 @@
-// diary-release: 2026.11.07.4
+// diary-release: 2026.11.07.5
 /* Local blobs live in IndexedDB; metadata alone lives with diary entries. */
 (function () {
   'use strict';
@@ -114,6 +114,35 @@
     if(entry.id)await DiaryStore.patchPhotos(entry.id,value.photos||[]);
     (entry.photos||[]).forEach(function(p){if(mapping.has(p.id))Object.assign(p,mapping.get(p.id));});
   }
+  // Keeps a copy of a cloud photo on this device: the image link the app already has first, then the Worker if a connection code is set.
+  function localOk(photo){return !(photo.revision&&photo.localRevision!==photo.revision);}
+  async function fetchRemote(photo){
+    var fresh=photo.url&&!(photo.expiresAt&&Date.parse(photo.expiresAt)<Date.now()+30000);
+    if(fresh&&safeLink(photo.url)&&/^https:/.test(photo.url)){try{var r=await fetch(photo.url,{cache:'no-store',credentials:'omit'}),b=r.ok&&await r.blob();if(b&&/^image\//.test(b.type)&&b.size)return b;}catch(_){}}
+    if(!photo.pageId)throw new Error('图片没有云端来源');
+    var c;try{c=credentials();}catch(_){throw new Error('请先配置Worker地址和同步口令');}
+    return DiaryNet.request(c.endpoint+'/download',{method:'POST',headers:{...c.headers,'Content-Type':'application/json'},body:JSON.stringify({pageId:photo.pageId,photoId:photo.id,revision:photo.revision})},120000,'blob');
+  }
+  var caching=new Map();
+  function cacheRemote(entry,photo){
+    var key=(photo.pageId||'')+':'+photo.id+':'+(photo.revision||'');
+    if(!caching.has(key))caching.set(key,(async function(){
+      var blob=await fetchRemote(photo);blob=new Blob([await blob.arrayBuffer()],{type:blob.type});
+      var id=await hash(blob);await store('put',id,blob);
+      photo.cacheKey=id;photo.localRevision=photo.revision;
+      if(entry&&entry.id)await DiaryStore.patchPhotos(entry.id,[{id:photo.id,cacheKey:id,localRevision:photo.revision}]);
+      return blob;
+    })().finally(function(){caching.delete(key);}));
+    return caching.get(key);
+  }
+  async function hasLocal(photo){if(!localOk(photo))return false;try{return (await store('get',photo.cacheKey||photo.id)) instanceof Blob;}catch(_){return false;}}
+  // Saves every cloud photo of every diary on this device; reports what could not be fetched.
+  async function cacheAllPhotos(onProgress){
+    var list=[];for(var entry of (window.entries||[]))for(var photo of entry.photos||[])if(photo.pageId&&!(await hasLocal(photo)))list.push({entry:entry,photo:photo});
+    var done=0,failed=[];
+    for(var i=0;i<list.length;i++){onProgress&&onProgress(i+1,list.length);try{await cacheRemote(list[i].entry,list[i].photo);done++;}catch(error){failed.push(error.message||String(error));}}
+    return {total:list.length,done:done,failed:failed};
+  }
   async function openPhotos(entry, selected, editable) {
     var dialog=document.getElementById('photo-viewer'), slides=document.getElementById('photo-slides');
     var generation=++viewerGeneration;viewerEditing=!!editable;viewerUrls.forEach(URL.revokeObjectURL);viewerUrls=[];viewerEntry=entry;slides.replaceChildren();
@@ -140,7 +169,7 @@
         if(!safeLink(photo.url))throw new Error('图片暂不可用，请先同步');src=photo.url;
       }
       section.querySelectorAll('img').forEach(function(img){img.remove();});
-      var image=document.createElement('img');image.alt='日记图片 '+(index+1);image.onload=function(){if(generation===viewerGeneration)note.remove();};image.onerror=function(){if(generation!==viewerGeneration)return;note.textContent='图片加载失败，请联网后关闭重试或同步。';section.dataset.loaded='';};image.src=src;section.appendChild(image);
+      var image=document.createElement('img'),remote=!blob;image.alt='日记图片 '+(index+1);image.onload=function(){if(generation===viewerGeneration)note.remove();if(remote)cacheRemote(entry,photo).catch(function(){});};image.onerror=function(){if(generation!==viewerGeneration)return;note.textContent='图片加载失败，请联网后关闭重试或同步。';section.dataset.loaded='';};image.src=src;section.appendChild(image);
     }catch(error){if(generation===viewerGeneration){note.textContent=error.message;section.dataset.loaded='';}}
   }
   function updateCounter(){
@@ -195,6 +224,6 @@
     }
     return {...entry,photos:photos};
   }
-  window.MediaAssets={store:store,hash:hash,safeLink:safeLink,links:links,renderSheet:renderSheet,releaseSheet:releaseSheet,decorate:decorate,prepare:prepare,assetInfo:assetInfo,cleanupAssets:cleanupAssets};
+  window.MediaAssets={cacheAllPhotos:cacheAllPhotos,cacheRemote:cacheRemote,store:store,hash:hash,safeLink:safeLink,links:links,renderSheet:renderSheet,releaseSheet:releaseSheet,decorate:decorate,prepare:prepare,assetInfo:assetInfo,cleanupAssets:cleanupAssets};
   renderTimeline();
 })();

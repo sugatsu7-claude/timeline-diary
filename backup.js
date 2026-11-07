@@ -1,10 +1,19 @@
-// diary-release: 2026.11.07.4
+// diary-release: 2026.11.07.5
 (function(){
  'use strict';
  const status=document.getElementById('backup-status');
  const configKeys=['penang_timeline_settings','penang_timeline_tags','penang_timeline_authors'];
  const mb=n=>(n/1048576).toFixed(1)+' MB';
  function download(value,name){const url=URL.createObjectURL(value instanceof Blob?value:new Blob([JSON.stringify(value)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ // On phones that can share files (iPhone), open the share sheet so 存储到文件 is one tap; a button stays in case the sheet
+ // cannot open on its own (Safari only allows it right after a tap). Elsewhere the file downloads as before.
+ async function deliver(blob,name){
+  const file=new File([blob],name,{type:'application/zip'}),button=document.getElementById('backup-share');
+  let can=false;try{can=!!navigator.canShare?.({files:[file]});}catch(_){}
+  if(!can){download(blob,name);return;}
+  const share=async()=>{try{await navigator.share({files:[file],title:name});button.hidden=true;return true;}catch(error){if(error.name==='AbortError')return true;if(error.name!=='NotAllowedError'){download(blob,name);button.hidden=true;return true;}return false;}};
+  button.hidden=false;button.onclick=share;await share();
+ }
  function photoRefs(snapshot){const refs=[];for(const entry of snapshot.entries.concat(snapshot.trash)){for(const photo of entry.photos||[])refs.push({entry,photo});}for(const draft of snapshot.drafts||[]){const value=draft.value.snapshot||draft.value;for(const photo of value.photos||[])refs.push({entry:value,photo});}return refs;}
  async function validBlob(photo){if(photo.revision&&photo.localRevision!==photo.revision)return null;const key=photo.cacheKey||photo.id,blob=await MediaAssets.store('get',key);if(!(blob instanceof Blob))return null;return blob;}
  async function stableBlob(blob){return new Blob([await blob.arrayBuffer()],{type:blob.type});}
@@ -70,7 +79,7 @@
     // Store cache references as metadata only; never replay a stale document snapshot into the live database.
     for(const entry of backup.entries){const photos=entry.photos||[];if(photos.length)await DiaryStore.patchPhotos(entry.id,photos.filter(p=>cached.has(p.cacheKey)).map(p=>({id:p.id,cacheKey:p.cacheKey,localRevision:p.localRevision}))).catch(()=>{});}
     stage='生成备份压缩包';
-    const zip=await DiaryArchive.build([{name:'manifest.json',blob:new Blob([JSON.stringify(backup)],{type:'application/json'})}].concat(Array.from(zipFiles,([name,blob])=>({name,blob}))));download(zip,'timeline-diary-'+(backup.manifest.complete?'complete':'partial')+'-'+todayStr()+'.zip');
+    const zip=await DiaryArchive.build([{name:'manifest.json',blob:new Blob([JSON.stringify(backup)],{type:'application/json'})}].concat(Array.from(zipFiles,([name,blob])=>({name,blob}))));await deliver(zip,'timeline-diary-'+(backup.manifest.complete?'complete':'partial')+'-'+todayStr()+'.zip');
     status.textContent=(backup.manifest.complete?'备份完成':'已导出不完整备份')+'：'+backup.entries.length+'篇日记、'+backup.trash.length+'条回收站、'+backup.assets.length+'个图片文件'+(backup.manifest.missing.length?'；缺失'+backup.manifest.missing.length+'项，详情在文件manifest中':'')+'。不包含口令。';
    }finally{document.getElementById('full-backup-btn').disabled=document.getElementById('export-json-btn').disabled=false;}
   });}catch(error){status.textContent='备份未完成（'+stage+'）：'+(error.name==='NotFoundError'?'手机无法读取对应的本机文件或存储项目；请保留本机数据，重新打开日记后再试。':error.message);}
@@ -125,6 +134,17 @@
  document.getElementById('full-backup-btn').onclick=()=>exportBackup(true);
  document.getElementById('import-json-btn').onclick=()=>document.getElementById('import-json-input').click();
  document.getElementById('import-json-input').onchange=async event=>{const file=event.target.files[0];event.target.value='';if(!file)return;try{await DiaryStore.exclusive('maintenance',()=>importBackup(file));}catch(error){status.textContent='导入未完成，原日记未清空：'+error.message;}};
+ document.getElementById('cache-cloud-photos').onclick=async function(){
+  const button=this,status=document.getElementById('cache-cloud-status');button.disabled=true;status.textContent='正在检查哪些照片还在云端…';
+  try{
+   const result=await MediaAssets.cacheAllPhotos((i,n)=>{status.textContent='正在把云端照片存到本机：'+i+' / '+n;});
+   if(!result.total)status.textContent='所有照片都已经在本机了 ✓';
+   else if(!result.failed.length)status.textContent='已把 '+result.done+' 张照片存到本机 ✓ 以后打开更快，离线也能看。';
+   else{const reasons=[...new Set(result.failed)];status.textContent='已存 '+result.done+' 张；'+result.failed.length+' 张未能下载：'+(reasons.some(r=>/Worker地址和同步口令/.test(r))?'请先在「同步」里输入连接码再试。':reasons[0].slice(0,80));}
+   await refreshDiaryData(false).catch(()=>{});
+  }catch(error){status.textContent='未完成：'+error.message;}
+  finally{button.disabled=false;}
+ };
  document.getElementById('storage-refresh').onclick=()=>storageInfo().catch(e=>showToast(e.message));document.getElementById('storage-cleanup').onclick=cleanup;
  // Range chips fill the (kept) date inputs; the summary says how many diaries a backup will contain.
  const fromEl=document.getElementById('backup-from'),toEl=document.getElementById('backup-to'),summary=document.getElementById('backup-summary');
