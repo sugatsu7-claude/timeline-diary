@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>时间轴日记</title>
-<meta name="diary-version" content="2026.11.07.5">
+<meta name="diary-version" content="2026.11.07.6">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="./leaflet.css">
@@ -188,7 +188,7 @@
   .entry-card {
     flex: 1;
     min-width: 0;
-    background: rgba(255,255,255,var(--card-opacity, 0.62));
+    background: rgba(255,255,255,var(--card-opacity, 0.15));
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
     border: 0.5px solid rgba(225,224,217,0.6);
@@ -777,7 +777,7 @@
      so the default look is untouched. ---- */
   html[data-theme="ink"] { --ink:#3B4348;--ink-soft:#6B7479;--ink-faint:#6F787C;--paper:#ECF0EF;--cinnabar:#B0584B;--slate:#5B7480; }
   html[data-theme="ink"] body { background:var(--paper);color:var(--ink);font-family:"Songti SC","STSong","Noto Serif CJK SC","Source Han Serif SC","SimSun",serif; }
-  html[data-theme="ink"] #bg-scrim { background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 130' fill='none' stroke='%235B7480' stroke-opacity='.24' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 104C-2 88 14 66 36 72 34 52 62 40 80 54 88 34 124 34 134 56 154 44 182 56 176 78 198 74 214 92 200 104Z'/%3E%3Cpath d='M44 92C38 82 50 74 58 80 60 88 52 92 48 88M96 76C92 64 108 58 114 68 118 76 108 82 102 76M150 90C146 80 160 74 166 82 168 90 158 94 154 90M200 104H250M232 104C228 96 238 92 244 98'/%3E%3C/svg%3E") left -34px bottom 96px/230px auto no-repeat,repeating-linear-gradient(105deg,transparent 0 13px,rgba(91,116,128,.04) 13px 14px),radial-gradient(ellipse 75% 36% at 88% -4%,rgba(74,93,99,.16),transparent 70%),radial-gradient(ellipse 65% 30% at -4% 104%,rgba(74,93,99,.1),transparent 70%),rgba(236,241,240,var(--scrim-alpha,.72))!important; }
+  html[data-theme="ink"] #bg-scrim { background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 130' fill='none' stroke='%235B7480' stroke-opacity='.24' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 104C-2 88 14 66 36 72 34 52 62 40 80 54 88 34 124 34 134 56 154 44 182 56 176 78 198 74 214 92 200 104Z'/%3E%3Cpath d='M44 92C38 82 50 74 58 80 60 88 52 92 48 88M96 76C92 64 108 58 114 68 118 76 108 82 102 76M150 90C146 80 160 74 166 82 168 90 158 94 154 90M200 104H250M232 104C228 96 238 92 244 98'/%3E%3C/svg%3E") left -34px bottom 96px/230px auto no-repeat,repeating-linear-gradient(105deg,transparent 0 13px,rgba(91,116,128,.04) 13px 14px),radial-gradient(ellipse 75% 36% at 88% -4%,rgba(74,93,99,.16),transparent 70%),radial-gradient(ellipse 65% 30% at -4% 104%,rgba(74,93,99,.1),transparent 70%),rgba(236,241,240,var(--scrim-alpha,.25))!important; }
   /* A slow-drifting cloud motif at the top right; one small composited layer. */
   html[data-theme="ink"] body::after { content:"";position:fixed;right:-46px;top:calc(env(safe-area-inset-top) + 92px);width:210px;height:105px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 130' fill='none' stroke='%235B7480' stroke-opacity='.24' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 104C-2 88 14 66 36 72 34 52 62 40 80 54 88 34 124 34 134 56 154 44 182 56 176 78 198 74 214 92 200 104Z'/%3E%3Cpath d='M44 92C38 82 50 74 58 80 60 88 52 92 48 88M96 76C92 64 108 58 114 68 118 76 108 82 102 76M150 90C146 80 160 74 166 82 168 90 158 94 154 90M200 104H250M232 104C228 96 238 92 244 98'/%3E%3C/svg%3E") center/contain no-repeat;transform:scaleX(-1);pointer-events:none;z-index:-1;opacity:.9; }
   @media (prefers-reduced-motion:no-preference) { html[data-theme="ink"] body::after { animation:cloud-drift 36s ease-in-out infinite alternate; } }
@@ -787,7 +787,7 @@
   html[data-theme="ink"] .search-box,html[data-theme="ink"] .filter-btn,html[data-theme="ink"] .toolbar.is-compact .search-box,html[data-theme="ink"] .toolbar.is-compact .filter-btn { background:rgba(250,250,247,.92);border:1px solid rgba(74,93,99,.18);border-radius:6px;color:var(--ink-soft); }
   html[data-theme="ink"] .tag-chip { border-radius:4px;border:1px solid rgba(74,93,99,.2);background:rgba(250,250,247,.88);color:var(--ink-soft); }
   html[data-theme="ink"] .tag-chip.selected { background:rgba(91,116,128,.12);border-color:rgba(91,116,128,.55);color:var(--slate); }
-  html[data-theme="ink"] .entry-card { background:rgba(247,250,249,var(--card-opacity,.62));border:1px solid rgba(91,116,128,.16);border-top:1px solid rgba(91,116,128,.38);border-radius:4px;box-shadow:0 6px 26px rgba(74,93,99,.08); }
+  html[data-theme="ink"] .entry-card { background:rgba(247,250,249,var(--card-opacity,.15));border:1px solid rgba(91,116,128,.16);border-top:1px solid rgba(91,116,128,.38);border-radius:4px;box-shadow:0 6px 26px rgba(74,93,99,.08); }
   html[data-theme="ink"] .entry-card::after { box-shadow:0 10px 30px rgba(74,93,99,.24); }
   html[data-theme="ink"] .entry-card::before { box-shadow:0 8px 30px rgba(91,116,128,.28); }
   html[data-theme="ink"] .entry-date-col { background:transparent;border-radius:0;border-right:1px solid rgba(74,93,99,.2); }
@@ -866,14 +866,14 @@
   html[data-theme="night"] { color-scheme:dark;--text:#E2E7E9;--text-2:#C3CACD;--text-hint:#9AA3A8;--line:rgba(255,255,255,.13);--surface:#222930;--surface-2:#1D2328;--panel:#1B2025;--page:#14181B;--primary:#4F7AA6;--primary-rgb:79,122,166;--accent:#9DB5AE;--accent-soft:#6F8C86;--chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%239AA3A8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");--night-glass:28,33,38; }
   html[data-theme="night"] body { background:var(--page);color:var(--text); }
   html[data-theme="night"] #bg-layer { filter:brightness(.5) saturate(.75); }
-  html[data-theme="night"] #bg-scrim { background:rgba(12,15,18,var(--scrim-alpha,.72))!important; }
+  html[data-theme="night"] #bg-scrim { background:rgba(12,15,18,var(--scrim-alpha,.25))!important; }
   html[data-theme="night"] .header h1,html[data-theme="night"] .header p,html[data-theme="night"] .entry-count { color:var(--text);text-shadow:none; }
   html[data-theme="night"] .header p,html[data-theme="night"] .entry-count { color:var(--text-2); }
   html[data-theme="night"] .search-box,html[data-theme="night"] .filter-btn,html[data-theme="night"] .toolbar.is-compact .search-box,html[data-theme="night"] .toolbar.is-compact .filter-btn { background:rgba(var(--night-glass),.92);border-color:var(--line);color:var(--text-2); }
   html[data-theme="night"] .search-box input { color:var(--text); }
   html[data-theme="night"] .tag-chip { background:var(--surface-2);border-color:var(--line);color:var(--text-2); }
   html[data-theme="night"] .tag-chip.selected { background:rgba(var(--primary-rgb),.28);border-color:var(--primary);color:#CFE2F5; }
-  html[data-theme="night"] .entry-card { background:rgba(var(--night-glass),var(--card-opacity,.62));border-color:var(--line);box-shadow:0 8px 28px rgba(0,0,0,.35);color:var(--text); }
+  html[data-theme="night"] .entry-card { background:rgba(var(--night-glass),var(--card-opacity,.15));border-color:var(--line);box-shadow:0 8px 28px rgba(0,0,0,.35);color:var(--text); }
   html[data-theme="night"] .entry-card::after { box-shadow:0 10px 34px rgba(120,160,205,.28); }
   html[data-theme="night"] .entry-card::before { box-shadow:0 8px 30px rgba(120,160,205,.3); }
   html[data-theme="night"] .entry-date-col { background:rgba(var(--night-glass),.6); }
@@ -1032,10 +1032,10 @@
   <div class="file-pick"><input type="file" id="local-background" accept="image/*"><label for="local-background" class="backup-btn file-btn" role="button">选择一张本机图片</label></div>
   <p class="settings-hint" id="background-status" role="status">本机背景不会上传或同步。</p>
   <button class="backup-btn" id="reset-background" type="button" style="width:100%;">恢复默认背景</button>
-  <label for="bg-scrim-input">背景蒙层浓度：<b class="slider-value"><span id="bg-scrim-value">72</span>%</b></label>
+  <label for="bg-scrim-input">背景蒙层浓度：<b class="slider-value"><span id="bg-scrim-value">25</span>%</b></label>
   <input type="range" min="0" max="100" step="1" id="bg-scrim-input" aria-describedby="appearance-hint">
   <div class="slider-ends"><span>看清背景</span><span>字更清楚</span></div>
-  <label for="card-opacity-input">卡片透明度：<b class="slider-value"><span id="card-opacity-value">62</span>%</b></label>
+  <label for="card-opacity-input">卡片透明度：<b class="slider-value"><span id="card-opacity-value">15</span>%</b></label>
   <input type="range" min="0" max="100" step="1" id="card-opacity-input" aria-describedby="appearance-hint">
   <div class="slider-ends"><span>透出背景</span><span>卡片更实</span></div>
   <p class="settings-hint" id="appearance-hint">拖动即时预览，点「保存外观」后才会保留。</p>
