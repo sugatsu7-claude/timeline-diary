@@ -1,4 +1,4 @@
-// diary-release: 2026.11.07.2
+// diary-release: 2026.11.07.3
 /* Main journal database. localStorage legacy data is read-only migration input. */
 (function(){
  'use strict';

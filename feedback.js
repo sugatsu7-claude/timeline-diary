@@ -1,4 +1,4 @@
-// diary-release: 2026.11.07.2
+// diary-release: 2026.11.07.3
 /* Optional haptics and soft sounds. Off by default; nothing runs until the user turns it on. */
 (function () {
   'use strict';
