@@ -1,4 +1,4 @@
-// diary-release: 2026.11.06.2
+// diary-release: 2026.11.07.2
 var STORAGE_KEY = 'penang_timeline_diary';
 var TRASH_KEY = 'penang_timeline_trash';
 var trash=structuredClone(DiaryStore.snapshot.trash);
@@ -373,10 +373,21 @@ document.getElementById('filter-date-to').onchange = function (e) {
   renderTimeline();
   updateFilterBtnState();
 };
+// Filter dates show as 2026年11月3日 (year dropped for this year), whatever the phone's region format.
+function refreshFilterDateLabels() {
+  [['filter-date-from', '开始日期'], ['filter-date-to', '结束日期']].forEach(function (pair) {
+    var input = document.getElementById(pair[0]), d = new Date(input.value + 'T00:00:00'), empty = !input.value || Number.isNaN(d.getTime());
+    document.getElementById(pair[0] + '-label').textContent = empty ? pair[1] : (d.getFullYear() !== new Date().getFullYear() ? d.getFullYear() + '年' : '') + (d.getMonth() + 1) + '月' + d.getDate() + '日';
+    input.closest('.date-pill').classList.toggle('is-empty', empty);
+  });
+}
+['filter-date-from', 'filter-date-to'].forEach(function (id) { document.getElementById(id).addEventListener('input', refreshFilterDateLabels); document.getElementById(id).addEventListener('change', refreshFilterDateLabels); });
+refreshFilterDateLabels();
 document.getElementById('filter-clear').onclick = function () {
   activeFilters = { from: '', to: '', tags: [], search: '', source: '' };
   document.getElementById('filter-date-from').value = '';
   document.getElementById('filter-date-to').value = '';
+  refreshFilterDateLabels();
   document.getElementById('search-input').value = '';syncSearchClear();
   renderTagChips();
   renderSourceChips();

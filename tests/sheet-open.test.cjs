@@ -23,5 +23,10 @@ const assert=require('node:assert/strict'),h=require('./browser-utils.cjs');
   const v=await p.evaluate(id=>{const s=document.getElementById('sheet').getBoundingClientRect(),r=document.getElementById(id).getBoundingClientRect(),a=document.querySelector('.sheet-actions').getBoundingClientRect();return {ok:r.top>=s.top&&r.bottom<=a.top+1,focused:document.activeElement.id};},id);
   assert.ok(v.ok,id+' is scrolled into the visible part of the sheet');assert.equal(v.focused,id);}
  await p.evaluate(()=>closeSheet());
- console.log('PASS: sheet always opens at the top for new/edit, date visible, reduced motion has no transition, Chinese date pill, opened extras scroll into view.');await browser.close();
+ // Filter dates also read in Chinese and reset on 清除筛选.
+ await p.setViewportSize({width:390,height:844});await p.locator('#filter-toggle').click();assert.equal(await p.locator('#filter-date-from-label').textContent(),'开始日期');
+ await p.locator('#filter-date-from').fill('2025-10-01');assert.equal(await p.locator('#filter-date-from-label').textContent(),'2025年10月1日');
+ await p.locator('#filter-date-to').fill(new Date().getFullYear()+'-03-05');assert.equal(await p.locator('#filter-date-to-label').textContent(),'3月5日');
+ await p.locator('#filter-clear').click();assert.equal(await p.locator('#filter-date-from-label').textContent(),'开始日期');assert.equal(await p.locator('#filter-date-to-label').textContent(),'结束日期');
+ console.log('PASS: sheet always opens at the top for new/edit, date visible, reduced motion has no transition, Chinese date pill, opened extras scroll into view, Chinese filter dates.');await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});
