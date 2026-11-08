@@ -52,6 +52,19 @@
 
 **想同步到 Notion / 想自己部署一份？** 看下面折叠的说明。
 
+## 版权与授权
+
+© 2026 YanAIC · 五月。源码公开，按 [PolyForm Noncommercial 1.0.0](LICENSE.md) 授权，未明确授予的权利均予保留。
+
+- ✅ 个人使用、学习、自己部署一份自用，都可以免费；也可以为非商业目的修改。
+- ✅ 学校、公益组织等非营利机构可以使用。
+- ❌ 任何商业用途，例如收费提供、放进商业产品或服务、为公司业务使用，须先取得作者书面许可。
+- 转发或分发时，须附上许可条款和 [LICENSE.md](LICENSE.md) 第一行的版权声明（以 `Required Notice:` 开头）。
+- 名称「时间轴日记」「YanAIC」及图标不在授权范围内。
+- 第三方组件按各自许可：地图库 Leaflet 采用 BSD 2-Clause（见 [Leaflet-LICENSE.txt](Leaflet-LICENSE.txt)）。
+
+商业合作请通过 [yanaic.com](https://yanaic.com) 联系。
+
 > 🐾 我还做了小纸片人桌宠和英语单词挑战（手机网页版），欢迎来 [yanaic.com](https://yanaic.com) 逛逛～
 
 ---
