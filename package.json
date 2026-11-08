@@ -2,6 +2,7 @@
   "name": "timeline-diary",
   "version": "1.0.0",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
   "description": "Offline diary PWA with manually triggered Notion sync",
   "scripts": {
     "test": "python3 scripts/check-release.py && node --test tests/worker.test.mjs tests/worker-setup.test.mjs && node scripts/test-browsers.cjs"

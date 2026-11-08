@@ -2,6 +2,7 @@
   "name": "timeline-diary-sync",
   "version": "1.0.0",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "scripts": { "deploy": "wrangler deploy", "check": "node --check index.mjs" },
   "devDependencies": { "wrangler": "^4.45.0" },
