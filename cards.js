@@ -1,4 +1,4 @@
-// diary-release: 2026.11.21.1
+// diary-release: 2026.11.21.2
 /* Text-only diary cards. Rendering and PNG export stay entirely on this device. */
 (function(){
  'use strict';
@@ -110,11 +110,11 @@
   if(token===sequence){allFiles=list;updateAll();}
  }
  function canShare(files){try{return !!navigator.canShare?.({files});}catch(_){return false;}}
+ // One button per action: on phones that share files, saving opens the system sheet (存储图像 or send to an app), so no separate 分享.
  function updateAll(){
-  const many=pages.length>1,saveAll=document.getElementById('card-save-all'),share=document.getElementById('card-share');
+  const many=pages.length>1,saveAll=document.getElementById('card-save-all');
   saveAll.hidden=!many;saveAll.textContent=`保存全部 ${pages.length} 张`;saveAll.disabled=!allFiles;
-  if(many){const ok=canShare(allFiles||[file].filter(Boolean));share.hidden=!ok;share.disabled=!allFiles||!ok;share.textContent=`分享全部 ${pages.length} 张`;}
-  else share.textContent='分享';
+  document.getElementById('card-share').hidden=true;
  }
  async function render(){
   if(!entry||!pages.length||!dialog.open)return;
@@ -130,10 +130,9 @@
    document.getElementById('card-prev').disabled=pageIndex===0;document.getElementById('card-next').disabled=pageIndex===pages.length-1;
    document.getElementById('card-pagination').hidden=pages.length===1;
    document.getElementById('card-save').disabled=false;
-   const share=canShare([file]);
-   document.getElementById('card-share').hidden=!share;document.getElementById('card-share').disabled=!share||pages.length>1;updateAll();
-   status.textContent=pages.length>1?`文字分成了 ${pages.length} 张卡片，可以一次保存或分享全部。`:'仅包含文字、日期、标签和署名，在本机生成。';
-   document.getElementById('card-save').textContent=pages.length>1?'只存这一张':'保存当前卡片';
+   updateAll();
+   status.textContent=pages.length>1?`文字分成了 ${pages.length} 张卡片。`:'仅包含文字、日期、标签和署名，在本机生成。';
+   document.getElementById('card-save').textContent=pages.length>1?'只存这一张':'保存卡片';
    if(pages.length>1)prepareAll(token,key,source,pageIndex,file);
   }catch(error){if(token===sequence)status.textContent=error.message;}
  }
@@ -152,7 +151,9 @@
  document.getElementById('card-next').onclick=()=>{if(index<pages.length-1){index++;render();}};
  document.getElementById('card-close').onclick=()=>dialog.close();
  dialog.addEventListener('close',()=>{sequence++;file=null;allFiles=null;if(trigger?.isConnected)trigger.focus({preventScroll:true});});
- document.getElementById('card-save').onclick=()=>{if(!file)return;const url=URL.createObjectURL(file),link=document.createElement('a');link.href=url;link.download=file.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);showToast('已生成卡片，可在下载文件中查看');};
+ document.getElementById('card-save').onclick=async()=>{if(!file)return;
+  if(canShare([file])){try{await navigator.share({files:[file]});}catch(error){if(error.name!=='AbortError')showToast('暂时无法打开保存面板，请稍后再试');}return;}
+  const url=URL.createObjectURL(file),link=document.createElement('a');link.href=url;link.download=file.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);showToast('已生成卡片，可在下载文件中查看');};
   document.getElementById('card-share').onclick=async()=>{const files=pages.length>1?allFiles:file&&[file];if(!files)return;try{await navigator.share({files});}catch(error){if(error.name!=='AbortError')showToast('暂时无法分享，可先保存卡片');}};
  // 保存全部: phones that can share files get the system sheet (存储图像 saves them all to Photos); elsewhere each page downloads.
  document.getElementById('card-save-all').onclick=async()=>{
