@@ -30,9 +30,10 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),h=require('./br
  assert.ok(pages>1);assert.equal(collected,long.replaceAll('\n',''));
  // Several pages: save or share all of them at once (phones get one share sheet), or keep just the current one.
  await p.waitForFunction(()=>!document.getElementById('card-save-all').disabled);
- assert.equal(await p.locator('#card-save-all').textContent(),'保存全部 '+pages+' 张');assert.equal(await p.locator('#card-save').textContent(),'只存这一张');assert.equal(await p.locator('#card-share').isHidden(),true);
+ assert.equal(await p.locator('#card-save-all').textContent(),'保存全部 '+pages+' 张');assert.equal(await p.locator('#card-save').textContent(),'只存第 '+pages+' 张','names the page being viewed');assert.equal(await p.locator('#card-share').isHidden(),true);
  await p.evaluate(()=>{window.sharedCard=null;});await p.locator('#card-save-all').click();await p.waitForFunction(n=>window.sharedCard?.count===n,pages);assert.deepEqual(await p.evaluate(()=>sharedCard.names),Array.from({length:pages},(_,i)=>`diary-2026-10-26-cream-${i+1}.png`));
  await p.evaluate(()=>{window.sharedCard=null;});await p.locator('#card-save').click();await p.waitForFunction(()=>window.sharedCard?.count===1);
+ await p.locator('#card-prev').click();await p.waitForFunction(n=>document.getElementById('card-save').textContent==='只存第 '+n+' 张',pages-1);await p.locator('#card-next').click();await p.waitForFunction(n=>document.getElementById('card-save').textContent==='只存第 '+n+' 张'&&!document.getElementById('card-save-all').disabled,pages);
  const all=await p.locator('#card-save-all').boundingBox(),one=await p.locator('#card-save').boundingBox();assert.ok(Math.abs(all.y-one.y)<2,'the two buttons sit side by side');assert.ok(all.x>=0&&one.x+one.width<=390,'buttons fit the phone width');
  // Without file sharing (a computer), 保存全部 downloads every page.
  await p.evaluate(()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:undefined});});

@@ -1,4 +1,4 @@
-// diary-release: 2026.11.21.2
+// diary-release: 2026.11.21.3
 /* Text-only diary cards. Rendering and PNG export stay entirely on this device. */
 (function(){
  'use strict';
@@ -132,7 +132,7 @@
    document.getElementById('card-save').disabled=false;
    updateAll();
    status.textContent=pages.length>1?`文字分成了 ${pages.length} 张卡片。`:'仅包含文字、日期、标签和署名，在本机生成。';
-   document.getElementById('card-save').textContent=pages.length>1?'只存这一张':'保存卡片';
+   document.getElementById('card-save').textContent=pages.length>1?`只存第 ${pageIndex+1} 张`:'保存卡片';
    if(pages.length>1)prepareAll(token,key,source,pageIndex,file);
   }catch(error){if(token===sequence)status.textContent=error.message;}
  }
