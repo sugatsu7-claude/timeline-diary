@@ -20,7 +20,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),h=require('./br
  assert.equal(new Set(versions).size,4,'all four themes render distinct artwork');
  // A supported phone can share the already-rendered PNG without a network request.
  await p.evaluate(()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.sharedCard={name:data.files[0].name,type:data.files[0].type,size:data.files[0].size,count:data.files.length,names:data.files.map(f=>f.name)}}});});
- await p.locator('[data-card-style="cream"]').click();await p.waitForFunction(()=>!document.getElementById('card-share').hidden&&!document.getElementById('card-share').disabled);await p.locator('#card-share').click();assert.equal(await p.evaluate(()=>sharedCard.type),'image/png');
+ await p.locator('[data-card-style="cream"]').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);assert.equal(await p.locator('#card-share').isHidden(),true,'one button: saving opens the share sheet');assert.equal(await p.locator('#card-save').textContent(),'保存卡片');await p.locator('#card-save').click();await p.waitForFunction(()=>window.sharedCard?.count===1);assert.equal(await p.evaluate(()=>sharedCard.type),'image/png');
  await p.locator('#card-close').click();
  // Long CJK, emoji, Latin text and blank lines are preserved across square pages.
  const long=('一段很长的日记，标点和换行都应该保留。👩‍👩‍👧‍👦🐈‍⬛\n\n'+'https://example.com/averylongwordwithoutspaces\n').repeat(13);
@@ -29,11 +29,12 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),h=require('./br
  let collected='',pages=0;while(true){collected+=(await p.locator('#card-readable').textContent()).replaceAll('\n','');pages++;if(await p.locator('#card-next').isDisabled())break;await p.locator('#card-next').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);}
  assert.ok(pages>1);assert.equal(collected,long.replaceAll('\n',''));
  // Several pages: save or share all of them at once (phones get one share sheet), or keep just the current one.
- await p.waitForFunction(()=>!document.getElementById('card-save-all').disabled&&!document.getElementById('card-share').disabled);
- assert.equal(await p.locator('#card-save-all').textContent(),'保存全部 '+pages+' 张');assert.equal(await p.locator('#card-share').textContent(),'分享全部 '+pages+' 张');assert.equal(await p.locator('#card-save').textContent(),'只存这一张');
- await p.locator('#card-share').click();await p.waitForFunction(n=>window.sharedCard?.count===n,pages);assert.deepEqual(await p.evaluate(()=>sharedCard.names),Array.from({length:pages},(_,i)=>`diary-2026-10-26-cream-${i+1}.png`));
- await p.evaluate(()=>{window.sharedCard=null;});await p.locator('#card-save-all').click();await p.waitForFunction(n=>window.sharedCard?.count===n,pages);
- for(let i=0;i<2;i++){const box=await p.locator(['#card-save-all','#card-save'][i]).boundingBox();assert.ok(box.x>=0&&box.x+box.width<=390,'buttons fit the phone width');}
+ await p.waitForFunction(()=>!document.getElementById('card-save-all').disabled);
+ assert.equal(await p.locator('#card-save-all').textContent(),'保存全部 '+pages+' 张');assert.equal(await p.locator('#card-save').textContent(),'只存第 '+pages+' 张','names the page being viewed');assert.equal(await p.locator('#card-share').isHidden(),true);
+ await p.evaluate(()=>{window.sharedCard=null;});await p.locator('#card-save-all').click();await p.waitForFunction(n=>window.sharedCard?.count===n,pages);assert.deepEqual(await p.evaluate(()=>sharedCard.names),Array.from({length:pages},(_,i)=>`diary-2026-10-26-cream-${i+1}.png`));
+ await p.evaluate(()=>{window.sharedCard=null;});await p.locator('#card-save').click();await p.waitForFunction(()=>window.sharedCard?.count===1);
+ await p.locator('#card-prev').click();await p.waitForFunction(n=>document.getElementById('card-save').textContent==='只存第 '+n+' 张',pages-1);await p.locator('#card-next').click();await p.waitForFunction(n=>document.getElementById('card-save').textContent==='只存第 '+n+' 张'&&!document.getElementById('card-save-all').disabled,pages);
+ const all=await p.locator('#card-save-all').boundingBox(),one=await p.locator('#card-save').boundingBox();assert.ok(Math.abs(all.y-one.y)<2,'the two buttons sit side by side');assert.ok(all.x>=0&&one.x+one.width<=390,'buttons fit the phone width');
  // Without file sharing (a computer), 保存全部 downloads every page.
  await p.evaluate(()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:undefined});});
  await p.locator('[data-card-style="letter"]').click();await p.waitForFunction(()=>!document.getElementById('card-save-all').disabled);
@@ -48,5 +49,5 @@ assert.match(await count.textContent(),new RegExp(' / '+pages+'$'));await p.loca
  // No-text entries remain usable for attachments, but cannot make an empty card.
  await p.evaluate(async()=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,text:''},e);await refreshDiaryData()});assert.equal(await (await h.menu(p,p,'生成日记卡片')).isDisabled(),true);await p.keyboard.press('Escape');assert.equal(await p.locator('[aria-label="查看日记图片"]').isEnabled(),true);
  await p.setViewportSize({width:320,height:760});await p.evaluate(async()=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,source:'一个比较长的记录人名字',tags:['长标签也应留在名字这一栏','第二个标签'],text:'Small viewport'},e);await refreshDiaryData()});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
- assert.equal(workerCalls,0);assert.deepEqual(errors,[]);console.log('PASS: compact four-icon actions with a ⋯ menu for card/delete, tags beside author, square 1080px PNGs, four styles (incl. ink), local file share, save/share all pages at once, long-text/emoji pagination without loss, text-only/no-Worker export and narrow-screen layout.');await browser.close();
+ assert.equal(workerCalls,0);assert.deepEqual(errors,[]);console.log('PASS: compact four-icon actions with a ⋯ menu for card/delete, tags beside author, square 1080px PNGs, four styles (incl. ink), one save button (share sheet on phones), save all pages at once or just the current one, long-text/emoji pagination without loss, text-only/no-Worker export and narrow-screen layout.');await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});
