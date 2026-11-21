@@ -19,7 +19,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),h=require('./br
  }
  assert.equal(new Set(versions).size,4,'all four themes render distinct artwork');
  // A supported phone can share the already-rendered PNG without a network request.
- await p.evaluate(()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.sharedCard={name:data.files[0].name,type:data.files[0].type,size:data.files[0].size}}});});
+ await p.evaluate(()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.sharedCard={name:data.files[0].name,type:data.files[0].type,size:data.files[0].size,count:data.files.length,names:data.files.map(f=>f.name)}}});});
  await p.locator('[data-card-style="cream"]').click();await p.waitForFunction(()=>!document.getElementById('card-share').hidden&&!document.getElementById('card-share').disabled);await p.locator('#card-share').click();assert.equal(await p.evaluate(()=>sharedCard.type),'image/png');
  await p.locator('#card-close').click();
  // Long CJK, emoji, Latin text and blank lines are preserved across square pages.
@@ -27,7 +27,19 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),h=require('./br
  await p.evaluate(async text=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,text},e);await refreshDiaryData()},long);
  await (await h.menu(p,p,'生成日记卡片')).click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);
  let collected='',pages=0;while(true){collected+=(await p.locator('#card-readable').textContent()).replaceAll('\n','');pages++;if(await p.locator('#card-next').isDisabled())break;await p.locator('#card-next').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);}
- assert.ok(pages>1);assert.equal(collected,long.replaceAll('\n',''));assert.match(await count.textContent(),new RegExp(' / '+pages+'$'));await p.locator('#card-prev').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);await p.locator('#card-close').click();
+ assert.ok(pages>1);assert.equal(collected,long.replaceAll('\n',''));
+ // Several pages: save or share all of them at once (phones get one share sheet), or keep just the current one.
+ await p.waitForFunction(()=>!document.getElementById('card-save-all').disabled&&!document.getElementById('card-share').disabled);
+ assert.equal(await p.locator('#card-save-all').textContent(),'保存全部 '+pages+' 张');assert.equal(await p.locator('#card-share').textContent(),'分享全部 '+pages+' 张');assert.equal(await p.locator('#card-save').textContent(),'只存这一张');
+ await p.locator('#card-share').click();await p.waitForFunction(n=>window.sharedCard?.count===n,pages);assert.deepEqual(await p.evaluate(()=>sharedCard.names),Array.from({length:pages},(_,i)=>`diary-2026-10-26-cream-${i+1}.png`));
+ await p.evaluate(()=>{window.sharedCard=null;});await p.locator('#card-save-all').click();await p.waitForFunction(n=>window.sharedCard?.count===n,pages);
+ for(let i=0;i<2;i++){const box=await p.locator(['#card-save-all','#card-save'][i]).boundingBox();assert.ok(box.x>=0&&box.x+box.width<=390,'buttons fit the phone width');}
+ // Without file sharing (a computer), 保存全部 downloads every page.
+ await p.evaluate(()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:undefined});});
+ await p.locator('[data-card-style="letter"]').click();await p.waitForFunction(()=>!document.getElementById('card-save-all').disabled);
+ const names=[];const got=new Promise(r=>{p.on('download',d=>{names.push(d.suggestedFilename());if(names.length===pages)r();});});
+ await p.locator('#card-save-all').click();await got;assert.deepEqual(names.sort(),Array.from({length:pages},(_,i)=>`diary-2026-10-26-letter-${i+1}.png`).sort());
+assert.match(await count.textContent(),new RegExp(' / '+pages+'$'));await p.locator('#card-prev').click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);await p.locator('#card-close').click();
  // Enter breaks get extra space, so a page holds fewer short paragraphs than tightly wrapped lines.
  const openCard=async text=>{await p.evaluate(async text=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,text},e);await refreshDiaryData()},text);await (await h.menu(p,p,'生成日记卡片')).click();await p.waitForFunction(()=>!document.getElementById('card-save').disabled);const lines=(await p.locator('#card-readable').textContent()).split('\n').length;await p.locator('#card-close').click();return lines;};
  const separate=await openCard(Array.from({length:12},(_,i)=>'第'+i+'段').join('\n'));
@@ -36,5 +48,5 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),h=require('./br
  // No-text entries remain usable for attachments, but cannot make an empty card.
  await p.evaluate(async()=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,text:''},e);await refreshDiaryData()});assert.equal(await (await h.menu(p,p,'生成日记卡片')).isDisabled(),true);await p.keyboard.press('Escape');assert.equal(await p.locator('[aria-label="查看日记图片"]').isEnabled(),true);
  await p.setViewportSize({width:320,height:760});await p.evaluate(async()=>{const e=structuredClone(entries[0]);await DiaryStore.upsert({...e,source:'一个比较长的记录人名字',tags:['长标签也应留在名字这一栏','第二个标签'],text:'Small viewport'},e);await refreshDiaryData()});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
- assert.equal(workerCalls,0);assert.deepEqual(errors,[]);console.log('PASS: compact four-icon actions with a ⋯ menu for card/delete, tags beside author, square 1080px PNGs, four styles (incl. ink), local file share, long-text/emoji pagination without loss, text-only/no-Worker export and narrow-screen layout.');await browser.close();
+ assert.equal(workerCalls,0);assert.deepEqual(errors,[]);console.log('PASS: compact four-icon actions with a ⋯ menu for card/delete, tags beside author, square 1080px PNGs, four styles (incl. ink), local file share, save/share all pages at once, long-text/emoji pagination without loss, text-only/no-Worker export and narrow-screen layout.');await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

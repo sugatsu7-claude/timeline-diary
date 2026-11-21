@@ -1,4 +1,4 @@
-// diary-release: 2026.11.07.6
+// diary-release: 2026.11.21.1
 /* Text-only diary cards. Rendering and PNG export stay entirely on this device. */
 (function(){
  'use strict';
@@ -9,7 +9,7 @@
  // Chinese numerals for the ink card: 二〇二六年十一月五日, page 一 / 三.
  const cnDigit=d=>'〇一二三四五六七八九'[d],cnNum=n=>n<=10?(n===10?'十':'〇一二三四五六七八九'[n]):n<20?'十'+cnDigit(n-10):cnDigit(Math.floor(n/10))+'十'+(n%10?cnDigit(n%10):'');
  const dialog=document.getElementById('card-dialog'),canvas=document.getElementById('card-canvas'),status=document.getElementById('card-status');
- let entry,pages=[],index=0,theme='cream',sequence=0,file=null,trigger;
+ let entry,pages=[],index=0,theme='cream',sequence=0,file=null,trigger,allFiles=null;
  const backgrounds=new Map();
  function flower(x,y,s,color){return `<g transform="translate(${x} ${y}) scale(${s})" opacity=".8"><circle cy="-3" r="3.4" fill="${color}"/><circle cx="3" r="3.4" fill="${color}"/><circle cy="3" r="3.4" fill="${color}"/><circle cx="-3" r="3.4" fill="${color}"/><circle r="1.4" fill="#bd9155"/></g>`;}
  function branch(x,y,s,rotation,color='#9da88a'){
@@ -84,15 +84,12 @@
  function dateLabel(date){const d=new Date(date+'T00:00:00');return Number.isNaN(d.getTime())?date:`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 · 周${'日一二三四五六'[d.getDay()]}`;}
  function cnDate(date){const d=new Date(date+'T00:00:00');return Number.isNaN(d.getTime())?date:`${String(d.getFullYear()).split('').map(cnDigit).join('')}年${cnNum(d.getMonth()+1)}月${cnNum(d.getDate())}日 · 星期${'日一二三四五六'[d.getDay()]}`;}
  function rounded(ctx,x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();}
- async function render(){
-  if(!entry||!pages.length||!dialog.open)return;
-  const token=++sequence;file=null;document.getElementById('card-save').disabled=document.getElementById('card-share').disabled=true;
-  const key=theme,pageIndex=index,source=entry,part=pages[pageIndex];status.textContent='正在排版…';
-  try{
+ // Draws one square card page; used for the preview and for saving or sharing every page at once.
+ async function draw(key,pageIndex,source,pages){
    const bg=await background(key),sheet=document.createElement('canvas');sheet.width=sheet.height=SIZE*SCALE;
    const ctx=sheet.getContext('2d');ctx.scale(SCALE,SCALE);ctx.drawImage(bg,0,0,SIZE,SIZE);ctx.textBaseline='alphabetic';ctx.fillStyle=themes[key].ink;ctx.font=`12px ${fontOf(key)}`;const ink=key==='ink';ctx.fillText(ink?cnDate(source.date):dateLabel(source.date),LEFT,58);
    const tags=(source.tags||[]).join(' · ');if(tags&&ink){ctx.font=`12px ${fontOf(key)}`;ctx.fillStyle=themes[key].tag;ctx.fillText('「'+ellipsis(tags,ctx,WIDTH-30)+'」',LEFT-6,88);}else if(tags){ctx.font=`11px ${FONT}`;const label=ellipsis(tags,ctx,WIDTH-18),w=Math.min(WIDTH,ctx.measureText(label).width+18);ctx.fillStyle=themes[key].tag;rounded(ctx,LEFT,72,w,20,10);ctx.fillStyle=themes[key].ink;ctx.fillText(label,LEFT+9,86);}
-   ctx.font=`400 ${BODY}px ${fontOf(key)}`;ctx.fillStyle=themes[key].body||'#514c44';const top=tags?126:106;part.forEach(line=>ctx.fillText(line.text,LEFT,top+line.offset));
+   ctx.font=`400 ${BODY}px ${fontOf(key)}`;ctx.fillStyle=themes[key].body||'#514c44';const top=tags?126:106;pages[pageIndex].forEach(line=>ctx.fillText(line.text,LEFT,top+line.offset));
    ctx.font=`12px ${fontOf(key)}`;ctx.fillStyle=themes[key].ink;ctx.textAlign='right';
    if(ink){// Signature, then a small cinnabar seal reading 记.
     const name=ellipsis(source.source||'未署名',ctx,WIDTH-80)+'  记',sx=SIZE-LEFT-24;ctx.fillText(name,sx-6,318);
@@ -100,6 +97,31 @@
    }else ctx.fillText(ellipsis(source.source||'未署名',ctx,WIDTH-40),SIZE-LEFT,324);
    if(pages.length>1){ctx.font=`10px ${fontOf(key)}`;ctx.textAlign='center';ctx.fillStyle='#928a7f';ctx.fillText(ink?`${cnNum(pageIndex+1)} / ${cnNum(pages.length)}`:`${pageIndex+1} / ${pages.length}`,SIZE/2,ink?338:344);}
    const blob=await new Promise((resolve,reject)=>sheet.toBlob(b=>b?resolve(b):reject(new Error('图片生成失败，请重试')),'image/png'));
+   return {sheet,blob};
+ }
+ // Every page as a PNG file, ready before the tap so the share sheet can open right away (Safari needs that).
+ async function prepareAll(token,key,source,current,currentFile){
+  const list=[];
+  for(let i=0;i<pages.length;i++){
+   if(token!==sequence)return;
+   if(i===current){list.push(currentFile);continue;}
+   const {blob}=await draw(key,i,source,pages);list.push(new File([blob],`diary-${source.date}-${key}-${i+1}.png`,{type:'image/png'}));
+  }
+  if(token===sequence){allFiles=list;updateAll();}
+ }
+ function canShare(files){try{return !!navigator.canShare?.({files});}catch(_){return false;}}
+ function updateAll(){
+  const many=pages.length>1,saveAll=document.getElementById('card-save-all'),share=document.getElementById('card-share');
+  saveAll.hidden=!many;saveAll.textContent=`保存全部 ${pages.length} 张`;saveAll.disabled=!allFiles;
+  if(many){const ok=canShare(allFiles||[file].filter(Boolean));share.hidden=!ok;share.disabled=!allFiles||!ok;share.textContent=`分享全部 ${pages.length} 张`;}
+  else share.textContent='分享';
+ }
+ async function render(){
+  if(!entry||!pages.length||!dialog.open)return;
+  const token=++sequence;file=null;document.getElementById('card-save').disabled=document.getElementById('card-share').disabled=true;
+  const key=theme,pageIndex=index,source=entry,part=pages[pageIndex];status.textContent='正在排版…';allFiles=null;updateAll();
+  try{
+   const {sheet,blob}=await draw(key,pageIndex,source,pages);
    if(token!==sequence||!dialog.open)return;
    canvas.width=canvas.height=SIZE*SCALE;canvas.getContext('2d').drawImage(sheet,0,0);canvas.setAttribute('aria-label',`${themes[key].name}，${dateLabel(source.date)}，第${pageIndex+1}张，共${pages.length}张`);
    document.getElementById('card-readable').textContent=part.map(line=>line.text).join('\n');
@@ -108,9 +130,11 @@
    document.getElementById('card-prev').disabled=pageIndex===0;document.getElementById('card-next').disabled=pageIndex===pages.length-1;
    document.getElementById('card-pagination').hidden=pages.length===1;
    document.getElementById('card-save').disabled=false;
-   let share=false;try{share=!!navigator.canShare?.({files:[file]});}catch(_){}
-   document.getElementById('card-share').hidden=!share;document.getElementById('card-share').disabled=!share;
-   status.textContent=pages.length>1?`文字已分为${pages.length}张方形卡片；可切换并逐张保存。`:'仅包含文字、日期、标签和署名，在本机生成。';
+   const share=canShare([file]);
+   document.getElementById('card-share').hidden=!share;document.getElementById('card-share').disabled=!share||pages.length>1;updateAll();
+   status.textContent=pages.length>1?`文字分成了 ${pages.length} 张卡片，可以一次保存或分享全部。`:'仅包含文字、日期、标签和署名，在本机生成。';
+   document.getElementById('card-save').textContent=pages.length>1?'只存这一张':'保存当前卡片';
+   if(pages.length>1)prepareAll(token,key,source,pageIndex,file);
   }catch(error){if(token===sequence)status.textContent=error.message;}
  }
  // Fonts differ per style (the ink card uses Kaiti), so pages are laid out again for each style.
@@ -127,8 +151,15 @@
  document.getElementById('card-prev').onclick=()=>{if(index>0){index--;render();}};
  document.getElementById('card-next').onclick=()=>{if(index<pages.length-1){index++;render();}};
  document.getElementById('card-close').onclick=()=>dialog.close();
- dialog.addEventListener('close',()=>{sequence++;file=null;if(trigger?.isConnected)trigger.focus({preventScroll:true});});
+ dialog.addEventListener('close',()=>{sequence++;file=null;allFiles=null;if(trigger?.isConnected)trigger.focus({preventScroll:true});});
  document.getElementById('card-save').onclick=()=>{if(!file)return;const url=URL.createObjectURL(file),link=document.createElement('a');link.href=url;link.download=file.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);showToast('已生成卡片，可在下载文件中查看');};
- document.getElementById('card-share').onclick=async()=>{if(!file)return;try{await navigator.share({files:[file]});}catch(error){if(error.name!=='AbortError')showToast('暂时无法分享，可先保存卡片');}};
+  document.getElementById('card-share').onclick=async()=>{const files=pages.length>1?allFiles:file&&[file];if(!files)return;try{await navigator.share({files});}catch(error){if(error.name!=='AbortError')showToast('暂时无法分享，可先保存卡片');}};
+ // 保存全部: phones that can share files get the system sheet (存储图像 saves them all to Photos); elsewhere each page downloads.
+ document.getElementById('card-save-all').onclick=async()=>{
+  const files=allFiles;if(!files)return;
+  if(canShare(files)){try{await navigator.share({files});}catch(error){if(error.name!=='AbortError')showToast('暂时无法打开保存面板，可逐张保存');}return;}
+  for(const f of files){const url=URL.createObjectURL(f),link=document.createElement('a');link.href=url;link.download=f.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);await new Promise(r=>setTimeout(r,350));}
+  showToast(`已生成 ${files.length} 张卡片，可在下载文件中查看`);
+ };
  window.DiaryCards={open};
 })();
